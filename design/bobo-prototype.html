@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bobo — your little songbook</title>
+    <style>
+      :root { color-scheme: light; --paper:#faf7f0; --surface:#fffdf8; --ink:#49372e; --muted:#79685d; --blue:#527c93; --deep-blue:#365d74; --line:#e5ddd1; --font:ui-rounded,"Avenir Next",Avenir,system-ui,sans-serif; }
+      * { box-sizing:border-box; }
+      body { margin:0; color:var(--ink); background:var(--paper); font:15px/1.5 var(--font); -webkit-font-smoothing:antialiased; }
+      button,input { font:inherit; } button,a { -webkit-tap-highlight-color:transparent; }
+      button { cursor:pointer; } button:disabled { cursor:default; opacity:.45; }
+      button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible { outline:3px solid var(--blue); outline-offset:4px; }
+      button { color:inherit; } a { color:inherit; } [hidden] { display:none!important; }
+      .preview-bar { min-height:45px; padding:8px 24px; display:flex; justify-content:space-between; align-items:center; gap:12px; background:#ece5da; font-size:11px; }
+      .preview-bar span { color:#6f5d50; }.preview-links { display:flex; gap:5px; }
+      .preview-links a { padding:4px 10px; border-radius:7px; text-decoration:none; }.preview-links a[aria-current] { background:var(--surface); }
+      .shell { min-height:calc(100dvh - 45px); display:grid; grid-template-columns:224px minmax(0,1fr); }
+      .sidebar { border-right:1px solid var(--line); padding:34px 22px 24px; display:flex; flex-direction:column; }
+      .brand { font-size:43px; font-weight:850; letter-spacing:-3.5px; text-decoration:none; line-height:1; }.brand span { color:var(--blue); }
+      .brand-note { font-size:11px; color:var(--muted); margin:9px 0 40px 3px; }
+      .nav-item { display:flex; gap:12px; padding:13px 15px; align-items:center; font-weight:650; color:var(--deep-blue); text-decoration:none; border:2px solid #cfdee4; border-radius:14px; background:#e7eef0; }
+      .nav-item svg { width:21px; height:21px; }.nav-preview { margin:16px 15px 0; font-size:12px; color:var(--muted); line-height:2; }.nav-preview small { display:block; font-size:10px; color:#8c7c70; }
+      .sidebar-bottom { margin-top:auto; padding-top:55px; }.sidebar-bobo { width:100px; display:block; margin:0 auto 12px; }
+      .local-state { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted); padding-top:18px; border-top:1px solid var(--line); }.dot { width:7px; height:7px; border-radius:50%; background:#63866d; }
+      .main { min-width:0; }.topbar { display:flex; justify-content:space-between; align-items:center; padding:23px 46px; border-bottom:1px solid var(--line); font-size:12px; color:var(--muted); }
+      .workspace { color:var(--ink); font-weight:650; }.avatar { height:32px; width:32px; display:grid; place-items:center; border-radius:50%; background:#eadaca; color:#75523a; font-weight:700; }
+      .content { max-width:1120px; margin:auto; padding:38px 46px 50px; }
+      h1,h2,p { margin-top:0; } h1 { font-size:38px; letter-spacing:-1.5px; line-height:1.16; font-weight:750; margin-bottom:13px; } h2 { font-size:19px; letter-spacing:-.4px; margin-bottom:0; }
+      .muted { color:var(--muted); }.btn { display:inline-flex; align-items:center; justify-content:center; gap:9px; border:1.5px solid var(--deep-blue); border-bottom-width:4px; border-radius:13px; padding:11px 19px 10px; background:var(--blue); color:white; font-weight:700; font-size:14px; text-decoration:none; transition:transform .12s,border-width .12s; min-height:47px; }
+      .btn:active { transform:translateY(2px); border-bottom-width:2px; }.btn.secondary { background:var(--surface); border-color:#d9cdbd; color:var(--ink); }.btn.quiet { background:transparent; color:var(--muted); border:0; min-height:44px; padding:8px 12px; }
+      .btn svg { width:18px; height:18px; }.icon { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+      .empty { text-align:center; padding:25px 20px 38px; max-width:640px; margin:auto; }.empty .bobo { width:260px; height:260px; margin-bottom:12px; }.empty p { max-width:370px; margin:0 auto 25px; line-height:1.75; color:var(--muted); }.empty small { display:block; color:var(--muted); font-size:11px; margin-top:17px; }
+      .starter { border-top:1px solid var(--line); max-width:620px; margin:0 auto; padding:25px 0; display:flex; align-items:center; justify-content:space-between; gap:20px; }.starter p { font-size:13px; color:var(--muted); margin:6px 0 0; }.starter h2 { font-size:16px; }
+      .welcome { min-height:186px; border-radius:24px; background:#eee5d8; display:flex; align-items:center; justify-content:space-between; padding:26px 34px; overflow:hidden; }.welcome h1 { font-size:32px; max-width:380px; }.welcome p { margin:0; color:var(--muted); font-size:14px; }.welcome img { width:188px; margin:-20px 0; }
+      .library-heading { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:32px 0 21px; }.library-heading h2 span { font-size:12px; color:var(--muted); font-weight:500; margin-left:8px; }
+      .search { display:flex; gap:10px; align-items:center; background:var(--surface); border:1.5px solid #ded4c5; border-radius:13px; padding:0 15px; margin-bottom:22px; }.search:focus-within { border-color:var(--blue); }.search .icon { color:#968373; width:18px; }.search input { border:0; outline:0; height:47px; min-width:0; width:100%; background:transparent; color:var(--ink); }.search input::placeholder { color:#8e7c6e; }
+      .song-list { border:1.5px solid var(--line); border-radius:18px; overflow:hidden; background:var(--surface); }.song-row { display:flex; gap:16px; align-items:center; padding:21px 23px; border-bottom:1px solid var(--line); }.song-row:last-child { border-bottom:0; }.song-icon { background:#eee5d8; color:#a97a50; border-radius:10px; width:43px; height:50px; display:grid; place-items:center; flex-shrink:0; }.song-info { min-width:0; flex:1; }.song-info h3 { font-size:15px; margin:0 0 4px; font-weight:700; }.song-info p { font-size:12px; color:var(--muted); margin:0; }.key { font:12px ui-monospace,monospace; color:var(--muted); white-space:nowrap; margin:0 12px; }.song-row .btn { min-height:41px; font-size:12px; padding:8px 13px 7px; }.song-row .btn svg { width:13px; height:13px; }
+      .library-foot { display:flex; gap:7px; align-items:center; font-size:11px; color:var(--muted); margin-top:20px; }.library-foot .icon { width:14px; height:14px; }.no-results { text-align:center; padding:50px 20px; }.no-results p { margin:0 0 12px; color:var(--muted); }
+      .player { height:calc(100dvh - 45px); display:flex; flex-direction:column; background:var(--surface); }.player-top { padding:17px 32px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); }.back { font-weight:650; display:flex; align-items:center; gap:8px; text-decoration:none; font-size:13px; }.player-brand { font-size:25px; letter-spacing:-2px; }.player-top details { position:relative; }.player-top summary { list-style:none; cursor:pointer; padding:8px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:12px; font-weight:650; }.view-panel { position:absolute; right:0; top:47px; width:220px; z-index:2; padding:17px; background:var(--surface); border:1.5px solid var(--line); border-radius:13px; box-shadow:0 8px 30px #49372e12; }.view-panel p { font-size:12px; margin-bottom:10px; }.size-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; }.size-controls .btn { min-width:40px; padding:5px; min-height:38px; }.view-panel label { display:flex; align-items:center; gap:9px; font-size:12px; margin-top:15px; }.view-panel input { accent-color:var(--blue); }
+      .player-scroll { flex:1; min-height:0; overflow:auto; }.sheet { max-width:790px; margin:auto; padding:46px 42px 100px; }.sheet h1 { font-size:36px; margin-bottom:7px; }.song-author { color:var(--muted); font-size:13px; margin-bottom:22px; }.musical-meta { display:flex; gap:9px; margin-bottom:37px; }.musical-meta span { border:1px solid var(--line); padding:6px 10px; border-radius:8px; font-size:11px; color:var(--muted); }.musical-meta b { color:var(--ink); margin-left:5px; }
+      .section-label { font-size:11px; color:#927c68; font-weight:700; margin:32px 0 20px; letter-spacing:.05em; }.lyrics { font-size:23px; line-height:1.55; }.lyric-line { display:flex; flex-wrap:wrap; align-items:flex-end; margin-bottom:22px; }.pair { display:inline-flex; flex-direction:column; white-space:pre; }.chord { color:var(--deep-blue); font:700 .7em/1.8 ui-monospace,monospace; min-height:1.8em; }.lyrics.hide-chords .chord { display:none; }.sheet-note { font-size:12px; color:var(--muted); margin-top:45px; }
+      .player-bottom { border-top:1px solid var(--line); background:var(--paper); padding:15px 32px; display:flex; justify-content:space-between; align-items:center; gap:16px; }.player-bottom small { font-size:11px; color:var(--muted); }.scroll-controls { display:flex; align-items:center; gap:16px; }.scroll-controls label { font-size:11px; color:var(--muted); display:flex; gap:8px; align-items:center; }.scroll-controls input { width:90px; accent-color:var(--blue); }
+      dialog { border:1.5px solid var(--line); padding:30px; border-radius:24px; width:min(440px,calc(100% - 32px)); background:var(--surface); color:var(--ink); box-shadow:0 18px 80px #49372e20; } dialog::backdrop { background:#49372e55; backdrop-filter:blur(3px); }.dialog-heading { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:12px; } dialog p { font-size:14px; color:var(--muted); } dialog img { width:150px; display:block; margin:0 auto; }.example-card { border:1.5px solid var(--line); border-radius:13px; padding:16px; margin:20px 0; }.example-card strong { display:block; }.example-card small { color:var(--muted); } dialog .full { width:100%; } .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:12px 20px; border-radius:12px; box-shadow:0 4px 20px #49372e22; font-size:13px; z-index:5; width:max-content; max-width:calc(100% - 32px); text-align:center; }
+      .bobo { transform-origin:50% 80%; animation:settle .7s ease-out both; } @keyframes settle { from { transform:translateY(9px) rotate(-3deg); opacity:0; } to { transform:none; opacity:1; } }
+      @media (min-width:1500px) { .content { padding-top:60px; } }
+      @media (max-width:960px) { .shell { grid-template-columns:185px minmax(0,1fr); }.sidebar { padding:30px 15px 20px; }.content { padding:30px 26px; }.topbar { padding:20px 26px; }.welcome { padding:24px; }.welcome h1 { font-size:28px; }.welcome img { width:145px; }.key { margin:0; } }
+      @media (max-width:650px) { .preview-bar { padding:8px 12px; flex-direction:column; gap:5px; min-height:67px; }.preview-links a { padding:4px 13px; }.shell { display:block; min-height:calc(100dvh - 67px); }.sidebar { padding:19px 22px; border-right:0; border-bottom:1px solid var(--line); flex-direction:row; align-items:center; justify-content:space-between; }.brand { font-size:34px; }.brand-note,.nav-item,.nav-preview,.sidebar-bottom { display:none; }.sidebar::after { content:'Your little songbook'; color:var(--muted); font-size:11px; }.topbar { padding:14px 22px; border-bottom:0; }.content { padding:13px 20px 28px; }.empty { padding:0 0 30px; }.empty .bobo { width:220px; height:220px; margin:0; } h1 { font-size:31px; }.empty p { font-size:14px; }.starter { align-items:flex-start; }.starter .btn { font-size:12px; padding:9px 12px; min-width:104px; }.starter p { font-size:12px; }.welcome { min-height:166px; padding:22px; border-radius:20px; position:relative; }.welcome>div { position:relative; z-index:1; max-width:190px; }.welcome h1 { font-size:25px; letter-spacing:-.8px; }.welcome p { font-size:12px; max-width:155px; }.welcome img { width:146px; position:absolute; right:-12px; bottom:0; margin:0; }.library-heading { margin:27px 0 18px; }.library-heading .btn { font-size:12px; padding:9px 12px; min-height:43px; }.song-row { padding:17px 13px; gap:11px; }.song-icon { display:none; }.song-info h3 { font-size:14px; }.song-info p { font-size:11px; }.key { font-size:10px; }.song-row .btn { padding:8px 10px 7px; }.song-row .btn svg { display:none; }.player { height:calc(100dvh - 67px); }.player-top { padding:13px 19px; }.sheet { padding:31px 24px 75px; }.sheet h1 { font-size:30px; }.lyrics { font-size:21px; }.lyric-line { margin-bottom:24px; }.player-bottom { padding:13px 18px; }.player-bottom>small { display:none; }.scroll-controls { width:100%; justify-content:space-between; gap:10px; }.scroll-controls .btn { font-size:12px; padding:10px 14px; }.scroll-controls input { width:70px; }.toast { bottom:18px; } }
+      .welcome p,.section-label { color:#68564a; }
+      @media (max-width:360px) { .welcome>div { max-width:145px; }.welcome h1 { font-size:22px; }.welcome img { width:110px; right:0; }.song-row { gap:8px; }.key { display:none; } }
+      @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <symbol id="book" viewBox="0 0 24 24"><path d="M12 6C8 3 4 4 2 5v15c4-2 7-1 10 1 3-2 6-3 10-1V5c-2-1-6-2-10 1Zm0 0v15"/></symbol>
+      <symbol id="play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8Z"/></symbol>
+      <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></symbol>
+      <symbol id="back" viewBox="0 0 24 24"><path d="m12 5-7 7 7 7M5 12h15"/></symbol>
+      <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="note" viewBox="0 0 24 24"><path d="M9 17V5l11-2v12M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2.5"/><ellipse cx="17" cy="16" rx="3" ry="2.5"/></symbol>
+    </defs></svg>
+    <div class="preview-bar"><span>DESIGN PREVIEW · example songs · temporary session</span><nav class="preview-links" aria-label="Prototype screens"><a href="#welcome">First visit</a><a href="#songbook">Songbook</a><a href="#play">Playing mode</a></nav></div>
+    <div id="shell" class="shell">
+      <aside class="sidebar"><div><a class="brand" href="#songbook" aria-label="Bobo songbook">bobo<span>.</span></a><p class="brand-note">Your little songbook.</p><a href="#songbook" class="nav-item"><svg class="icon" aria-hidden="true"><use href="#book"/></svg>Songbook</a><div class="nav-preview">Setlists · Discover · Bands<small>Navigation preview for later screens</small></div></div><div class="sidebar-bottom"><img class="sidebar-bobo" src="bobo-hugger.svg" alt=""/><div class="local-state"><span class="dot"></span>A little room for your music</div></div></aside>
+      <main class="main"><header class="topbar"><span class="workspace">My songbook</span><span class="avatar" role="img" aria-label="Example account">J</span></header>
+        <section id="welcome" class="content" aria-labelledby="welcome-title">
+          <div class="empty"><img class="bobo" src="bobo-hugger.svg" alt="Bobo hugging a guitar, ready to play with you"/><h1 id="welcome-title" tabindex="-1">A little room<br/>for your favorite songs.</h1><p>Keep your chords together, find your comfy key, and play something you love.</p><button class="btn" data-add><svg class="icon" aria-hidden="true"><use href="#plus"/></svg>Add your first song</button><small>Your personal songbook works without an account.</small></div>
+          <div class="starter"><div><h2>Just looking around?</h2><p>Try a few familiar tunes with Bobo.</p></div><button class="btn secondary" id="try-examples">Try example songs</button></div>
+        </section>
+        <section id="songbook" class="content" hidden aria-labelledby="library-title">
+          <div class="welcome"><div><h1 id="library-title" tabindex="-1">Ready for a<br/>little music?</h1><p>Pick a song and settle in.</p></div><img class="bobo" src="bobo-hugger.svg" alt="Bobo sitting with its favorite guitar"/></div>
+          <div class="library-heading"><h2>Your songs <span id="song-count"></span></h2><button class="btn" data-add><svg class="icon" aria-hidden="true"><use href="#plus"/></svg>Add a song</button></div>
+          <label class="search"><svg class="icon" aria-hidden="true"><use href="#search"/></svg><input id="search-input" type="search" placeholder="Find a song or artist…" aria-label="Search example songs"/></label>
+          <div id="song-list" class="song-list"></div><div id="no-results" class="no-results" hidden><p>No songs match your search.</p><button class="btn secondary" id="clear-search">Clear search</button></div>
+          <p class="library-foot"><svg class="icon" aria-hidden="true"><use href="#check"/></svg>Example collection · explore freely</p>
+        </section>
+      </main>
+    </div>
+    <main id="player" class="player" hidden aria-labelledby="player-title">
+      <header class="player-top"><a href="#songbook" class="back"><svg class="icon" aria-hidden="true"><use href="#back"/></svg>Songbook</a><a class="brand player-brand" href="#songbook" aria-label="Bobo songbook">bobo<span>.</span></a><details id="view-options"><summary>View · Aa</summary><div class="view-panel"><p>Make yourself comfortable.</p><div class="size-controls"><button class="btn secondary" id="smaller" aria-label="Smaller lyrics">−</button><span id="font-label">23 px</span><button class="btn secondary" id="larger" aria-label="Larger lyrics">+</button></div><label><input type="checkbox" id="show-chords" checked/>Show chords</label></div></details></header>
+      <div id="player-scroll" class="player-scroll" tabindex="0" role="region" aria-label="Song chord sheet"><article class="sheet"><h1 id="player-title" tabindex="-1"></h1><p id="player-artist" class="song-author"></p><div class="musical-meta"><span>Key<b id="player-key"></b></span><span>Capo<b>None</b></span><span>Example arrangement</span></div><div id="lyrics" class="lyrics"></div><p class="sheet-note">Take it at your own pace. Bobo’s happy to hang out.</p></article></div>
+      <footer class="player-bottom"><small>Just you and the music.</small><div class="scroll-controls"><label>Speed<input id="scroll-speed" type="range" min="10" max="70" value="25" aria-label="Autoscroll speed"/></label><button id="autoscroll" class="btn" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#play"/></svg><span>Start autoscroll</span></button></div></footer>
+    </main>
+    <dialog id="add-dialog" aria-labelledby="add-title"><div class="dialog-heading"><h2 id="add-title">A new song for your book.</h2><button class="btn quiet" id="close-dialog" aria-label="Close add song">✕</button></div><img class="bobo" src="bobo-hugger.svg" alt=""/><p>This preview uses example songs. Try adding a traditional tune to see how the flow feels.</p><div class="example-card"><strong>Greensleeves</strong><small>Traditional · Key Am · No capo</small></div><button class="btn full" id="confirm-add">Add to songbook</button></dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script>
+      // Prototype-only fixtures; production song content stays in the existing ChordPro pipeline.
+      const songs = [
+        { id:'grace', title:'Amazing Grace', artist:'Traditional · Words by John Newton', key:'G', verses:[
+          [['G','Amazing grace! How '],['C','sweet the '],['G','sound,']], [['G','That saved a wretch like '],['D','me!']], [['G','I once was lost, but '],['C','now am '],['G','found,']], [['G','Was blind, but '],['D','now I '],['G','see.']],
+          [['G',"’Twas grace that taught my "],['C','heart to '],['G','fear,']], [['G','And grace my fears re'],['D','lieved;']], [['G','How precious did that '],['C','grace ap'],['G','pear']], [['G','The hour I '],['D','first be'],['G','lieved.']],
+          [['G','Through many dangers, '],['C','toils and '],['G','snares,']], [['G','I have already '],['D','come;']], [['G',"’Tis grace hath brought me "],['C','safe thus '],['G','far,']], [['G','And grace will '],['D','lead me '],['G','home.']]] },
+        { id:'sun', title:'House of the Rising Sun', artist:'Traditional', key:'Am', verses:[[['Am','There is a '],['C','house in '],['D','New Or'],['F','leans']], [['Am','They call the '],['C','Rising '],['E','Sun']], [['Am',"And it’s been the "],['C','ruin of '],['D','many a poor '],['F','boy']], [['Am','And God, I '],['E',"know I’m "],['Am','one.']]] },
+        { id:'greensleeves', title:'Greensleeves', artist:'Traditional', key:'Am', verses:[[['Am','Alas, my '],['C','love, you '],['G','do me '],['Em','wrong']], [['Am','To cast me '],['E','off discourteously;']], [['Am','For I have '],['C','loved you '],['G','well and '],['Em','long,']], [['Am','Delighting '],['E','in your '],['Am','company.']]] }
+      ];
+      let collection = songs.slice(0, 2);
+      let selected = songs[0];
+      let size = 23;
+      let scrolling = false;
+      let frame = 0;
+      let toastTimer;
+      const $ = (id) => document.getElementById(id);
+      const dialog = $('add-dialog');
+      const scrollArea = $('player-scroll');
+      function renderSongs() {
+        const query = $('search-input').value.trim().toLowerCase();
+        const visible = collection.filter(song => `${song.title} ${song.artist}`.toLowerCase().includes(query));
+        $('song-count').textContent = `${collection.length} songs`;
+        $('song-list').replaceChildren();
+        for (const song of visible) {
+          const row = document.createElement('div'); row.className = 'song-row';
+          row.innerHTML = '<div class="song-icon"><svg class="icon" aria-hidden="true"><use href="#note"/></svg></div><div class="song-info"><h3></h3><p></p></div><span class="key"></span><button class="btn secondary"><svg class="icon" aria-hidden="true"><use href="#play"/></svg>Play</button>';
+          row.querySelector('h3').textContent = song.title;
+          row.querySelector('p').textContent = song.artist;
+          row.querySelector('.key').textContent = song.key;
+          row.querySelector('button').setAttribute('aria-label', `Play ${song.title}`);
+          row.querySelector('button').onclick = () => { selected = song; location.hash = 'play'; };
+          $('song-list').append(row);
+        }
+        $('song-list').hidden = visible.length === 0;
+        $('no-results').hidden = visible.length !== 0;
+      }
+      function renderPlayer() {
+        $('player-title').textContent = selected.title;
+        $('player-artist').textContent = selected.artist;
+        $('player-key').textContent = selected.key;
+        $('lyrics').replaceChildren();
+        selected.verses.forEach((line, index) => {
+          if (index % 4 === 0) { const label = document.createElement('p'); label.className = 'section-label'; label.textContent = `Verse ${Math.floor(index / 4) + 1}`; $('lyrics').append(label); }
+          const element = document.createElement('div'); element.className = 'lyric-line';
+          for (const [chord, text] of line) {
+            const pair = document.createElement('span'); pair.className = 'pair';
+            const chordElement = document.createElement('span'); chordElement.className = 'chord'; chordElement.textContent = chord;
+            const lyric = document.createElement('span'); lyric.textContent = text;
+            pair.append(chordElement, lyric); element.append(pair);
+          }
+          $('lyrics').append(element);
+        });
+        scrollArea.scrollTop = 0;
+      }
+      function stopScroll() {
+        scrolling = false; cancelAnimationFrame(frame);
+        $('autoscroll').setAttribute('aria-pressed', 'false');
+        $('autoscroll').querySelector('span').textContent = 'Start autoscroll';
+      }
+      function route(focus = true) {
+        const screen = ['welcome','songbook','play'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'welcome';
+        stopScroll(); $('view-options').open = false;
+        $('shell').hidden = screen === 'play'; $('player').hidden = screen !== 'play';
+        $('welcome').hidden = screen !== 'welcome'; $('songbook').hidden = screen !== 'songbook';
+        for (const link of document.querySelectorAll('.preview-links a')) { if (link.hash === `#${screen}`) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); }
+        if (screen === 'songbook') renderSongs();
+        if (screen === 'play') renderPlayer();
+        if (focus) $(screen === 'welcome' ? 'welcome-title' : screen === 'songbook' ? 'library-title' : 'player-title').focus({preventScroll:true});
+        window.scrollTo(0,0);
+      }
+      function notify(text) { clearTimeout(toastTimer); $('toast').textContent = text; $('toast').hidden = false; toastTimer = setTimeout(() => { $('toast').hidden = true; }, 3500); }
+      for (const button of document.querySelectorAll('[data-add]')) button.onclick = () => dialog.showModal();
+      $('close-dialog').onclick = () => dialog.close();
+      $('try-examples').onclick = () => { location.hash = 'songbook'; };
+      $('confirm-add').onclick = () => { const added = !collection.some(song => song.id === 'greensleeves'); if (added) collection.push(songs[2]); dialog.close(); if (location.hash === '#songbook') renderSongs(); else location.hash = 'songbook'; notify(added ? 'Greensleeves added. Ready when you are.' : 'Greensleeves is already in your songbook.'); };
+      $('search-input').oninput = renderSongs;
+      $('clear-search').onclick = () => { $('search-input').value = ''; renderSongs(); $('search-input').focus(); };
+      function resize(delta) { size = Math.min(34, Math.max(17, size + delta)); $('lyrics').style.fontSize = `${size}px`; $('font-label').textContent = `${size} px`; $('smaller').disabled = size === 17; $('larger').disabled = size === 34; }
+      $('smaller').onclick = () => resize(-2); $('larger').onclick = () => resize(2);
+      $('show-chords').onchange = (event) => $('lyrics').classList.toggle('hide-chords', !event.target.checked);
+      $('autoscroll').onclick = () => {
+        if (scrolling) { stopScroll(); return; }
+        if (scrollArea.scrollHeight <= scrollArea.clientHeight) { notify('This song already fits on the screen.'); return; }
+        if (scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 1) scrollArea.scrollTop = 0;
+        scrolling = true; $('autoscroll').setAttribute('aria-pressed','true'); $('autoscroll').querySelector('span').textContent = 'Pause autoscroll';
+        let last = performance.now(); let position = scrollArea.scrollTop;
+        function tick(now) { if (!scrolling) return; position += Math.min(now - last, 100) * Number($('scroll-speed').value) / 1000; scrollArea.scrollTop = position; last = now; if (scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 1) { stopScroll(); return; } frame = requestAnimationFrame(tick); }
+        frame = requestAnimationFrame(tick);
+      };
+      document.addEventListener('visibilitychange', () => { if (document.hidden) stopScroll(); });
+      window.addEventListener('hashchange', () => route());
+      resize(0);
+      route(false);
+    </script>
+  </body>
+</html>
