@@ -114,7 +114,7 @@ export function Player({
 		diagrams,
 		speed,
 	]);
-	const sheet = useRef<HTMLDivElement>(null);
+	const sheet = useRef<HTMLElement>(null);
 	const delta = displayTranspose(shown.data.key, key, shapes ? capo : 0);
 	useEffect(() => {
 		if (!scrolling) return;
@@ -123,7 +123,7 @@ export function Player({
 		let position = sheet.current?.scrollTop || 0;
 		const tick = (now: number) => {
 			if (sheet.current) {
-				position += ((now - last) * speed) / 1000;
+				position += (Math.min(now - last, 100) * speed) / 1000;
 				sheet.current.scrollTop = position;
 				if (
 					sheet.current.scrollTop + sheet.current.clientHeight >=
@@ -137,13 +137,22 @@ export function Player({
 		frame = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(frame);
 	}, [scrolling, speed]);
+	useEffect(() => {
+		const pause = () => {
+			if (document.hidden) setScrolling(false);
+		};
+		document.addEventListener("visibilitychange", pause);
+		return () => document.removeEventListener("visibilitychange", pause);
+	}, []);
 	return (
 		<section className="player-screen">
 			<header className="player-heading">
 				<Button variant="ghost" onClick={close}>
 					<ArrowLeft size={16} /> Songbook
 				</Button>
-				<span className="eyebrow">Playing mode</span>
+				<span className="player-wordmark">
+					bobo<span>.</span>
+				</span>
 				<div className="actions">
 					<ThemeToggle />
 					<Button variant="ghost" onClick={() => window.print()}>
@@ -173,54 +182,62 @@ export function Player({
 						))}
 					</select>
 				</label>
-				<label>
-					Display
-					<select
-						value={shapes ? "shapes" : "sounding"}
-						onChange={(event) => setShapes(event.target.value === "shapes")}
-					>
-						<option value="shapes">Guitar shapes</option>
-						<option value="sounding">Sounding chords</option>
-					</select>
-				</label>
-				<label>
-					Columns
-					<select
-						value={columns}
-						onChange={(event) => setColumns(Number(event.target.value))}
-					>
-						{[1, 2, 3].map((value) => (
-							<option key={value} value={value}>
-								{value}
-							</option>
-						))}
-					</select>
-				</label>
-				<div className="font-controls">
-					<Button
-						size="icon"
-						variant="ghost"
-						aria-label="Smaller text"
-						onClick={() => setFontSize((value) => Math.max(14, value - 2))}
-					>
-						<Minus size={16} />
-					</Button>
-					<span>Aa</span>
-					<Button
-						size="icon"
-						variant="ghost"
-						aria-label="Larger text"
-						onClick={() => setFontSize((value) => Math.min(40, value + 2))}
-					>
-						<Plus size={16} />
-					</Button>
-				</div>
+				<details className="view-options">
+					<summary>View · Aa</summary>
+					<div className="view-panel">
+						<p>Make yourself comfortable.</p>
+						<label>
+							Display
+							<select
+								value={shapes ? "shapes" : "sounding"}
+								onChange={(event) => setShapes(event.target.value === "shapes")}
+							>
+								<option value="shapes">Guitar shapes</option>
+								<option value="sounding">Sounding chords</option>
+							</select>
+						</label>
+						<label>
+							Columns
+							<select
+								value={columns}
+								onChange={(event) => setColumns(Number(event.target.value))}
+							>
+								{[1, 2, 3].map((value) => (
+									<option key={value} value={value}>
+										{value}
+									</option>
+								))}
+							</select>
+						</label>
+						<div className="font-controls">
+							<Button
+								size="icon"
+								variant="ghost"
+								aria-label="Smaller text"
+								disabled={fontSize <= 14}
+								onClick={() => setFontSize((value) => Math.max(14, value - 2))}
+							>
+								<Minus size={16} />
+							</Button>
+							<span>{fontSize} px</span>
+							<Button
+								size="icon"
+								variant="ghost"
+								aria-label="Larger text"
+								disabled={fontSize >= 40}
+								onClick={() => setFontSize((value) => Math.min(40, value + 2))}
+							>
+								<Plus size={16} />
+							</Button>
+						</div>
+					</div>
+				</details>
 				<Button
 					variant={diagrams ? "secondary" : "ghost"}
 					aria-pressed={diagrams}
 					onClick={() => setDiagrams((value) => !value)}
 				>
-					<Guitar size={16} /> Shapes
+					<Guitar size={16} /> Chord shapes
 				</Button>
 			</div>
 			{arrangement.updatedAt !== shown.updatedAt ? (
@@ -235,13 +252,19 @@ export function Player({
 					</Button>
 				</div>
 			) : null}
-			<div ref={sheet} className="player-scroll">
+			<section
+				ref={sheet}
+				className="player-scroll"
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus and scroll the chord sheet.
+				tabIndex={0}
+				aria-label="Song chord sheet"
+			>
 				<article className="performance-sheet" data-columns={columns}>
 					<h1>{shown.data.title}</h1>
 					<p className="artist">{shown.data.artist}</p>
 					<div className="performance-meta">
 						<span>Key {key}</span>
-						{capo && shapes ? <span>Capo {capo}</span> : null}
+						<span>Capo {capo && shapes ? capo : "None"}</span>
 					</div>
 					{notes ? <p className="band-note">{notes}</p> : null}
 					<SongSheet
@@ -251,23 +274,28 @@ export function Player({
 						columns={columns}
 					/>
 				</article>
-			</div>
+			</section>
 			{diagrams ? (
 				<section className="player-shapes" aria-label="Chord shapes">
 					<ChordDiagrams content={shown.data.content} semitones={delta} />
 				</section>
 			) : null}
 			<footer className="player-footer">
-				<Button variant="ghost" onClick={previous} disabled={!previous}>
-					<ChevronLeft size={18} /> Previous
-				</Button>
+				{previous ? (
+					<Button variant="ghost" onClick={previous}>
+						<ChevronLeft size={18} /> Previous
+					</Button>
+				) : (
+					<span className="player-footer-note">Just you and the music.</span>
+				)}
 				<div className="actions">
 					<Button
 						variant={scrolling ? "secondary" : "default"}
+						aria-pressed={scrolling}
 						onClick={() => setScrolling((value) => !value)}
 					>
 						{scrolling ? <Pause size={16} /> : <Play size={16} />}
-						{scrolling ? "Pause" : "Autoscroll"}
+						{scrolling ? "Pause autoscroll" : "Start autoscroll"}
 					</Button>
 					<label className="scroll-speed">
 						Speed
@@ -280,9 +308,11 @@ export function Player({
 						/>
 					</label>
 				</div>
-				<Button variant="ghost" onClick={next} disabled={!next}>
-					Next <ChevronRight size={18} />
-				</Button>
+				{next ? (
+					<Button variant="ghost" onClick={next}>
+						Next <ChevronRight size={18} />
+					</Button>
+				) : null}
 			</footer>
 		</section>
 	);

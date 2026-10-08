@@ -91,7 +91,7 @@ export function Editor({
 					>
 						<ArrowLeft size={16} /> Songbook
 					</button>
-					<h1>Edit arrangement</h1>
+					<h1>Edit song</h1>
 				</div>
 				<div className="actions">
 					<span className="save-status">

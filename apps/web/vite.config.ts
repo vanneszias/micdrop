@@ -17,10 +17,10 @@ export default defineConfig({
 			injectRegister: false,
 			registerType: "prompt",
 			manifest: {
-				name: "Chords — your band’s songbook",
-				short_name: "Chords",
-				theme_color: "#354f74",
-				background_color: "#f5f7fa",
+				name: "Bobo — your little songbook",
+				short_name: "Bobo",
+				theme_color: "#faf7f0",
+				background_color: "#faf7f0",
 				display: "standalone",
 				start_url: "/",
 				icons: [

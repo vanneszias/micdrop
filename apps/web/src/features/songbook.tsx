@@ -22,6 +22,7 @@ import { Textarea } from "@chords/ui/components/textarea";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	ArrowDown,
+	ArrowLeft,
 	ArrowUp,
 	BookOpen,
 	Check,
@@ -30,12 +31,16 @@ import {
 	Copy,
 	Download,
 	ExternalLink,
+	FileText,
 	Globe2,
 	Guitar,
+	Link,
 	ListMusic,
 	LoaderCircle,
 	LogOut,
 	Music2,
+	PenLine,
+	Play,
 	Plus,
 	Search,
 	Settings2,
@@ -47,6 +52,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { authClient } from "#/lib/auth-client";
+import { Bobo } from "./bobo";
 import { Editor } from "./editor";
 import { Player } from "./player";
 import { ThemeToggle } from "./theme-toggle";
@@ -217,6 +223,9 @@ function Workspace({
 	const [message, setMessage] = useState("");
 	const [error, setError] = useState("");
 	const [importUrl, setImportUrl] = useState("");
+	const [importMode, setImportMode] = useState<"paste" | "url" | "file" | null>(
+		null,
+	);
 	const [importText, setImportText] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [webSearch, setWebSearch] = useState("");
@@ -296,6 +305,11 @@ function Workspace({
 		setEditing(row);
 		setDialog(null);
 	}
+	function openAddSong(mode: typeof importMode = null) {
+		setError("");
+		setImportMode(mode);
+		setDialog("import");
+	}
 	async function importPage(rendered = false) {
 		await action(async () => {
 			const imported = await api<{
@@ -366,11 +380,9 @@ function Workspace({
 					className="wordmark"
 					onClick={() => setSection("library")}
 				>
-					<span className="brand-icon">
-						<Music2 size={22} />
-					</span>
-					chords<span className="wordmark-dot">.</span>
+					bobo<span className="wordmark-dot">.</span>
 				</button>
+				<p className="brand-note">Your little songbook.</p>
 				<div className="workspace-picker">
 					<span className="eyebrow">Your workspace</span>
 					<div className="select-wrap">
@@ -394,16 +406,21 @@ function Workspace({
 				</div>
 				<nav aria-label="Main navigation">
 					{[
-						{ id: "library", label: "Song library", icon: BookOpen },
+						{ id: "library", label: "Songbook", icon: BookOpen },
 						{ id: "setlists", label: "Setlists", icon: ListMusic },
+						{ id: "public", label: "Discover", icon: Globe2 },
 						{ id: "bands", label: "Bands", icon: Users },
-						{ id: "public", label: "Community", icon: Globe2 },
-						{ id: "web", label: "Search the web", icon: Search },
 					].map((item) => (
 						<button
 							type="button"
 							key={item.id}
-							className={`nav-item ${section === item.id ? "active" : ""}`}
+							className={`nav-item ${section === item.id || (item.id === "public" && section === "web") ? "active" : ""}`}
+							aria-current={
+								section === item.id ||
+								(item.id === "public" && section === "web")
+									? "page"
+									: undefined
+							}
 							onClick={() => {
 								setSection(item.id);
 								setSearch("");
@@ -420,6 +437,7 @@ function Workspace({
 					))}
 				</nav>
 				<div className="sidebar-bottom">
+					<Bobo className="sidebar-bobo" label="" />
 					<div className="sync-indicator">
 						{online ? <Cloud size={16} /> : <WifiOff size={16} />}
 						<span>
@@ -573,44 +591,43 @@ function Workspace({
 					))}
 					{section === "library" ? (
 						<>
-							<div className="page-heading">
-								<div>
-									<div className="eyebrow">Your music, in one place</div>
-									<h1>Song library</h1>
-									<p className="muted">
-										Find your next song. Make it your own.
-									</p>
+							{arrangements.some((song) => song.owner === owner) ? (
+								<>
+									<div className="songbook-welcome">
+										<div>
+											<h1>
+												Ready for a<br />
+												little music?
+											</h1>
+											<p>Pick a song and settle in.</p>
+										</div>
+										<Bobo />
+									</div>
+									<div className="library-heading">
+										<h2>Your songs</h2>
+										<Button onClick={() => openAddSong()}>
+											<Plus size={16} /> Add a song
+										</Button>
+									</div>
+								</>
+							) : null}
+							{arrangements.some((song) => song.owner === owner) ? (
+								<div className="library-tools">
+									<div className="search-field">
+										<Search size={18} />
+										<Input
+											aria-label="Search your songbook"
+											placeholder="Find a song, artist, or lyric…"
+											value={search}
+											onChange={(event) => setSearch(event.target.value)}
+										/>
+									</div>
+									<span className="muted">
+										{visibleSongs.length}{" "}
+										{visibleSongs.length === 1 ? "song" : "songs"}
+									</span>
 								</div>
-								<div className="actions">
-									<Button
-										variant="outline"
-										onClick={() => {
-											setError("");
-											setDialog("import");
-										}}
-									>
-										<Download size={16} /> Import chords
-									</Button>
-									<Button onClick={() => void action(() => createSong())}>
-										<Plus size={16} /> New song
-									</Button>
-								</div>
-							</div>
-							<div className="library-tools">
-								<div className="search-field">
-									<Search size={18} />
-									<Input
-										aria-label="Search song library"
-										placeholder="Search songs, artists, lyrics…"
-										value={search}
-										onChange={(event) => setSearch(event.target.value)}
-									/>
-								</div>
-								<span className="muted">
-									{visibleSongs.length}{" "}
-									{visibleSongs.length === 1 ? "arrangement" : "arrangements"}
-								</span>
-							</div>
+							) : null}
 							{visibleSongs.length ? (
 								<div className="song-table">
 									<div className="song-table-heading">
@@ -647,27 +664,12 @@ function Workspace({
 											</div>
 											<div className="row-actions">
 												<Button
-													variant="ghost"
+													variant="outline"
 													size="sm"
-													onClick={() => setEditing(song)}
+													aria-label={`Play ${song.data.title}`}
+													onClick={() => setPlaying({ id: song.id })}
 												>
-													Edit
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													aria-label={`Copy ${song.data.title}`}
-													onClick={() =>
-														void action(() =>
-															createSong({
-																...song.data,
-																title: `${song.data.title} — copy`,
-																copiedFrom: song.id,
-															}),
-														)
-													}
-												>
-													<Copy size={16} />
+													<Play size={14} /> Play
 												</Button>
 												<details className="song-menu">
 													<summary
@@ -676,6 +678,26 @@ function Workspace({
 														•••
 													</summary>
 													<div>
+														<button
+															type="button"
+															onClick={() => setEditing(song)}
+														>
+															Edit song
+														</button>
+														<button
+															type="button"
+															onClick={() =>
+																void action(() =>
+																	createSong({
+																		...song.data,
+																		title: `${song.data.title} — copy`,
+																		copiedFrom: song.id,
+																	}),
+																)
+															}
+														>
+															Make a copy
+														</button>
 														<button
 															type="button"
 															onClick={() =>
@@ -758,24 +780,30 @@ function Workspace({
 									))}
 								</div>
 							) : (
-								<div className="empty-state">
-									<div className="empty-staff">
-										<Music2 size={44} />
-									</div>
-									<h2>
-										{search
-											? "No matching songs"
-											: "A little space for your music"}
-									</h2>
+								<div
+									className={`empty-state ${search ? "search-empty" : "first-visit"}`}
+								>
+									<Bobo />
+									<h1>
+										{search ? (
+											"No matching songs"
+										) : (
+											<>
+												A little room
+												<br />
+												for your favorite songs.
+											</>
+										)}
+									</h1>
 									<p>
 										{search
 											? "Try another title, artist, or lyric."
-											: "Paste a chord sheet, import a page, or write your first arrangement."}
+											: "Keep your chords together, find your comfy key, and play something you love."}
 									</p>
 									{!search ? (
 										<div className="actions">
-											<Button onClick={() => setDialog("import")}>
-												Import your first song
+											<Button onClick={() => openAddSong()}>
+												<Plus size={16} /> Add your first song
 											</Button>
 											<Button
 												variant="outline"
@@ -793,6 +821,15 @@ function Workspace({
 												Try a practice sheet
 											</Button>
 										</div>
+									) : (
+										<Button variant="outline" onClick={() => setSearch("")}>
+											Clear search
+										</Button>
+									)}
+									{!search && account === "local" ? (
+										<small>
+											Your personal songbook works without an account.
+										</small>
 									) : null}
 								</div>
 							)}
@@ -802,6 +839,30 @@ function Workspace({
 								<span>Available offline on this device</span>
 							</div>
 						</>
+					) : null}
+					{section === "public" || section === "web" ? (
+						<nav className="discover-tabs" aria-label="Discover songs">
+							<Button
+								variant={section === "public" ? "secondary" : "ghost"}
+								aria-pressed={section === "public"}
+								onClick={() => {
+									setSection("public");
+									setSearch("");
+								}}
+							>
+								<Globe2 size={16} /> Community
+							</Button>
+							<Button
+								variant={section === "web" ? "secondary" : "ghost"}
+								aria-pressed={section === "web"}
+								onClick={() => {
+									setSection("web");
+									setSearch("");
+								}}
+							>
+								<Search size={16} /> Search the web
+							</Button>
+						</nav>
 					) : null}
 					{section === "setlists" ? (
 						<>
@@ -1015,7 +1076,7 @@ function Workspace({
 										Find a chord page, then turn it into your own arrangement.
 									</p>
 								</div>
-								<Button variant="outline" onClick={() => setDialog("import")}>
+								<Button variant="outline" onClick={() => openAddSong("url")}>
 									Import a URL
 								</Button>
 							</div>
@@ -1062,7 +1123,7 @@ function Workspace({
 											variant="outline"
 											onClick={() => {
 												setImportUrl(result.url);
-												setDialog("import");
+												openAddSong("url");
 											}}
 										>
 											Import chords
@@ -1128,7 +1189,7 @@ function Workspace({
 					<DialogHeader>
 						<DialogTitle>
 							{dialog === "import"
-								? "Bring in a chord sheet"
+								? "A new song for your book."
 								: dialog === "band"
 									? "Create a band"
 									: user
@@ -1137,7 +1198,7 @@ function Workspace({
 						</DialogTitle>
 						<DialogDescription>
 							{dialog === "import"
-								? "Import a webpage or paste text. You’ll review the result before playing."
+								? "Choose how to bring it in. You’ll review your song before playing."
 								: dialog === "band"
 									? "Start a shared library for your band."
 									: "Local edits stay on this device. Sign in to sync them across devices."}
@@ -1150,69 +1211,151 @@ function Workspace({
 					) : null}
 					{dialog === "import" ? (
 						<div className="dialog-stack">
-							<label>
-								Chord-page URL
-								<Input
-									value={importUrl}
-									onChange={(event) => setImportUrl(event.target.value)}
-									placeholder="https://pnwchords.com/…"
-									type="url"
-								/>
-							</label>
-							<div className="actions">
+							{importMode === null ? (
+								<div className="import-choices">
+									<Bobo className="import-bobo" label="" />
+									<Button
+										variant="outline"
+										onClick={() => setImportMode("paste")}
+									>
+										<Copy size={20} />
+										<span>
+											Paste your chords
+											<small>Bring a chord sheet you already have.</small>
+										</span>
+									</Button>
+									<Button
+										variant="outline"
+										onClick={() => setImportMode("url")}
+									>
+										<Link size={20} />
+										<span>
+											Import a link
+											<small>Turn a chord page into your own song.</small>
+										</span>
+									</Button>
+									<Button
+										variant="outline"
+										onClick={() => setImportMode("file")}
+									>
+										<FileText size={20} />
+										<span>
+											Open a file
+											<small>ChordPro and plain-text song sheets.</small>
+										</span>
+									</Button>
+									<Button
+										variant="outline"
+										onClick={() => void action(() => createSong())}
+										disabled={busy}
+									>
+										<PenLine size={20} />
+										<span>
+											Write a song<small>Start with a fresh page.</small>
+										</span>
+									</Button>
+								</div>
+							) : (
 								<Button
-									disabled={busy || !importUrl || !online}
-									onClick={() => void importPage()}
+									variant="ghost"
+									className="import-back"
+									disabled={busy}
+									onClick={() => setImportMode(null)}
 								>
-									{busy ? (
-										<LoaderCircle className="spin" size={16} />
-									) : (
-										<Download size={16} />
-									)}{" "}
-									Import page
+									<ArrowLeft size={16} /> Another way to add a song
 								</Button>
-								<Button
-									variant="outline"
-									disabled={busy || !importUrl || !online}
-									onClick={() => void importPage(true)}
-								>
-									Try rendered page
-								</Button>
-							</div>
-							<div className="dialog-divider">or paste your chord sheet</div>
-							<Textarea
-								aria-label="Paste chord text"
-								placeholder={"Verse 1\nD         G\nLyrics go here…"}
-								value={importText}
-								onChange={(event) => setImportText(event.target.value)}
-								rows={8}
-							/>
-							<Button
-								disabled={busy || !importText.trim()}
-								onClick={() =>
-									void action(() =>
-										createSong({
-											content: normalizeSheet(importText).content,
-											rawSource: importText,
-										}),
-									)
-								}
-							>
-								Convert and review
-							</Button>
-							<label className="file-label">
-								Or import a ChordPro/text file
-								<input
-									type="file"
-									accept=".cho,.chopro,.crd,.pro,.txt"
-									onChange={(event) => {
-										const file = event.target.files?.[0];
-										if (file && file.size <= 200_000)
-											void file.text().then(setImportText);
-										else setError("Choose a text file smaller than 200 KB.");
-									}}
-								/>
-							</label>
+							)}
+							{importMode === "url" ? (
+								<>
+									<label>
+										Chord-page URL
+										<Input
+											value={importUrl}
+											onChange={(event) => setImportUrl(event.target.value)}
+											placeholder="https://pnwchords.com/…"
+											type="url"
+										/>
+									</label>
+									<div className="actions">
+										<Button
+											disabled={busy || !importUrl || !online}
+											onClick={() => void importPage()}
+										>
+											{busy ? (
+												<LoaderCircle className="spin" size={16} />
+											) : (
+												<Download size={16} />
+											)}{" "}
+											Import page
+										</Button>
+										<Button
+											variant="outline"
+											disabled={busy || !importUrl || !online}
+											onClick={() => void importPage(true)}
+										>
+											Try rendered page
+										</Button>
+									</div>
+									{!online ? (
+										<p className="muted">
+											Link imports need a connection. You can paste chords or
+											open a file while offline.
+										</p>
+									) : null}
+								</>
+							) : null}
+							{importMode === "file" ? (
+								<label className="file-label">
+									Choose a ChordPro or text file
+									<input
+										type="file"
+										accept=".cho,.chopro,.crd,.pro,.txt"
+										onChange={(event) => {
+											const file = event.target.files?.[0];
+											if (!file) return;
+											if (file.size > 200_000) {
+												setError("Choose a text file smaller than 200 KB.");
+												return;
+											}
+											void file
+												.text()
+												.then((text) => {
+													setImportText(text);
+													setError("");
+												})
+												.catch(() =>
+													setError(
+														"Could not read this file. Try choosing it again.",
+													),
+												);
+										}}
+									/>
+								</label>
+							) : null}
+							{importMode === "paste" || importMode === "file" ? (
+								<>
+									<Textarea
+										aria-label="Paste chord text"
+										placeholder={"Verse 1\nD         G\nLyrics go here…"}
+										value={importText}
+										onChange={(event) => setImportText(event.target.value)}
+										rows={8}
+									/>
+									<Button
+										disabled={busy || !importText.trim()}
+										onClick={() =>
+											void action(() =>
+												createSong({
+													content: normalizeSheet(importText).content,
+													rawSource: importText,
+												}),
+											)
+										}
+									>
+										Convert and review
+									</Button>
+								</>
+							) : null}
 						</div>
 					) : null}
 					{dialog === "account" ? (
