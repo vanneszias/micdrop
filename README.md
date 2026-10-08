@@ -1,277 +1,86 @@
-Welcome to your new TanStack Start app!
+# Chords
 
-# Getting Started
+A private-first songbook for individuals and bands. Import chord sheets, edit a standardized arrangement, build setlists, and play in your own key and capo.
 
-To run this application:
+## Run locally
 
-```bash
+```sh
 bun install
-bun --bun run dev
+cp .env.example .env.local
+# Set BETTER_AUTH_SECRET to a random value of at least 32 characters.
+bun run db:migrate
+bun run dev
 ```
 
-# Building For Production
+Open http://localhost:3000. The personal songbook works without signing in. Local saves use IndexedDB and persist across reloads. Sign in to sync to D1; use **Account → Import this device’s local songbook** to copy your unsigned-in arrangements into your account.
 
-To build this application for production:
+Keep existing `.env.local` values when updating configuration. Secrets are read server-side; never prefix them with `VITE_`.
 
-```bash
-bun --bun run build
+## Workspace
+
+| Path | Responsibility |
+| --- | --- |
+| `apps/web` | Routes, product features, Worker endpoints, auth, migrations |
+| `packages/ui` | Shared shadcn components |
+| `packages/song-core` | ChordPro, pasted text conversion, chord transformations |
+| `packages/song-ui` | Shared screen/print renderer and guitar diagrams |
+| `packages/data` | Validated records, reactive collections, atomic local saves, outbox, conflicts |
+| `packages/imports` | Bounded input reads, URL validation, import normalization |
+
+## Available workflows
+
+- Create, edit, search, copy, archive, import/export arrangements.
+- Paste chords-over-lyrics or ChordPro; import a public HTTPS page containing a preformatted chord sheet, including PNW Chords.
+- Live preview, section/chord/note helpers, local autosave, and explicit error reporting.
+- Transpose, separate sounding chords from capo shapes, guitar diagrams with alternative fingerings, adjustable text, and autoscroll.
+- Personal and band setlists, ordering, repeated songs, performance keys, band notes, playing navigation, and standardized print layouts.
+- Bands with owner/editor/viewer permissions. For this initial release, owners add an existing account by email; invitation email delivery is not configured.
+- Explicit publication/update/unpublication and one changeable up/downvote per account.
+- Account-isolated offline storage, durable pending edits, idempotent server writes, revision conflicts with both versions preserved.
+
+All synchronized records in an accessible library are retained locally; a separate selective-download policy is not implemented yet. Band records follow the latest synchronized version, while an active playing view offers an update notice. Independent copies keep their attribution.
+
+## Optional integrations
+
+- `BRAVE_SEARCH_API_KEY`: enables in-app external web results.
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: enables Google sign-in; configure the callback `/api/auth/callback/google` in Google.
+- The `BROWSER` binding enables rendered-page import on Cloudflare. Local plain-HTML import works without this service. Rendered extraction needs access to Cloudflare Browser Run.
+
+Import previews retain raw text and the source URL. Extraction currently targets `<pre>` blocks. Pages with other structures may need a source adapter or paste fallback. Imported key/capo metadata must be reviewed in the editor.
+
+## Offline production check
+
+```sh
+bun run build
+bun run preview
 ```
 
-## Styling
+The production build precaches a standalone client-only offline shell and its assets. Open the app online once and wait for service-worker activation before disconnecting. Browser storage can be removed by the browser or user; use ChordPro exports for portable copies. App updates are prompted rather than reloading during editing or playing.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+The default developer server does not install the production service worker. Local record editing still works when connectivity is unavailable while the app remains open.
 
-### Removing Tailwind CSS
+## Verification
 
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-bun --bun run lint
-bun --bun run format
-bun --bun run check
+```sh
+bun run typecheck
+bun run check
+bun run test
+bun run build
+# With the development server running:
+CHORDS_TEST_URL=http://localhost:3000 bun test apps/web/src/server
 ```
 
+Tests cover music conversion/transposition, bounded imports, atomic saves, restart recovery, changes during synchronization, and durable conflicts. The opt-in integration test creates fixture accounts in local D1 and exercises replay, revisions, private access, band permissions, publishing, search, and voting.
 
-## Deploy to Cloudflare Workers
+## Cloudflare deployment
 
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`:
+The checked-in D1 ID is a **local-development placeholder**. Before deployment, create a D1 database and replace `database_id` in `apps/web/wrangler.jsonc`. Set `BETTER_AUTH_URL` to the deployed origin and configure secrets with Wrangler. Apply migrations to that database, regenerate types with `bun run --filter @chords/web cf:typegen`, then deploy.
 
-1. Install Wrangler: `npm install -g wrangler`
-2. Authenticate: `wrangler login`
-3. Deploy: `npx wrangler deploy`
+No Cloudflare resources are created or deployed by the local setup commands.
 
-For production env vars, run `wrangler secret put MY_VAR` for each secret listed in `.env.example`. Public (non-secret) vars go in `wrangler.jsonc` under `vars`.
+## Current boundaries
 
-KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
-
-
-# Paraglide i18n
-
-This add-on wires up ParaglideJS for localized routing and message formatting.
-
-- Messages live in `project.inlang/messages`.
-- URLs are localized through the Paraglide Vite plugin and router `rewrite` hooks.
-- Run the dev server or build to regenerate the `src/paraglide` outputs.
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-## T3Env
-
-- You can use T3Env to add type safety to your environment variables.
-- Add Environment variables to the `src/env.mjs` file.
-- Use the environment variables in your code.
-
-### Usage
-
-```ts
-import { env } from "#/env";
-
-console.log(env.VITE_APP_TITLE);
-```
-
-
-
-
-
-## Setting up Better Auth
-
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-
-   ```bash
-   bunx --bun @better-auth/cli secret
-   ```
-
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
-```
-
-Then run migrations:
-
-```bash
-bunx --bun @better-auth/cli migrate
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+- Conflict handling is revision-based, with explicit resolution rather than real-time text merging.
+- Guitar diagrams use the MIT-licensed `@tombatossals/chords-db` dataset; unsupported shapes remain readable as chord names.
+- Local player preferences are stored per account and arrangement. They do not yet synchronize between devices.
+- Email verification/recovery delivery, invite emails, catalog moderation, selective downloads, and additional site adapters remain follow-up work.

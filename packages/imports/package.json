@@ -1,0 +1,7 @@
+{
+  "name": "@chords/imports",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@chords/song-core": "workspace:*", "@cloudflare/puppeteer": "^1.0.4" }
+}

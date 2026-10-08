@@ -1,0 +1,7 @@
+{
+  "name": "@chords/song-core",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "chordsheetjs": "^17.0.0" }
+}

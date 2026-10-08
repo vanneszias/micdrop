@@ -1,0 +1,7 @@
+{
+  "name": "@chords/song-ui",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.tsx" },
+  "dependencies": { "@chords/song-core": "workspace:*", "@tombatossals/chords-db": "^0.5.1", "react": "^19.2.0" }
+}

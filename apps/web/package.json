@@ -1,0 +1,48 @@
+{
+  "name": "@chords/web",
+  "private": true,
+  "type": "module",
+  "imports": { "#/*": "./src/*" },
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build && vite build --config vite.offline.config.ts && bun run scripts/generate-sw.ts",
+    "preview": "wrangler dev --config dist/server/wrangler.json --port 3000",
+    "typecheck": "tsc --noEmit",
+    "cf:typegen": "wrangler types",
+    "db:migrate": "wrangler d1 migrations apply chords --local",
+    "deploy": "bun run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@chords/ui": "workspace:*",
+    "@chords/song-core": "workspace:*",
+    "@chords/song-ui": "workspace:*",
+    "@chords/data": "workspace:*",
+    "@chords/imports": "workspace:*",
+    "@cloudflare/puppeteer": "^1.0.4",
+    "@tanstack/react-query": "5.104.1",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-router-ssr-query": "1.167.3",
+    "@tanstack/react-start": "1.168.60",
+    "better-auth": "^1.7.7",
+    "kysely": "^0.29.6",
+    "kysely-d1": "^0.4.0",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.63.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "tailwindcss": "^4.1.18",
+    "tw-animate-css": "^1.3.6",
+    "vite": "^8.0.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-window": "^7.3.0",
+    "workbox-build": "^7.3.0",
+    "wrangler": "^4.148.0"
+  }
+}

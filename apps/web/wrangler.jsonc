@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "chords",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "observability": { "enabled": true, "traces": { "enabled": true } },
+  "d1_databases": [{ "binding": "DB", "database_name": "chords", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
+  "browser": { "binding": "BROWSER" },
+  "vars": { "BETTER_AUTH_URL": "http://localhost:3000" }
+}

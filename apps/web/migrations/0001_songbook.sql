@@ -1,0 +1,16 @@
+CREATE TABLE user (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, emailVerified INTEGER NOT NULL DEFAULT 0, image TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL);
+CREATE TABLE session (id TEXT PRIMARY KEY, expiresAt INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, ipAddress TEXT, userAgent TEXT, userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE, activeOrganizationId TEXT);
+CREATE INDEX session_user ON session(userId);
+CREATE TABLE account (id TEXT PRIMARY KEY, accountId TEXT NOT NULL, providerId TEXT NOT NULL, userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE, accessToken TEXT, refreshToken TEXT, idToken TEXT, accessTokenExpiresAt INTEGER, refreshTokenExpiresAt INTEGER, scope TEXT, password TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL);
+CREATE INDEX account_user ON account(userId);
+CREATE TABLE verification (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expiresAt INTEGER NOT NULL, createdAt INTEGER, updatedAt INTEGER);
+CREATE TABLE organization (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, logo TEXT, createdAt INTEGER NOT NULL, metadata TEXT);
+CREATE TABLE member (id TEXT PRIMARY KEY, organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE, userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE, role TEXT NOT NULL, createdAt INTEGER NOT NULL, UNIQUE(organizationId, userId));
+CREATE TABLE invitation (id TEXT PRIMARY KEY, organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE, email TEXT NOT NULL, role TEXT, status TEXT NOT NULL, expiresAt INTEGER NOT NULL, inviterId TEXT NOT NULL REFERENCES user(id), createdAt INTEGER);
+CREATE TABLE records (id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('arrangement','setlist')), owner TEXT NOT NULL, version INTEGER NOT NULL, updated_at TEXT NOT NULL, archived INTEGER NOT NULL DEFAULT 0, data TEXT NOT NULL, last_operation TEXT NOT NULL);
+CREATE INDEX records_owner ON records(owner);
+CREATE TABLE revisions (record_id TEXT NOT NULL REFERENCES records(id), version INTEGER NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(record_id,version));
+CREATE TABLE operations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, record_id TEXT NOT NULL, version INTEGER NOT NULL);
+CREATE TABLE publications (id TEXT PRIMARY KEY, record_id TEXT NOT NULL UNIQUE REFERENCES records(id), owner TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE votes (publication_id TEXT NOT NULL REFERENCES publications(id), user_id TEXT NOT NULL REFERENCES user(id), value INTEGER NOT NULL CHECK(value IN (-1,1)), PRIMARY KEY(publication_id,user_id));
+CREATE VIRTUAL TABLE publication_search USING fts5(publication_id UNINDEXED, title, artist, lyrics, tags);

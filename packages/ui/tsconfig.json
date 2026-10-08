@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "paths": { "@chords/ui/components/*": ["./src/components/*"], "@chords/ui/lib/*": ["./src/lib/*"], "@chords/ui/hooks/*": ["./src/hooks/*"] } },
+  "include": ["src"]
+}
