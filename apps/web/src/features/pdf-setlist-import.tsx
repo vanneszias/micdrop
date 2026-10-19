@@ -6,54 +6,90 @@ import {
 } from "@chords/imports/pdf";
 import { KEYS, keyDistance } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
+import {
+	Alert,
+	AlertDescription,
+	AlertTitle,
+} from "@chords/ui/components/alert";
 import { Button } from "@chords/ui/components/button";
+import {
+	Field,
+	FieldDescription,
+	FieldGroup,
+	FieldLabel,
+} from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@chords/ui/components/select";
+import { Spinner } from "@chords/ui/components/spinner";
 import { Textarea } from "@chords/ui/components/textarea";
-import { LoaderCircle } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { freshArrangement } from "./songbook";
+import { toast } from "sonner";
+import { freshArrangement } from "#/lib/songs";
 
 export function PdfSetlistImport({
 	owner,
 	online,
 	signedIn,
 	store,
-	complete,
 }: {
 	owner: string;
 	online: boolean;
 	signedIn: boolean;
 	store: SongbookStore;
-	complete: (id: string) => void;
 }) {
+	const navigate = useNavigate();
 	const [file, setFile] = useState<File | null>(null);
 	const [draft, setDraft] = useState<PdfSetlist | null>(null);
 	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState("");
 	const [reviewIndex, setReviewIndex] = useState(0);
 	async function extract() {
 		if (!file) return;
 		setBusy(true);
-		setError("");
 		try {
-			const response = await fetch("/api/import-pdf", {
+			const message = async (response: Response) => {
+				const data = (await response.json().catch(() => null)) as {
+					error?: unknown;
+				} | null;
+				return data && typeof data.error === "string"
+					? data.error
+					: "Could not import this PDF.";
+			};
+			const start = await fetch("/api/import-pdf", {
 				method: "POST",
 				headers: { "Content-Type": "application/pdf" },
 				body: file,
 			});
-			const data = await response.json();
-			if (!response.ok)
-				throw new Error(
-					data &&
-						typeof data === "object" &&
-						"error" in data &&
-						typeof data.error === "string"
-						? data.error
-						: "Could not import this PDF.",
-				);
+			if (!start.ok) throw new Error(await message(start));
+			const { id } = (await start.json()) as { id: string };
+			const deadline = Date.now() + 10 * 60_000;
+			let data: unknown;
+			for (;;) {
+				if (Date.now() > deadline) throw new Error("The import timed out.");
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+				const poll = await fetch(`/api/import-pdf/${id}`);
+				if (!poll.ok) throw new Error(await message(poll));
+				const job = (await poll.json()) as {
+					status: string;
+					error?: string;
+					result?: unknown;
+				};
+				if (job.status === "failed")
+					throw new Error(job.error || "Could not import this PDF.");
+				if (job.status === "done") {
+					data = job.result;
+					break;
+				}
+			}
 			setDraft(normalizePdfSetlist(data));
 		} catch (reason) {
-			setError(reason instanceof Error ? reason.message : String(reason));
+			toast.error(reason instanceof Error ? reason.message : String(reason));
 		} finally {
 			setBusy(false);
 		}
@@ -61,7 +97,6 @@ export function PdfSetlistImport({
 	async function save() {
 		if (!draft || !file) return;
 		setBusy(true);
-		setError("");
 		try {
 			const checked = normalizePdfSetlist(draft);
 			const songs: ReturnType<typeof freshArrangement>[] = [];
@@ -112,9 +147,10 @@ export function PdfSetlistImport({
 			};
 			await store.saveImport([...songs, list], { id: list.id, file });
 			void store.sync();
-			complete(list.id);
+			toast.success("Songs and setlist saved");
+			await navigate({ to: "/setlists/$id", params: { id: list.id } });
 		} catch (reason) {
-			setError(reason instanceof Error ? reason.message : String(reason));
+			toast.error(reason instanceof Error ? reason.message : String(reason));
 		} finally {
 			setBusy(false);
 		}
@@ -132,206 +168,205 @@ export function PdfSetlistImport({
 				: current,
 		);
 	}
-	return (
-		<div className="dialog-stack">
-			{error ? (
-				<p role="alert" className="error-message">
-					{error}
-				</p>
-			) : null}
-			{!draft ? (
-				<>
-					<p className="muted">
-						Upload a chord-sheet PDF (up to 10 MB). OpenAI reads its text and
-						page images, including scanned sheets. You can check and edit each
-						song before saving.
-					</p>
-					<label>
-						PDF file
-						<Input
-							type="file"
-							accept=".pdf,application/pdf"
-							disabled={busy}
-							onChange={(event) => {
-								const selected = event.target.files?.[0];
-								setFile(null);
-								setError("");
-								if (
-									selected &&
-									(selected.size > MAX_PDF_BYTES ||
-										!selected.name.toLowerCase().endsWith(".pdf"))
-								) {
-									setError("Choose a PDF smaller than 10 MB.");
-									return;
-								}
-								setFile(selected || null);
-							}}
-						/>
-					</label>
-					{!signedIn ? (
-						<p className="muted">Sign in to use AI PDF import.</p>
-					) : !online ? (
-						<p className="muted">PDF import needs an internet connection.</p>
-					) : null}
-					<Button
-						disabled={busy || !file || !online || !signedIn}
-						onClick={() => void extract()}
-					>
-						{busy ? <LoaderCircle className="spin" size={16} /> : null}
-						{busy ? "Reading your PDF…" : "Extract and review setlist"}
-					</Button>
-				</>
-			) : (
-				<>
-					<label>
-						Setlist name
-						<Input
-							value={draft.title}
-							disabled={busy}
-							maxLength={200}
-							onChange={(event) =>
-								setDraft({ ...draft, title: event.target.value })
+	if (!draft)
+		return (
+			<FieldGroup>
+				<Field>
+					<FieldLabel htmlFor="pdf">PDF file</FieldLabel>
+					<Input
+						id="pdf"
+						type="file"
+						accept=".pdf,application/pdf"
+						disabled={busy}
+						onChange={(event) => {
+							const selected = event.target.files?.[0];
+							setFile(null);
+							if (
+								selected &&
+								(selected.size > MAX_PDF_BYTES ||
+									!selected.name.toLowerCase().endsWith(".pdf"))
+							) {
+								toast.error("Choose a PDF smaller than 10 MB.");
+								return;
 							}
-						/>
-					</label>
-					{draft.warnings.length ? (
-						<div>
-							<strong>Check these details</strong>
-							<ul>
-								{[...new Set(draft.warnings)].map((warning) => (
-									<li key={warning}>{warning}</li>
-								))}
-							</ul>
-						</div>
-					) : null}
-					<label>
-						Song order
-						<select
-							value={reviewIndex}
-							disabled={busy}
-							onChange={(event) => setReviewIndex(Number(event.target.value))}
-						>
-							{draft.songs.map((item, index) => (
-								// biome-ignore lint/suspicious/noArrayIndexKey: PDF occurrence order is fixed, including repeated songs.
-								<option key={index} value={index}>
-									{index + 1}. {item.title}
-								</option>
+							setFile(selected || null);
+						}}
+					/>
+					<FieldDescription>
+						{!signedIn
+							? "Sign in to import PDFs."
+							: !online
+								? "Importing needs a connection."
+								: "Up to 10 MB. Each song can be reviewed before saving."}
+					</FieldDescription>
+				</Field>
+				<Button
+					disabled={busy || !file || !online || !signedIn}
+					onClick={() => void extract()}
+				>
+					{busy ? <Spinner /> : null}
+					{busy ? "Reading…" : "Extract"}
+				</Button>
+			</FieldGroup>
+		);
+	return (
+		<FieldGroup>
+			<Field>
+				<FieldLabel htmlFor="setlist-name">Setlist name</FieldLabel>
+				<Input
+					id="setlist-name"
+					value={draft.title}
+					disabled={busy}
+					maxLength={200}
+					onChange={(event) =>
+						setDraft({ ...draft, title: event.target.value })
+					}
+				/>
+			</Field>
+			{draft.warnings.length ? (
+				<Alert>
+					<AlertTitle>Check these details</AlertTitle>
+					<AlertDescription>
+						<ul className="list-inside list-disc">
+							{[...new Set(draft.warnings)].map((warning) => (
+								<li key={warning}>{warning}</li>
 							))}
-						</select>
-					</label>
-					{song ? (
-						<>
-							<label>
-								Song title
-								<Input
-									value={song.title}
-									disabled={busy}
-									maxLength={200}
-									onChange={(event) =>
-										updateSong({ title: event.target.value })
-									}
-								/>
-							</label>
-							<label>
-								Artist
-								<Input
-									value={song.artist}
-									disabled={busy}
-									maxLength={200}
-									onChange={(event) =>
-										updateSong({ artist: event.target.value })
-									}
-								/>
-							</label>
-							<div className="metadata-grid">
-								<label>
-									Written key
-									<Input
-										value={song.key}
-										placeholder="Unknown; defaults to C"
-										disabled={busy}
-										onChange={(event) =>
-											updateSong({ key: event.target.value })
-										}
-									/>
-								</label>
-								<label>
-									Source capo
-									<Input
-										type="number"
-										min={0}
-										max={12}
-										value={song.sourceCapo}
-										disabled={busy}
-										onChange={(event) =>
-											updateSong({ sourceCapo: Number(event.target.value) })
-										}
-									/>
-								</label>
-							</div>
-							<label>
-								ChordPro sheet
-								<Textarea
-									rows={8}
-									value={song.content}
-									disabled={busy}
-									onChange={(event) =>
-										updateSong({ content: event.target.value })
-									}
-								/>
-							</label>
-							{!song.content.trim() ? (
-								<p className="muted">
-									This song has no chord sheet. Add chords now or edit it later
-									in your songbook.
-								</p>
-							) : (
-								<details>
-									<summary>Preview chord sheet</summary>
-									<SongSheet content={song.content} />
-								</details>
-							)}
-							<details>
-								<summary>Original transcription</summary>
-								<pre className="whitespace-pre-wrap">{song.rawSource}</pre>
-							</details>
-							<label>
-								Performance notes
-								<Textarea
-									value={song.notes}
-									disabled={busy}
-									onChange={(event) =>
-										updateSong({ notes: event.target.value })
-									}
-								/>
-							</label>
-						</>
-					) : null}
-					<p className="muted">
-						{draft.songs.length} songs in PDF order. The original PDF stays on
-						this device; songs and setlist sync to your account.
-					</p>
-					<div className="actions">
-						<Button
-							disabled={busy || !draft.title.trim()}
-							onClick={() => void save()}
-						>
-							{busy ? "Saving…" : "Save songs and setlist"}
-						</Button>
-						<Button
-							variant="ghost"
-							disabled={busy}
-							onClick={() => {
-								setDraft(null);
-								setReviewIndex(0);
-								setError("");
-							}}
-						>
-							Choose another PDF
-						</Button>
+						</ul>
+					</AlertDescription>
+				</Alert>
+			) : null}
+			<Field>
+				<FieldLabel>Song</FieldLabel>
+				<Select
+					value={String(reviewIndex)}
+					disabled={busy}
+					onValueChange={(value) => setReviewIndex(Number(value))}
+				>
+					<SelectTrigger>
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{draft.songs.map((item, index) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: PDF occurrence order is fixed, including repeated songs.
+							<SelectItem key={index} value={String(index)}>
+								{index + 1}. {item.title}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</Field>
+			{song ? (
+				<>
+					<div className="grid gap-3 sm:grid-cols-2">
+						<Field>
+							<FieldLabel htmlFor="song-title">Title</FieldLabel>
+							<Input
+								id="song-title"
+								value={song.title}
+								disabled={busy}
+								maxLength={200}
+								onChange={(event) => updateSong({ title: event.target.value })}
+							/>
+						</Field>
+						<Field>
+							<FieldLabel htmlFor="song-artist">Artist</FieldLabel>
+							<Input
+								id="song-artist"
+								value={song.artist}
+								disabled={busy}
+								maxLength={200}
+								onChange={(event) => updateSong({ artist: event.target.value })}
+							/>
+						</Field>
+						<Field>
+							<FieldLabel htmlFor="song-key">Key</FieldLabel>
+							<Input
+								id="song-key"
+								value={song.key}
+								placeholder="Defaults to C"
+								disabled={busy}
+								onChange={(event) => updateSong({ key: event.target.value })}
+							/>
+						</Field>
+						<Field>
+							<FieldLabel htmlFor="song-capo">Capo</FieldLabel>
+							<Input
+								id="song-capo"
+								type="number"
+								min={0}
+								max={12}
+								value={song.sourceCapo}
+								disabled={busy}
+								onChange={(event) =>
+									updateSong({ sourceCapo: Number(event.target.value) })
+								}
+							/>
+						</Field>
 					</div>
+					<Field>
+						<FieldLabel htmlFor="song-sheet">ChordPro</FieldLabel>
+						<Textarea
+							id="song-sheet"
+							rows={10}
+							className="font-mono"
+							value={song.content}
+							disabled={busy}
+							onChange={(event) => updateSong({ content: event.target.value })}
+						/>
+						{!song.content.trim() ? (
+							<FieldDescription>
+								No chords found. Add them now or edit the song later.
+							</FieldDescription>
+						) : null}
+					</Field>
+					{song.content.trim() ? (
+						<details className="rounded-lg border p-3">
+							<summary className="cursor-pointer text-sm">Preview</summary>
+							<div className="mt-3">
+								<SongSheet content={song.content} />
+							</div>
+						</details>
+					) : null}
+					<details className="rounded-lg border p-3">
+						<summary className="cursor-pointer text-sm">
+							Original transcription
+						</summary>
+						<pre className="mt-3 text-xs whitespace-pre-wrap">
+							{song.rawSource}
+						</pre>
+					</details>
+					<Field>
+						<FieldLabel htmlFor="song-notes">Notes</FieldLabel>
+						<Textarea
+							id="song-notes"
+							value={song.notes}
+							disabled={busy}
+							onChange={(event) => updateSong({ notes: event.target.value })}
+						/>
+					</Field>
 				</>
-			)}
-		</div>
+			) : null}
+			<FieldDescription>
+				{draft.songs.length} songs in PDF order. The PDF stays on this device.
+			</FieldDescription>
+			<div className="flex gap-2">
+				<Button
+					disabled={busy || !draft.title.trim()}
+					onClick={() => void save()}
+				>
+					{busy ? <Spinner /> : null} Save
+				</Button>
+				<Button
+					variant="ghost"
+					disabled={busy}
+					onClick={() => {
+						setDraft(null);
+						setReviewIndex(0);
+					}}
+				>
+					Choose another PDF
+				</Button>
+			</div>
+		</FieldGroup>
 	);
 }

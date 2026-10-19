@@ -41,7 +41,15 @@ export function SongSheet({
 					<div key={`line-${index}`} className="sheet-line">
 						{line.tokens.map((token, i) => (
 							<span key={`${index}-${i}`} className="sheet-pair">
-								<span className="sheet-chord">{token.chord || "\u00a0"}</span>
+								<span
+									className={
+										token.chord
+											? "sheet-chord"
+											: "sheet-chord sheet-chord-empty"
+									}
+								>
+									{token.chord || "\u00a0"}
+								</span>
 								<span className="sheet-lyric">{token.text || "\u00a0"}</span>
 							</span>
 						))}

@@ -1,9 +1,9 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createContext,
+	use,
 	useContext,
 	useEffect,
-	useState,
 	useSyncExternalStore,
 } from "react";
 import {
@@ -13,6 +13,30 @@ import {
 } from "./index";
 
 const Context = createContext<SongbookStore | null>(null);
+
+type Opened =
+	| { store: SongbookStore; error?: undefined }
+	| { store?: undefined; error: string };
+const opened = new Map<
+	string,
+	{ store: SongbookStore; promise: Promise<Opened> }
+>();
+
+function open(account: string) {
+	let entry = opened.get(account);
+	if (!entry) {
+		const store = createSongbookStore(account);
+		const promise = store.init().then(
+			(): Opened => ({ store }),
+			(reason): Opened => ({ error: String(reason) }),
+		);
+		entry = { store, promise };
+		opened.set(account, entry);
+	}
+	return entry;
+}
+
+/** Suspends until the account's local database is open. */
 export function SongbookProvider({
 	account,
 	children,
@@ -20,50 +44,39 @@ export function SongbookProvider({
 	account: string;
 	children: React.ReactNode;
 }) {
-	const [store, setStore] = useState<SongbookStore | null>(null);
-	const [error, setError] = useState("");
+	const result = use(open(account).promise);
 	useEffect(() => {
-		let active = true;
-		const next = createSongbookStore(account);
-		void next
-			.init()
-			.then(() => {
-				if (active) {
-					setStore(next);
-					void next.sync();
-				}
-			})
-			.catch((reason) => {
-				if (active) setError(String(reason));
-			});
-		const sync = () => void next.sync();
+		for (const [key, entry] of opened) {
+			if (key === account) continue;
+			entry.store.dispose();
+			opened.delete(key);
+		}
+	}, [account]);
+	useEffect(() => {
+		if (!result.store) return;
+		const { store } = result;
+		void store.sync();
+		const sync = () => void store.sync();
 		window.addEventListener("online", sync);
 		window.addEventListener("focus", sync);
 		const interval = window.setInterval(sync, 30_000);
 		return () => {
-			active = false;
-			setStore(null);
-			next.dispose();
 			window.clearInterval(interval);
 			window.removeEventListener("online", sync);
 			window.removeEventListener("focus", sync);
 		};
-	}, [account]);
-	if (error)
+	}, [result]);
+	if (!result.store)
 		return (
-			<main className="startup">
-				<h1>Could not open your songbook</h1>
-				<p>{error}</p>
-				<p>Allow browser storage, then reload this page.</p>
+			<main className="flex min-h-svh flex-col items-center justify-center gap-2 p-6 text-center">
+				<h1 className="font-semibold text-lg">Could not open your songbook</h1>
+				<p className="text-muted-foreground text-sm">{result.error}</p>
+				<p className="text-muted-foreground text-sm">
+					Allow browser storage, then reload this page.
+				</p>
 			</main>
 		);
-	if (!store)
-		return (
-			<main className="startup" aria-busy="true">
-				Opening your songbook…
-			</main>
-		);
-	return <Context.Provider value={store}>{children}</Context.Provider>;
+	return <Context.Provider value={result.store}>{children}</Context.Provider>;
 }
 export function useSongbook() {
 	const store = useContext(Context);

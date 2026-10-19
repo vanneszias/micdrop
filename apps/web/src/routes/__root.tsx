@@ -11,13 +11,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 		head: () => ({
 			meta: [
 				{ charSet: "utf-8" },
-				{ name: "viewport", content: "width=device-width, initial-scale=1" },
-				{ title: "Bobo — your little songbook" },
-				{ name: "theme-color", content: "#faf7f0" },
+				{
+					name: "viewport",
+					content: "width=device-width, initial-scale=1, viewport-fit=cover",
+				},
+				{ title: "Mic Drop" },
+				{ name: "theme-color", content: "#0a0a0a" },
 				{
 					name: "description",
-					content:
-						"A little room for your favorite songs. Keep your chords together, find your comfy key, and play something you love.",
+					content: "Your chord sheets, in your key. Works offline.",
 				},
 			],
 			links: [
@@ -27,7 +29,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 			],
 		}),
 		shellComponent: ({ children }) => (
-			<html lang="en">
+			<html lang="en" className="dark">
 				<head>
 					<HeadContent />
 				</head>

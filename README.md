@@ -44,7 +44,7 @@ All synchronized records in an accessible library are retained locally; a separa
 ## Optional integrations
 
 - `BRAVE_SEARCH_API_KEY`: enables in-app external web results.
-- `OPENAI_API_KEY`: enables AI PDF import through OpenAI's Responses API. `OPENAI_PDF_MODEL` optionally overrides the default `gpt-4.1`; choose a model supporting PDF inputs and structured outputs. The PDF is sent to OpenAI with response storage disabled. Jev/TypeSafe's current choice/score API does not generate transcriptions, so it cannot perform this import.
+- `PDF_IMPORT_PROVIDER` (`openai` default, `gemini` or `mistral`) plus that provider's key (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`) enables AI PDF import as a background job (progress is logged as `pdf_import.*` JSON lines). `PDF_IMPORT_MODEL` optionally overrides the default (`gpt-4.1`, `gemini-3.8-flash`, `mistral-small-latest`); choose a model supporting PDF inputs and structured outputs. The PDF is sent to the chosen provider (OpenAI with response storage disabled). Jev/TypeSafe's current choice/score API does not generate transcriptions, so it cannot perform this import.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: enables Google sign-in; configure the callback `/api/auth/callback/google` in Google.
 - The `BROWSER` binding enables rendered-page import on Cloudflare. Local plain-HTML import works without this service. Rendered extraction needs access to Cloudflare Browser Run.
 

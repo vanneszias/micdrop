@@ -21,8 +21,6 @@
     "@chords/song-ui": "workspace:*",
     "@chords/ui": "workspace:*",
     "@cloudflare/puppeteer": "^1.0.4",
-    "@rive-app/canvas-lite": "2.44.0",
-    "@rive-app/react-canvas-lite": "4.36.0",
     "@tanstack/react-query": "5.104.1",
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-router-ssr-query": "1.167.3",
@@ -33,11 +31,13 @@
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sonner": "^2.0.8",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.63.0",
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/router-plugin": "1.168.42",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
@@ -45,8 +45,8 @@
     "tw-animate-css": "^1.3.6",
     "vite": "^8.0.0",
     "vite-plugin-pwa": "^1.2.0",
-    "workbox-window": "^7.3.0",
     "workbox-build": "^7.3.0",
+    "workbox-window": "^7.3.0",
     "wrangler": "^4.148.0"
   }
 }

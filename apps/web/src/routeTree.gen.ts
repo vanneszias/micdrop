@@ -9,19 +9,56 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppBandsRouteImport } from './routes/_app/bands'
+import { Route as AppCommunityRouteImport } from './routes/_app/community'
+import { Route as AppSetlistsRouteImport } from './routes/_app/setlists'
 import { Route as ApiBandsRouteImport } from './routes/api/bands'
 import { Route as ApiImportRouteImport } from './routes/api/import'
 import { Route as ApiImportPdfRouteImport } from './routes/api/import-pdf'
 import { Route as ApiPublicationsRouteImport } from './routes/api/publications'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSyncRouteImport } from './routes/api/sync'
+import { Route as AppSetlistsIndexRouteImport } from './routes/_app/setlists.index'
+import { Route as AppSetlistsIdRouteImport } from './routes/_app/setlists.$id'
+import { Route as AppSetlistsImportRouteImport } from './routes/_app/setlists_.import'
+import { Route as AppSongsIndexRouteImport } from './routes/_app/songs.index'
+import { Route as AppSongsNewRouteImport } from './routes/_app/songs.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiImportPdfIdRouteImport } from './routes/api/import-pdf.$id'
+import { Route as AppSongsIdIndexRouteImport } from './routes/_app/songs.$id.index'
+import { Route as AppSongsIdEditRouteImport } from './routes/_app/songs.$id.edit'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBandsRoute = AppBandsRouteImport.update({
+  id: '/bands',
+  path: '/bands',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCommunityRoute = AppCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSetlistsRoute = AppSetlistsRouteImport.update({
+  id: '/setlists',
+  path: '/setlists',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiBandsRoute = ApiBandsRouteImport.update({
   id: '/api/bands',
@@ -53,81 +90,194 @@ const ApiSyncRoute = ApiSyncRouteImport.update({
   path: '/api/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSetlistsIndexRoute = AppSetlistsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSetlistsRoute,
+} as any)
+const AppSetlistsIdRoute = AppSetlistsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppSetlistsRoute,
+} as any)
+const AppSetlistsImportRoute = AppSetlistsImportRouteImport.update({
+  id: '/setlists_/import',
+  path: '/setlists/import',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSongsIndexRoute = AppSongsIndexRouteImport.update({
+  id: '/songs/',
+  path: '/songs/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSongsNewRoute = AppSongsNewRouteImport.update({
+  id: '/songs/new',
+  path: '/songs/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImportPdfIdRoute = ApiImportPdfIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiImportPdfRoute,
+} as any)
+const AppSongsIdIndexRoute = AppSongsIdIndexRouteImport.update({
+  id: '/songs/$id/',
+  path: '/songs/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSongsIdEditRoute = AppSongsIdEditRouteImport.update({
+  id: '/songs/$id/edit',
+  path: '/songs/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/login': typeof LoginRoute
+  '/bands': typeof AppBandsRoute
+  '/community': typeof AppCommunityRoute
+  '/setlists': typeof AppSetlistsRouteWithChildren
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
-  '/api/import-pdf': typeof ApiImportPdfRoute
+  '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sync': typeof ApiSyncRoute
+  '/setlists/$id': typeof AppSetlistsIdRoute
+  '/setlists/import': typeof AppSetlistsImportRoute
+  '/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
+  '/setlists/': typeof AppSetlistsIndexRoute
+  '/songs/': typeof AppSongsIndexRoute
+  '/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/songs/$id/': typeof AppSongsIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/bands': typeof AppBandsRoute
+  '/community': typeof AppCommunityRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
-  '/api/import-pdf': typeof ApiImportPdfRoute
+  '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sync': typeof ApiSyncRoute
+  '/': typeof AppIndexRoute
+  '/setlists/$id': typeof AppSetlistsIdRoute
+  '/setlists/import': typeof AppSetlistsImportRoute
+  '/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
+  '/setlists': typeof AppSetlistsIndexRoute
+  '/songs': typeof AppSongsIndexRoute
+  '/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/songs/$id': typeof AppSongsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/bands': typeof AppBandsRoute
+  '/_app/community': typeof AppCommunityRoute
+  '/_app/setlists': typeof AppSetlistsRouteWithChildren
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
-  '/api/import-pdf': typeof ApiImportPdfRoute
+  '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sync': typeof ApiSyncRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/setlists/$id': typeof AppSetlistsIdRoute
+  '/_app/setlists_/import': typeof AppSetlistsImportRoute
+  '/_app/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
+  '/_app/setlists/': typeof AppSetlistsIndexRoute
+  '/_app/songs/': typeof AppSongsIndexRoute
+  '/_app/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/_app/songs/$id/': typeof AppSongsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
+    | '/bands'
+    | '/community'
+    | '/setlists'
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
     | '/api/sync'
+    | '/setlists/$id'
+    | '/setlists/import'
+    | '/songs/new'
     | '/api/auth/$'
+    | '/api/import-pdf/$id'
+    | '/setlists/'
+    | '/songs/'
+    | '/songs/$id/edit'
+    | '/songs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/login'
+    | '/bands'
+    | '/community'
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
     | '/api/sync'
+    | '/'
+    | '/setlists/$id'
+    | '/setlists/import'
+    | '/songs/new'
     | '/api/auth/$'
+    | '/api/import-pdf/$id'
+    | '/setlists'
+    | '/songs'
+    | '/songs/$id/edit'
+    | '/songs/$id'
   id:
     | '__root__'
-    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/bands'
+    | '/_app/community'
+    | '/_app/setlists'
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
     | '/api/sync'
+    | '/_app/'
+    | '/_app/setlists/$id'
+    | '/_app/setlists_/import'
+    | '/_app/songs/new'
     | '/api/auth/$'
+    | '/api/import-pdf/$id'
+    | '/_app/setlists/'
+    | '/_app/songs/'
+    | '/_app/songs/$id/edit'
+    | '/_app/songs/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
   ApiBandsRoute: typeof ApiBandsRoute
   ApiImportRoute: typeof ApiImportRoute
-  ApiImportPdfRoute: typeof ApiImportPdfRoute
+  ApiImportPdfRoute: typeof ApiImportPdfRouteWithChildren
   ApiPublicationsRoute: typeof ApiPublicationsRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSyncRoute: typeof ApiSyncRoute
@@ -136,12 +286,47 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bands': {
+      id: '/_app/bands'
+      path: '/bands'
+      fullPath: '/bands'
+      preLoaderRoute: typeof AppBandsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/community': {
+      id: '/_app/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof AppCommunityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/setlists': {
+      id: '/_app/setlists'
+      path: '/setlists'
+      fullPath: '/setlists'
+      preLoaderRoute: typeof AppSetlistsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/bands': {
       id: '/api/bands'
@@ -185,6 +370,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/setlists/': {
+      id: '/_app/setlists/'
+      path: '/'
+      fullPath: '/setlists/'
+      preLoaderRoute: typeof AppSetlistsIndexRouteImport
+      parentRoute: typeof AppSetlistsRoute
+    }
+    '/_app/setlists/$id': {
+      id: '/_app/setlists/$id'
+      path: '/$id'
+      fullPath: '/setlists/$id'
+      preLoaderRoute: typeof AppSetlistsIdRouteImport
+      parentRoute: typeof AppSetlistsRoute
+    }
+    '/_app/setlists_/import': {
+      id: '/_app/setlists_/import'
+      path: '/setlists/import'
+      fullPath: '/setlists/import'
+      preLoaderRoute: typeof AppSetlistsImportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/songs/': {
+      id: '/_app/songs/'
+      path: '/songs'
+      fullPath: '/songs/'
+      preLoaderRoute: typeof AppSongsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/songs/new': {
+      id: '/_app/songs/new'
+      path: '/songs/new'
+      fullPath: '/songs/new'
+      preLoaderRoute: typeof AppSongsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -192,14 +412,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/import-pdf/$id': {
+      id: '/api/import-pdf/$id'
+      path: '/$id'
+      fullPath: '/api/import-pdf/$id'
+      preLoaderRoute: typeof ApiImportPdfIdRouteImport
+      parentRoute: typeof ApiImportPdfRoute
+    }
+    '/_app/songs/$id/': {
+      id: '/_app/songs/$id/'
+      path: '/songs/$id'
+      fullPath: '/songs/$id/'
+      preLoaderRoute: typeof AppSongsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/songs/$id/edit': {
+      id: '/_app/songs/$id/edit'
+      path: '/songs/$id/edit'
+      fullPath: '/songs/$id/edit'
+      preLoaderRoute: typeof AppSongsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppSetlistsRouteChildren {
+  AppSetlistsIdRoute: typeof AppSetlistsIdRoute
+  AppSetlistsIndexRoute: typeof AppSetlistsIndexRoute
+}
+
+const AppSetlistsRouteChildren: AppSetlistsRouteChildren = {
+  AppSetlistsIdRoute: AppSetlistsIdRoute,
+  AppSetlistsIndexRoute: AppSetlistsIndexRoute,
+}
+
+const AppSetlistsRouteWithChildren = AppSetlistsRoute._addFileChildren(
+  AppSetlistsRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppBandsRoute: typeof AppBandsRoute
+  AppCommunityRoute: typeof AppCommunityRoute
+  AppSetlistsRoute: typeof AppSetlistsRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+  AppSetlistsImportRoute: typeof AppSetlistsImportRoute
+  AppSongsNewRoute: typeof AppSongsNewRoute
+  AppSongsIndexRoute: typeof AppSongsIndexRoute
+  AppSongsIdEditRoute: typeof AppSongsIdEditRoute
+  AppSongsIdIndexRoute: typeof AppSongsIdIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppBandsRoute: AppBandsRoute,
+  AppCommunityRoute: AppCommunityRoute,
+  AppSetlistsRoute: AppSetlistsRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+  AppSetlistsImportRoute: AppSetlistsImportRoute,
+  AppSongsNewRoute: AppSongsNewRoute,
+  AppSongsIndexRoute: AppSongsIndexRoute,
+  AppSongsIdEditRoute: AppSongsIdEditRoute,
+  AppSongsIdIndexRoute: AppSongsIdIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface ApiImportPdfRouteChildren {
+  ApiImportPdfIdRoute: typeof ApiImportPdfIdRoute
+}
+
+const ApiImportPdfRouteChildren: ApiImportPdfRouteChildren = {
+  ApiImportPdfIdRoute: ApiImportPdfIdRoute,
+}
+
+const ApiImportPdfRouteWithChildren = ApiImportPdfRoute._addFileChildren(
+  ApiImportPdfRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
   ApiBandsRoute: ApiBandsRoute,
   ApiImportRoute: ApiImportRoute,
-  ApiImportPdfRoute: ApiImportPdfRoute,
+  ApiImportPdfRoute: ApiImportPdfRouteWithChildren,
   ApiPublicationsRoute: ApiPublicationsRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSyncRoute: ApiSyncRoute,

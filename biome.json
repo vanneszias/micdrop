@@ -13,6 +13,7 @@
 			"**/index.html",
 			"**/vite.config.ts",
 			"!**/src/routeTree.gen.ts",
+			"!**/src/routeTree.offline.gen.ts",
 			"!**/src/styles.css"
 		]
 	},
@@ -33,6 +34,12 @@
 			}
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["packages/ui/src/components/**"],
+			"linter": { "enabled": false }
+		}
+	],
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"

@@ -8,18 +8,21 @@ import { HttpError } from "./http-error";
 export { HttpError } from "./http-error";
 
 export function getAuth() {
-	const secret = process.env.BETTER_AUTH_SECRET;
+	const secret = process.env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET;
+	const googleId = process.env.GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_ID;
+	const googleSecret =
+		process.env.GOOGLE_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET;
 	return betterAuth({
 		secret,
 		baseURL: process.env.BETTER_AUTH_URL || env.BETTER_AUTH_URL,
 		database: { dialect: new D1Dialect({ database: env.DB }), type: "sqlite" },
 		emailAndPassword: { enabled: true, minPasswordLength: 10 },
 		socialProviders:
-			process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+			googleId && googleSecret
 				? {
 						google: {
-							clientId: process.env.GOOGLE_CLIENT_ID,
-							clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+							clientId: googleId,
+							clientSecret: googleSecret,
 						},
 					}
 				: {},

@@ -1,0 +1,134 @@
+import type { Arrangement, Setlist, SongRecord } from "@chords/data";
+import { useSongbook } from "@chords/data/react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useMemo,
+	useState,
+} from "react";
+import { toast } from "sonner";
+import { api, type Band, freshArrangement } from "#/lib/songs";
+
+type User = { name: string; email: string; id: string };
+type App = ReturnType<typeof useSongbook> & {
+	account: string;
+	online: boolean;
+	user?: User;
+	owner: string;
+	setOwner: (id: string) => void;
+	bands: Band[];
+	refetchBands: () => Promise<unknown>;
+	arrangements: Arrangement[];
+	songs: Arrangement[];
+	setlists: Setlist[];
+	busy: boolean;
+	save: (row: SongRecord) => Promise<void>;
+	run: (fn: () => Promise<unknown>, success?: string) => Promise<boolean>;
+	createSong: (data?: Partial<Arrangement["data"]>) => Promise<void>;
+};
+
+const Context = createContext<App | null>(null);
+
+export function AppProvider({
+	account,
+	online,
+	user,
+	children,
+}: {
+	account: string;
+	online: boolean;
+	user?: User;
+	children: React.ReactNode;
+}) {
+	const songbook = useSongbook();
+	const { store, records } = songbook;
+	const navigate = useNavigate();
+	const [owner, setOwner] = useState(account);
+	const [busy, setBusy] = useState(false);
+	const bandsQuery = useQuery({
+		queryKey: ["bands", account],
+		queryFn: () => api<{ bands: Band[] }>("/api/bands"),
+		enabled: account !== "local" && online,
+	});
+	const arrangements = useMemo(
+		() =>
+			records.filter(
+				(row): row is Arrangement =>
+					row.kind === "arrangement" && !row.archived,
+			),
+		[records],
+	);
+	const songs = useMemo(
+		() =>
+			arrangements
+				.filter((row) => row.owner === owner)
+				.sort((a, b) => a.data.title.localeCompare(b.data.title)),
+		[arrangements, owner],
+	);
+	const setlists = useMemo(
+		() =>
+			records.filter(
+				(row): row is Setlist =>
+					row.kind === "setlist" && !row.archived && row.owner === owner,
+			),
+		[records, owner],
+	);
+	const save = useCallback(
+		async (row: SongRecord) => {
+			await store.save(row);
+			void store.sync();
+		},
+		[store],
+	);
+	const run = useCallback(
+		async (fn: () => Promise<unknown>, success?: string) => {
+			setBusy(true);
+			try {
+				await fn();
+				if (success) toast.success(success);
+				return true;
+			} catch (reason) {
+				toast.error(reason instanceof Error ? reason.message : String(reason));
+				return false;
+			} finally {
+				setBusy(false);
+			}
+		},
+		[],
+	);
+	const createSong = useCallback(
+		async (data?: Partial<Arrangement["data"]>) => {
+			const row = freshArrangement(owner, data);
+			await save(row);
+			await navigate({ to: "/songs/$id/edit", params: { id: row.id } });
+		},
+		[owner, save, navigate],
+	);
+	const value: App = {
+		...songbook,
+		account,
+		online,
+		user,
+		owner,
+		setOwner,
+		bands: bandsQuery.data?.bands ?? [],
+		refetchBands: bandsQuery.refetch,
+		arrangements,
+		songs,
+		setlists,
+		busy,
+		save,
+		run,
+		createSong,
+	};
+	return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+
+export function useApp() {
+	const value = useContext(Context);
+	if (!value) throw new Error("AppProvider is missing");
+	return value;
+}

@@ -5,7 +5,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": { "enabled": true, "traces": { "enabled": true } },
-  "d1_databases": [{ "binding": "DB", "database_name": "chords", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "chords", "database_id": "4026fa4f-3cfe-4fd2-a53d-a619b186f1b0", "migrations_dir": "migrations" }],
   "browser": { "binding": "BROWSER" },
-  "vars": { "BETTER_AUTH_URL": "http://localhost:3000" }
+  "routes": [{ "pattern": "chords.micdrop.day", "custom_domain": true }],
+  "vars": { "BETTER_AUTH_URL": "https://chords.micdrop.day" }
 }

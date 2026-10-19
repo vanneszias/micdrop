@@ -17,10 +17,10 @@ export default defineConfig({
 			injectRegister: false,
 			registerType: "prompt",
 			manifest: {
-				name: "Bobo — your little songbook",
-				short_name: "Bobo",
-				theme_color: "#faf7f0",
-				background_color: "#faf7f0",
+				name: "Mic Drop",
+				short_name: "Mic Drop",
+				theme_color: "#0a0a0a",
+				background_color: "#0a0a0a",
 				display: "standalone",
 				start_url: "/",
 				icons: [

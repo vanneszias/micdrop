@@ -1,0 +1,226 @@
+import { Badge } from "@chords/ui/components/badge";
+import { Button } from "@chords/ui/components/button";
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@chords/ui/components/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@chords/ui/components/dialog";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@chords/ui/components/empty";
+import { Field, FieldLabel } from "@chords/ui/components/field";
+import { Input } from "@chords/ui/components/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@chords/ui/components/select";
+import { Spinner } from "@chords/ui/components/spinner";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Plus, Users, X } from "lucide-react";
+import { useState } from "react";
+import { PageHeader } from "#/components/page-header";
+import { useApp } from "#/features/app-context";
+import { api, type Band } from "#/lib/songs";
+
+export const Route = createFileRoute("/_app/bands")({ component: Bands });
+
+function Bands() {
+	const { account, bands, refetchBands, store, run, busy } = useApp();
+	const [open, setOpen] = useState(false);
+	const signedOut = account === "local";
+	const changed = async () => {
+		await refetchBands();
+		await store.sync();
+	};
+	return (
+		<>
+			<PageHeader title="Bands">
+				{!signedOut ? (
+					<Dialog open={open} onOpenChange={setOpen}>
+						<DialogTrigger asChild>
+							<Button size="sm">
+								<Plus /> New band
+							</Button>
+						</DialogTrigger>
+						<DialogContent>
+							<form
+								className="space-y-4"
+								onSubmit={(event) => {
+									event.preventDefault();
+									const form = new FormData(event.currentTarget);
+									void run(async () => {
+										await api("/api/bands", {
+											action: "create",
+											name: form.get("name"),
+										});
+										await refetchBands();
+										setOpen(false);
+									}, "Band created");
+								}}
+							>
+								<DialogHeader>
+									<DialogTitle>New band</DialogTitle>
+									<DialogDescription>
+										A shared library of songs and setlists.
+									</DialogDescription>
+								</DialogHeader>
+								<Field>
+									<FieldLabel htmlFor="band-name">Name</FieldLabel>
+									<Input id="band-name" name="name" required maxLength={100} />
+								</Field>
+								<DialogFooter>
+									<Button disabled={busy}>
+										{busy ? <Spinner /> : null} Create
+									</Button>
+								</DialogFooter>
+							</form>
+						</DialogContent>
+					</Dialog>
+				) : null}
+			</PageHeader>
+			<div className="w-full space-y-4 p-4">
+				{signedOut || !bands.length ? (
+					<Empty className="border">
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Users />
+							</EmptyMedia>
+							<EmptyTitle>No bands</EmptyTitle>
+							<EmptyDescription>
+								{signedOut
+									? "Sign in to share songs and setlists with your band."
+									: "Create a band to share songs and setlists."}
+							</EmptyDescription>
+						</EmptyHeader>
+						{signedOut ? (
+							<EmptyContent>
+								<Button asChild>
+									<Link to="/login">Sign in</Link>
+								</Button>
+							</EmptyContent>
+						) : null}
+					</Empty>
+				) : null}
+				{bands.map((band) => (
+					<BandCard key={band.id} band={band} changed={changed} run={run} />
+				))}
+			</div>
+		</>
+	);
+}
+
+function BandCard({
+	band,
+	changed,
+	run,
+}: {
+	band: Band;
+	changed: () => Promise<void>;
+	run: (fn: () => Promise<unknown>, success?: string) => Promise<boolean>;
+}) {
+	const [role, setRole] = useState("editor");
+	const owner = band.role === "owner";
+	return (
+		<Card className="animate-in fade-in-0">
+			<CardHeader>
+				<CardTitle>{band.name}</CardTitle>
+				<CardAction>
+					<Badge variant="secondary">{band.role}</Badge>
+				</CardAction>
+			</CardHeader>
+			<CardContent className="divide-y">
+				{band.members.map((member) => (
+					<div key={member.id} className="flex items-center gap-3 py-2">
+						<div className="min-w-0 flex-1">
+							<div className="truncate text-sm font-medium">{member.name}</div>
+							<div className="truncate text-xs text-muted-foreground">
+								{member.email}
+							</div>
+						</div>
+						<span className="text-xs text-muted-foreground">{member.role}</span>
+						{owner && member.role !== "owner" ? (
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={`Remove ${member.name}`}
+								onClick={() =>
+									void run(async () => {
+										await api("/api/bands", {
+											action: "remove",
+											bandId: band.id,
+											memberId: member.id,
+										});
+										await changed();
+									})
+								}
+							>
+								<X />
+							</Button>
+						) : null}
+					</div>
+				))}
+			</CardContent>
+			{owner ? (
+				<CardFooter>
+					<form
+						className="flex w-full flex-wrap gap-2"
+						onSubmit={(event) => {
+							event.preventDefault();
+							const form = event.currentTarget;
+							const email = new FormData(form).get("email");
+							void run(async () => {
+								await api("/api/bands", {
+									action: "add",
+									bandId: band.id,
+									email,
+									role,
+								});
+								await changed();
+								form.reset();
+							}, "Member added");
+						}}
+					>
+						<Input
+							aria-label="Member email"
+							name="email"
+							type="email"
+							placeholder="Member email"
+							required
+							className="min-w-48 flex-1"
+						/>
+						<Select value={role} onValueChange={setRole}>
+							<SelectTrigger className="w-28" aria-label="Role">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="editor">Editor</SelectItem>
+								<SelectItem value="viewer">Viewer</SelectItem>
+							</SelectContent>
+						</Select>
+						<Button variant="outline">Add</Button>
+					</form>
+				</CardFooter>
+			) : null}
+		</Card>
+	);
+}
