@@ -118,17 +118,18 @@ export function createSongbookStore(account: string) {
 		notify();
 	}
 	async function init() {
-		const opening = indexedDB.open(`chords:${account}`, 1);
+		const opening = indexedDB.open(`chords:${account}`, 2);
 		opening.onupgradeneeded = () => {
-			for (const store of ["records", "outbox", "conflicts"])
-				opening.result.createObjectStore(store, {
-					keyPath:
-						store === "conflicts"
-							? "operation.record.id"
-							: store === "outbox"
-								? "record.id"
-								: "id",
-				});
+			for (const store of ["records", "outbox", "conflicts", "sources"])
+				if (!opening.result.objectStoreNames.contains(store))
+					opening.result.createObjectStore(store, {
+						keyPath:
+							store === "conflicts"
+								? "operation.record.id"
+								: store === "outbox"
+									? "record.id"
+									: "id",
+					});
 		};
 		database = await request(opening);
 		if (disposed) {
@@ -202,6 +203,64 @@ export function createSongbookStore(account: string) {
 		await done;
 		await refresh();
 		channel?.postMessage("changed");
+	}
+	async function saveImport(
+		inputs: SongRecord[],
+		source: { id: string; file: File },
+	) {
+		const rows = inputs.map((row) => RecordSchema.parse(row));
+		const tx = database.transaction(
+			["records", "outbox", "sources"],
+			"readwrite",
+		);
+		const done = transactionDone(tx);
+		const existing = await request<SongRecord[]>(
+			tx.objectStore("records").getAll(),
+		);
+		const ids = new Set(existing.map((row) => row.id));
+		const identities = new Set(
+			existing
+				.filter(
+					(row): row is Arrangement =>
+						row.kind === "arrangement" && !row.archived,
+				)
+				.map((row) => `${row.owner}:${songIdentity(row.data)}`),
+		);
+		for (const row of rows) {
+			const identity =
+				row.kind === "arrangement"
+					? `${row.owner}:${songIdentity(row.data)}`
+					: "";
+			if (ids.has(row.id) || (identity && identities.has(identity))) {
+				await done;
+				throw new Error(
+					identity && identities.has(identity)
+						? `${duplicateSongMessage} Rename the imported song before saving.`
+						: "This import already exists.",
+				);
+			}
+			ids.add(row.id);
+			if (identity) identities.add(identity);
+		}
+		for (const record of rows) {
+			tx.objectStore("records").add(record);
+			tx.objectStore("outbox").add({
+				id: crypto.randomUUID(),
+				record,
+				baseVersion: 0,
+			} satisfies Operation);
+		}
+		tx.objectStore("sources").add(source);
+		await done;
+		await refresh();
+		channel?.postMessage("changed");
+	}
+	async function getImportSource(id: string) {
+		return (
+			await request<{ id: string; file: File } | undefined>(
+				database.transaction("sources").objectStore("sources").get(id),
+			)
+		)?.file;
 	}
 	async function sync() {
 		if (
@@ -344,6 +403,8 @@ export function createSongbookStore(account: string) {
 		records,
 		init,
 		save,
+		saveImport,
+		getImportSource,
 		sync,
 		resolve,
 		importLocal,

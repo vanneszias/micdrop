@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiBandsRouteImport } from './routes/api/bands'
 import { Route as ApiImportRouteImport } from './routes/api/import'
+import { Route as ApiImportPdfRouteImport } from './routes/api/import-pdf'
 import { Route as ApiPublicationsRouteImport } from './routes/api/publications'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSyncRouteImport } from './routes/api/sync'
@@ -30,6 +31,11 @@ const ApiBandsRoute = ApiBandsRouteImport.update({
 const ApiImportRoute = ApiImportRouteImport.update({
   id: '/api/import',
   path: '/api/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImportPdfRoute = ApiImportPdfRouteImport.update({
+  id: '/api/import-pdf',
+  path: '/api/import-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicationsRoute = ApiPublicationsRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
+  '/api/import-pdf': typeof ApiImportPdfRoute
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sync': typeof ApiSyncRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
+  '/api/import-pdf': typeof ApiImportPdfRoute
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sync': typeof ApiSyncRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
+  '/api/import-pdf': typeof ApiImportPdfRoute
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sync': typeof ApiSyncRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/bands'
     | '/api/import'
+    | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
     | '/api/sync'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/bands'
     | '/api/import'
+    | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
     | '/api/sync'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/bands'
     | '/api/import'
+    | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
     | '/api/sync'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiBandsRoute: typeof ApiBandsRoute
   ApiImportRoute: typeof ApiImportRoute
+  ApiImportPdfRoute: typeof ApiImportPdfRoute
   ApiPublicationsRoute: typeof ApiPublicationsRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSyncRoute: typeof ApiSyncRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/api/import'
       fullPath: '/api/import'
       preLoaderRoute: typeof ApiImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/import-pdf': {
+      id: '/api/import-pdf'
+      path: '/api/import-pdf'
+      fullPath: '/api/import-pdf'
+      preLoaderRoute: typeof ApiImportPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/publications': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiBandsRoute: ApiBandsRoute,
   ApiImportRoute: ApiImportRoute,
+  ApiImportPdfRoute: ApiImportPdfRoute,
   ApiPublicationsRoute: ApiPublicationsRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSyncRoute: ApiSyncRoute,

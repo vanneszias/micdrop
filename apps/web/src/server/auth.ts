@@ -3,6 +3,9 @@ import { betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
+import { HttpError } from "./http-error";
+
+export { HttpError } from "./http-error";
 
 export function getAuth() {
 	const secret = process.env.BETTER_AUTH_SECRET;
@@ -31,15 +34,10 @@ export async function requireUser(request: Request) {
 	if (!session) throw new HttpError(401, "Sign in to use your cloud songbook.");
 	return session.user;
 }
-export class HttpError extends Error {
-	constructor(
-		public status: number,
-		message: string,
-	) {
-		super(message);
-	}
-}
-export function endpoint(handler: (request: Request) => Promise<Response>) {
+export function endpoint(
+	handler: (request: Request) => Promise<Response>,
+	options = { contentType: "application/json", maxBytes: 500_000 },
+) {
 	return async ({ request }: { request: Request }) => {
 		try {
 			if (request.method !== "GET" && request.method !== "HEAD") {
@@ -47,11 +45,11 @@ export function endpoint(handler: (request: Request) => Promise<Response>) {
 				if (origin && origin !== new URL(request.url).origin)
 					throw new HttpError(403, "Cross-origin writes are not allowed.");
 				if (
-					!request.headers.get("Content-Type")?.startsWith("application/json")
+					!request.headers.get("Content-Type")?.startsWith(options.contentType)
 				)
-					throw new HttpError(415, "Use a JSON request.");
+					throw new HttpError(415, `Use ${options.contentType}.`);
 				const length = Number(request.headers.get("Content-Length") || 0);
-				if (length > 500_000)
+				if (length > options.maxBytes)
 					throw new HttpError(413, "This request is too large.");
 			}
 			return await handler(request);

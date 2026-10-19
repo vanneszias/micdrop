@@ -31,6 +31,7 @@ Keep existing `.env.local` values when updating configuration. Secrets are read 
 
 - Create, edit, search, copy, archive, import/export arrangements.
 - Paste chords-over-lyrics or ChordPro; import a public HTTPS page containing a preformatted chord sheet, including PNW Chords.
+- Import a PDF of chord sheets as a setlist using **Setlists → Import PDF with AI** (also available under **Add a song**). Review/edit the extracted songs, keys, capo, notes and ChordPro before saving. Supports scanned PDFs through vision; maximum 10 MB, 200 entries. Requires sign-in and an internet connection.
 - Live preview, section/chord/note helpers, local autosave, and explicit error reporting.
 - Transpose, separate sounding chords from capo shapes, guitar diagrams with alternative fingerings, adjustable text, and autoscroll.
 - Personal and band setlists, ordering, repeated songs, performance keys, band notes, playing navigation, and standardized print layouts.
@@ -43,10 +44,13 @@ All synchronized records in an accessible library are retained locally; a separa
 ## Optional integrations
 
 - `BRAVE_SEARCH_API_KEY`: enables in-app external web results.
+- `OPENAI_API_KEY`: enables AI PDF import through OpenAI's Responses API. `OPENAI_PDF_MODEL` optionally overrides the default `gpt-4.1`; choose a model supporting PDF inputs and structured outputs. The PDF is sent to OpenAI with response storage disabled. Jev/TypeSafe's current choice/score API does not generate transcriptions, so it cannot perform this import.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: enables Google sign-in; configure the callback `/api/auth/callback/google` in Google.
 - The `BROWSER` binding enables rendered-page import on Cloudflare. Local plain-HTML import works without this service. Rendered extraction needs access to Cloudflare Browser Run.
 
 Import previews retain raw text and the source URL. Extraction currently targets `<pre>` blocks. Pages with other structures may need a source adapter or paste fallback. Imported key/capo metadata must be reviewed in the editor.
+
+PDF imports save songs, the setlist, pending sync operations, and the original PDF in one local transaction. The original PDF remains on the importing device and can be downloaded from its setlist; it is not synchronized. Each song retains the AI's unedited source transcription. Existing songs are never overwritten: rename conflicting imported titles/artists before saving. Repeated identical songs share an arrangement and keep separate setlist entries. Unknown keys default to C after review; AI extraction can need corrections, especially for chord placement and capo notation.
 
 ## Offline production check
 

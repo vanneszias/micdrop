@@ -4,6 +4,7 @@ import {
 	type Arrangement,
 	createSongbookStore,
 	type Operation,
+	type Setlist,
 	type SongbookStore,
 } from "./index";
 
@@ -55,6 +56,67 @@ test("atomic local records and pending edits survive a restart and remain accoun
 	expect(reopened.getStatus().pending).toBe(1);
 	const other = await open(crypto.randomUUID());
 	expect(other.records.get(row.id)).toBeUndefined();
+});
+test("PDF imports atomically retain songs, setlist, outbox and original file across restarts", async () => {
+	const account = crypto.randomUUID();
+	const store = await open(account);
+	const row = song(account);
+	const list: Setlist = {
+		id: crypto.randomUUID(),
+		owner: account,
+		kind: "setlist",
+		version: 0,
+		archived: false,
+		updatedAt: row.updatedAt,
+		data: {
+			title: "Imported",
+			date: "",
+			entries: [
+				{ id: crypto.randomUUID(), arrangementId: row.id, key: "C", notes: "" },
+			],
+		},
+	};
+	const source = {
+		id: list.id,
+		file: new File(["%PDF-1.7\noriginal"], "original.pdf", {
+			type: "application/pdf",
+		}),
+	};
+	await store.saveImport([row, list], source);
+	store.dispose();
+	const reopened = await open(account);
+	expect(reopened.records.get(row.id)).toMatchObject(row);
+	expect(reopened.records.get(list.id)).toMatchObject(list);
+	expect(reopened.getStatus().pending).toBe(2);
+	expect(await (await reopened.getImportSource(list.id))?.text()).toBe(
+		"%PDF-1.7\noriginal",
+	);
+	const other = await open(crypto.randomUUID());
+	expect(await other.getImportSource(list.id)).toBeUndefined();
+	const duplicate = { ...row, id: crypto.randomUUID() };
+	const secondList = { ...list, id: crypto.randomUUID() };
+	await expect(
+		reopened.saveImport([duplicate, secondList], {
+			...source,
+			id: secondList.id,
+		}),
+	).rejects.toThrow("already exists");
+	expect(reopened.records.has(secondList.id)).toBe(false);
+	expect(await reopened.getImportSource(secondList.id)).toBeUndefined();
+	expect(reopened.getStatus().pending).toBe(2);
+	// A source write failing after records were queued must roll the whole transaction back.
+	const newSong = {
+		...row,
+		id: crypto.randomUUID(),
+		data: { ...row.data, title: "Another song" },
+	};
+	await expect(
+		reopened.saveImport([newSong, secondList], source),
+	).rejects.toThrow();
+	const afterFailure = await open(account);
+	expect(afterFailure.records.has(newSong.id)).toBe(false);
+	expect(afterFailure.records.has(secondList.id)).toBe(false);
+	expect(afterFailure.getStatus().pending).toBe(2);
 });
 test("songbook uniqueness is atomic across tabs and applies to edits and restores", async () => {
 	const account = crypto.randomUUID();

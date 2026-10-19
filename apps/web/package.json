@@ -2,7 +2,9 @@
   "name": "@chords/web",
   "private": true,
   "type": "module",
-  "imports": { "#/*": "./src/*" },
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build && vite build --config vite.offline.config.ts && bun run scripts/generate-sw.ts",
@@ -13,12 +15,14 @@
     "deploy": "bun run build && wrangler deploy"
   },
   "dependencies": {
-    "@chords/ui": "workspace:*",
-    "@chords/song-core": "workspace:*",
-    "@chords/song-ui": "workspace:*",
     "@chords/data": "workspace:*",
     "@chords/imports": "workspace:*",
+    "@chords/song-core": "workspace:*",
+    "@chords/song-ui": "workspace:*",
+    "@chords/ui": "workspace:*",
     "@cloudflare/puppeteer": "^1.0.4",
+    "@rive-app/canvas-lite": "2.44.0",
+    "@rive-app/react-canvas-lite": "4.36.0",
     "@tanstack/react-query": "5.104.1",
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-router-ssr-query": "1.167.3",

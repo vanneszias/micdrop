@@ -25,7 +25,6 @@ import {
 	ArrowLeft,
 	ArrowUp,
 	BookOpen,
-	Check,
 	ChevronDown,
 	Cloud,
 	Copy,
@@ -44,6 +43,7 @@ import {
 	Plus,
 	Search,
 	Settings2,
+	Shuffle,
 	Trash2,
 	Users,
 	WifiOff,
@@ -54,6 +54,7 @@ import { createRoot } from "react-dom/client";
 import { authClient } from "#/lib/auth-client";
 import { Bobo } from "./bobo";
 import { Editor } from "./editor";
+import { PdfSetlistImport } from "./pdf-setlist-import";
 import { Player } from "./player";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -88,7 +89,7 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
 		throw new Error(data.error || "Could not complete this request");
 	return data;
 }
-function freshArrangement(
+export function freshArrangement(
 	owner: string,
 	data?: Partial<Arrangement["data"]>,
 ): Arrangement {
@@ -217,9 +218,9 @@ function Workspace({
 		index?: number;
 	} | null>(null);
 	const [selectedList, setSelectedList] = useState<string | null>(null);
-	const [dialog, setDialog] = useState<"import" | "account" | "band" | null>(
-		null,
-	);
+	const [dialog, setDialog] = useState<
+		"import" | "pdf" | "account" | "band" | null
+	>(null);
 	const [message, setMessage] = useState("");
 	const [error, setError] = useState("");
 	const [importUrl, setImportUrl] = useState("");
@@ -228,6 +229,7 @@ function Workspace({
 	);
 	const [importText, setImportText] = useState("");
 	const [busy, setBusy] = useState(false);
+	const [celebration, setCelebration] = useState(0);
 	const [webSearch, setWebSearch] = useState("");
 	const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 	const [authEmail, setAuthEmail] = useState("");
@@ -287,7 +289,10 @@ function Workspace({
 		setBusy(true);
 		try {
 			await fn();
-			if (success) setMessage(success);
+			if (success) {
+				setMessage(success);
+				setCelebration((value) => value + 1);
+			}
 		} catch (reason) {
 			setError(reason instanceof Error ? reason.message : String(reason));
 		} finally {
@@ -299,6 +304,11 @@ function Workspace({
 		const timer = setTimeout(() => setMessage(""), 5000);
 		return () => clearTimeout(timer);
 	}, [message]);
+	useEffect(() => {
+		if (!celebration) return;
+		const timer = setTimeout(() => setCelebration(0), 5000);
+		return () => clearTimeout(timer);
+	}, [celebration]);
 	async function createSong(data?: Partial<Arrangement["data"]>) {
 		const row = freshArrangement(owner, data);
 		await save(row);
@@ -333,7 +343,10 @@ function Workspace({
 				key={editing.id}
 				arrangement={editing}
 				save={save}
-				close={() => setEditing(null)}
+				close={() => {
+					setEditing(null);
+					setCelebration((value) => value + 1);
+				}}
 			/>
 		);
 	if (playingSong)
@@ -437,7 +450,15 @@ function Workspace({
 					))}
 				</nav>
 				<div className="sidebar-bottom">
-					<Bobo className="sidebar-bobo" label="" />
+					<Bobo
+						className="sidebar-bobo"
+						mood={busy || syncing ? "thinking" : "idle"}
+						messages={[
+							"Your songs stay here, even without Wi-Fi.",
+							"Try a setlist for your next little rehearsal.",
+							"Different key? You can change it while playing.",
+						]}
+					/>
 					<div className="sync-indicator">
 						{online ? <Cloud size={16} /> : <WifiOff size={16} />}
 						<span>
@@ -515,7 +536,12 @@ function Workspace({
 					) : null}
 					{message ? (
 						<output className="success-message">
-							<Check size={16} />
+							<Bobo
+								className="success-bobo"
+								interactive={false}
+								label=""
+								celebration={celebration}
+							/>
 							{message}
 						</output>
 					) : null}
@@ -600,8 +626,26 @@ function Workspace({
 												little music?
 											</h1>
 											<p>Pick a song and settle in.</p>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="bobo-pick-song"
+												disabled={!visibleSongs.length}
+												onClick={() => {
+													const song =
+														visibleSongs[
+															Math.floor(Math.random() * visibleSongs.length)
+														];
+													if (song) setPlaying({ id: song.id });
+												}}
+											>
+												<Shuffle size={14} /> Bobo, pick a song
+											</Button>
 										</div>
-										<Bobo />
+										<Bobo
+											mood={search ? "curious" : "idle"}
+											celebration={celebration}
+										/>
 									</div>
 									<div className="library-heading">
 										<h2>Your songs</h2>
@@ -783,7 +827,17 @@ function Workspace({
 								<div
 									className={`empty-state ${search ? "search-empty" : "first-visit"}`}
 								>
-									<Bobo />
+									<Bobo
+										mood={search ? "curious" : "idle"}
+										messages={
+											search
+												? [
+														"Let’s try another title, artist, or lyric.",
+														"A shorter search might find it.",
+													]
+												: undefined
+										}
+									/>
 									<h1>
 										{search ? (
 											"No matching songs"
@@ -874,25 +928,36 @@ function Workspace({
 										Arrange the evening. Keep each song in the right key.
 									</p>
 								</div>
-								<Button
-									onClick={() =>
-										void action(async () => {
-											const row: Setlist = {
-												id: crypto.randomUUID(),
-												kind: "setlist",
-												owner,
-												version: 0,
-												archived: false,
-												updatedAt: new Date().toISOString(),
-												data: { title: "New setlist", date: "", entries: [] },
-											};
-											await save(row);
-											setSelectedList(row.id);
-										})
-									}
-								>
-									<Plus size={16} /> New setlist
-								</Button>
+								<div className="actions">
+									<Button
+										variant="outline"
+										onClick={() => {
+											setError("");
+											setDialog("pdf");
+										}}
+									>
+										<FileText size={16} /> Import PDF with AI
+									</Button>
+									<Button
+										onClick={() =>
+											void action(async () => {
+												const row: Setlist = {
+													id: crypto.randomUUID(),
+													kind: "setlist",
+													owner,
+													version: 0,
+													archived: false,
+													updatedAt: new Date().toISOString(),
+													data: { title: "New setlist", date: "", entries: [] },
+												};
+												await save(row);
+												setSelectedList(row.id);
+											})
+										}
+									>
+										<Plus size={16} /> New setlist
+									</Button>
+								</div>
 							</div>
 							<div className="setlist-layout">
 								<div className="setlist-sidebar">
@@ -917,6 +982,7 @@ function Workspace({
 								{activeList ? (
 									<SetlistEditor
 										list={activeList}
+										getSource={store.getImportSource}
 										songs={arrangements}
 										available={arrangements.filter(
 											(song) => song.owner === owner,
@@ -933,7 +999,13 @@ function Workspace({
 									/>
 								) : (
 									<div className="empty-state">
-										<ListMusic size={40} />
+										<Bobo
+											className="bobo-small"
+											messages={[
+												"Put your favorite opener first.",
+												"Each song can have its own key and capo.",
+											]}
+										/>
 										<h2>Your next rehearsal starts here</h2>
 										<p>Create or select a setlist to add songs.</p>
 									</div>
@@ -951,6 +1023,14 @@ function Workspace({
 										Discover arrangements. Save a copy and make it your own.
 									</p>
 								</div>
+								<Bobo
+									className="page-bobo"
+									mood={publications.isFetching ? "thinking" : "curious"}
+									messages={[
+										"Save a copy, then make it your own.",
+										"Your version can have its own comfy key.",
+									]}
+								/>
 							</div>
 							<div className="search-field">
 								<Search size={18} />
@@ -1057,11 +1137,25 @@ function Workspace({
 							</div>
 							{publications.data?.publications.length === 0 ? (
 								<div className="empty-state">
-									<Globe2 size={40} />
-									<h2>No published arrangements yet</h2>
+									<h2>
+										{search
+											? "No matching arrangements"
+											: "No published arrangements yet"}
+									</h2>
 									<p>
-										Publish a song from your library to start the collection.
+										{search
+											? "Try another title or artist, or look on the web."
+											: "Publish a song from your library to start the collection."}
 									</p>
+									<Button
+										variant="outline"
+										onClick={() => {
+											setSection("web");
+											setWebSearch("");
+										}}
+									>
+										Search the web
+									</Button>
 								</div>
 							) : null}
 						</>
@@ -1103,7 +1197,29 @@ function Workspace({
 									{web.error.message}
 								</p>
 							) : null}
-							{web.isFetching ? <p>Searching the web…</p> : null}
+							<div className="bobo-note">
+								<Bobo
+									mood={web.isFetching ? "thinking" : "curious"}
+									messages={[
+										"A title and artist make a good search team.",
+										"Already have a link? Use Import a URL.",
+									]}
+								/>
+								<output>
+									<strong>
+										{web.isFetching
+											? "Looking for your song…"
+											: web.data?.results.length === 0
+												? "Let’s try another tune."
+												: "Let’s find something to play."}
+									</strong>
+									{!online
+										? "Web search needs a connection. Your saved songs still work offline."
+										: web.data?.results.length === 0
+											? "Try the song title and artist, or import a chord-page link."
+											: "Search for a title or artist, then import a chord page you like."}
+								</output>
+							</div>
 							<div className="web-results">
 								{web.data?.results.map((result) => (
 									<article key={result.url}>
@@ -1153,7 +1269,13 @@ function Workspace({
 							</div>
 							{account === "local" ? (
 								<div className="empty-state">
-									<Users size={40} />
+									<Bobo
+										className="bobo-small"
+										messages={[
+											"There’s room for the whole band.",
+											"Share the song. Keep your own key and capo.",
+										]}
+									/>
 									<h2>A songbook for the whole band</h2>
 									<p>Sign in to create a band and share your music.</p>
 									<Button onClick={() => setDialog("account")}>Sign in</Button>
@@ -1163,6 +1285,13 @@ function Workspace({
 								<p role="alert" className="error-message">
 									{bands.error.message}
 								</p>
+							) : null}
+							{account !== "local" && bands.data?.bands.length === 0 ? (
+								<div className="empty-state">
+									<Bobo className="bobo-small" />
+									<h2>A little music is better together</h2>
+									<p>Create your first band to share songs and setlists.</p>
+								</div>
 							) : null}
 							{bands.data?.bands.map((band) => (
 								<BandCard
@@ -1188,22 +1317,41 @@ function Workspace({
 				<DialogContent className="app-dialog">
 					<DialogHeader>
 						<DialogTitle>
-							{dialog === "import"
-								? "A new song for your book."
-								: dialog === "band"
-									? "Create a band"
-									: user
-										? "Your account"
-										: "Your songbook, everywhere"}
+							{dialog === "pdf"
+								? "A PDF becomes a setlist."
+								: dialog === "import"
+									? "A new song for your book."
+									: dialog === "band"
+										? "Create a band"
+										: user
+											? "Your account"
+											: "Your songbook, everywhere"}
 						</DialogTitle>
 						<DialogDescription>
-							{dialog === "import"
-								? "Choose how to bring it in. You’ll review your song before playing."
-								: dialog === "band"
-									? "Start a shared library for your band."
-									: "Local edits stay on this device. Sign in to sync them across devices."}
+							{dialog === "pdf"
+								? "Extract songs and chords, then review before saving."
+								: dialog === "import"
+									? "Choose how to bring it in. You’ll review your song before playing."
+									: dialog === "band"
+										? "Start a shared library for your band."
+										: "Local edits stay on this device. Sign in to sync them across devices."}
 						</DialogDescription>
 					</DialogHeader>
+					{dialog === "pdf" ? (
+						<PdfSetlistImport
+							owner={owner}
+							online={online}
+							signedIn={!!user}
+							store={store}
+							complete={(id) => {
+								setDialog(null);
+								setSection("setlists");
+								setSelectedList(id);
+								setMessage("PDF songs and setlist saved");
+								setCelebration((value) => value + 1);
+							}}
+						/>
+					) : null}
 					{error ? (
 						<p role="alert" className="error-message">
 							{error}
@@ -1211,9 +1359,18 @@ function Workspace({
 					) : null}
 					{dialog === "import" ? (
 						<div className="dialog-stack">
+							<Bobo
+								className="import-bobo"
+								label=""
+								mood={busy ? "thinking" : "curious"}
+								messages={[
+									"Paste your chords. We’ll tidy them up together.",
+									"You get to check your song before playing.",
+									"I’ll hold the guitar. You bring the song.",
+								]}
+							/>
 							{importMode === null ? (
 								<div className="import-choices">
-									<Bobo className="import-bobo" label="" />
 									<Button
 										variant="outline"
 										onClick={() => setImportMode("paste")}
@@ -1242,6 +1399,13 @@ function Workspace({
 										<span>
 											Open a file
 											<small>ChordPro and plain-text song sheets.</small>
+										</span>
+									</Button>
+									<Button variant="outline" onClick={() => setDialog("pdf")}>
+										<ListMusic size={20} />
+										<span>
+											Import a PDF with AI
+											<small>Turn chord sheets into an ordered setlist.</small>
 										</span>
 									</Button>
 									<Button
@@ -1514,6 +1678,7 @@ function Workspace({
 
 function SetlistEditor({
 	list,
+	getSource,
 	songs,
 	available,
 	save,
@@ -1521,6 +1686,7 @@ function SetlistEditor({
 	notify,
 }: {
 	list: Setlist;
+	getSource: (id: string) => Promise<File | undefined>;
 	songs: Arrangement[];
 	available: Arrangement[];
 	save: (row: SongRecord) => Promise<void>;
@@ -1528,6 +1694,19 @@ function SetlistEditor({
 	notify: (value: string) => void;
 }) {
 	const [error, setError] = useState("");
+	const [source, setSource] = useState<File | undefined>();
+	useEffect(() => {
+		let active = true;
+		setSource(undefined);
+		void getSource(list.id)
+			.then((file) => {
+				if (active) setSource(file);
+			})
+			.catch(() => {});
+		return () => {
+			active = false;
+		};
+	}, [list.id, getSource]);
 	async function update(data: Setlist["data"]) {
 		try {
 			await save({ ...list, data });
@@ -1579,6 +1758,21 @@ function SetlistEditor({
 				<Button disabled={!list.data.entries.length} onClick={() => play(0)}>
 					Play setlist
 				</Button>
+				{source ? (
+					<Button
+						variant="outline"
+						onClick={() => {
+							const url = URL.createObjectURL(source);
+							const link = document.createElement("a");
+							link.href = url;
+							link.download = source.name || "setlist.pdf";
+							link.click();
+							setTimeout(() => URL.revokeObjectURL(url), 1000);
+						}}
+					>
+						Download original PDF
+					</Button>
+				) : null}
 				<Button
 					variant="outline"
 					onClick={() =>

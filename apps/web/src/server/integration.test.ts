@@ -26,6 +26,25 @@ test.skipIf(!base)(
 		}
 		const alice = await account("Integration owner");
 		const bob = await account("Integration viewer");
+		const pdfRequest = (headers: Record<string, string>) =>
+			fetch(`${base}/api/import-pdf`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/pdf",
+					Origin: base,
+					...headers,
+				},
+				body: "%PDF-1.7\nfixture",
+			});
+		expect((await pdfRequest({})).status).toBe(401);
+		expect(
+			(await pdfRequest({ Cookie: alice.cookie, Origin: "https://other.test" }))
+				.status,
+		).toBe(403);
+		expect(
+			(await pdfRequest({ Cookie: alice.cookie, "Content-Type": "text/plain" }))
+				.status,
+		).toBe(415);
 		async function call(path: string, cookie: string, body?: unknown) {
 			return fetch(`${base}${path}`, {
 				method: body ? "POST" : "GET",

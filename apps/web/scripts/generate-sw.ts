@@ -3,7 +3,7 @@ import { generateSW } from 'workbox-build'
 const { count, size, warnings } = await generateSW({
   globDirectory: 'dist/client',
   swDest: 'dist/client/sw.js',
-  globPatterns: ['**/*.{js,css,svg,html,woff2}'],
+  globPatterns: ['**/*.{js,css,svg,html,woff2,riv,wasm}'],
   navigateFallback: '/offline.html',
   navigateFallbackDenylist: [/^\/api\//],
   cleanupOutdatedCaches: true,
