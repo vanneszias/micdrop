@@ -58,6 +58,60 @@ export function songIdentity(data: Arrangement["data"]) {
 export const duplicateSongMessage =
 	"A song with this title and artist already exists in this songbook.";
 
+const isActiveArrangement = (row: SongRecord): row is Arrangement =>
+	row.kind === "arrangement" && !row.archived;
+const songKey = (row: Arrangement) => `${row.owner}:${songIdentity(row.data)}`;
+
+/** A new arrangement in `owner`'s library, remembering the song it came from. */
+export function copyArrangement(song: Arrangement, owner: string): Arrangement {
+	return {
+		id: crypto.randomUUID(),
+		kind: "arrangement",
+		owner,
+		version: 0,
+		archived: false,
+		updatedAt: new Date().toISOString(),
+		data: { ...song.data, copiedFrom: song.id },
+	};
+}
+
+/**
+ * Copies a setlist into `owner`'s library. Songs the library already has are
+ * reused by title and artist; the rest come back in `songs` to be saved with it.
+ */
+export function copySetlist(
+	list: Setlist,
+	songs: Arrangement[],
+	owner: string,
+	library: Arrangement[],
+) {
+	const copied: Arrangement[] = [];
+	const entries: Setlist["data"]["entries"] = [];
+	for (const entry of list.data.entries) {
+		const source = songs.find((song) => song.id === entry.arrangementId);
+		if (!source) continue;
+		const identity = songIdentity(source.data);
+		let target = [...library, ...copied].find(
+			(song) => songIdentity(song.data) === identity,
+		);
+		if (!target) {
+			target = copyArrangement(source, owner);
+			copied.push(target);
+		}
+		entries.push({ ...entry, arrangementId: target.id });
+	}
+	const copy: Setlist = {
+		...list,
+		id: crypto.randomUUID(),
+		owner,
+		version: 0,
+		archived: false,
+		updatedAt: new Date().toISOString(),
+		data: { ...list.data, entries },
+	};
+	return { list: copy, songs: copied };
+}
+
 export function createSongbookStore(account: string) {
 	const records = createCollection(
 		localOnlyCollectionOptions<SongRecord>({
@@ -187,6 +241,49 @@ export function createSongbookStore(account: string) {
 		} satisfies Operation);
 		await done;
 		apply(record);
+		error = "";
+		await refresh();
+		channel?.postMessage("changed");
+	}
+	/** Saves several records in one local transaction, so a copy and its source change together. */
+	async function saveMany(inputs: SongRecord[]) {
+		const now = new Date().toISOString();
+		const rows = inputs.map((input) =>
+			RecordSchema.parse({ ...input, updatedAt: now }),
+		);
+		const tx = database.transaction(["records", "outbox"], "readwrite");
+		const done = transactionDone(tx);
+		const next = new Map(
+			(await request<SongRecord[]>(tx.objectStore("records").getAll())).map(
+				(row) => [row.id, row] as const,
+			),
+		);
+		for (const row of rows) next.set(row.id, row);
+		const touched = new Set(rows.filter(isActiveArrangement).map(songKey));
+		const counts = new Map<string, number>();
+		for (const row of next.values())
+			if (isActiveArrangement(row) && touched.has(songKey(row)))
+				counts.set(songKey(row), (counts.get(songKey(row)) ?? 0) + 1);
+		if ([...counts.values()].some((count) => count > 1)) {
+			await done;
+			throw new Error(duplicateSongMessage);
+		}
+		for (const row of rows) {
+			const previous = await request<Operation | undefined>(
+				tx.objectStore("outbox").get(row.id),
+			);
+			tx.objectStore("records").put(row);
+			tx.objectStore("outbox").put({
+				id: crypto.randomUUID(),
+				record: row,
+				baseVersion:
+					previous?.baseVersion ??
+					acknowledged.get(`${row.id}:${row.version}`) ??
+					row.version,
+			} satisfies Operation);
+		}
+		await done;
+		for (const row of rows) apply(row);
 		error = "";
 		await refresh();
 		channel?.postMessage("changed");
@@ -403,6 +500,7 @@ export function createSongbookStore(account: string) {
 		records,
 		init,
 		save,
+		saveMany,
 		saveImport,
 		getImportSource,
 		sync,

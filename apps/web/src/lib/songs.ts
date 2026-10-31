@@ -62,3 +62,32 @@ export type Band = {
 	role: string;
 	members: { id: string; name: string; email: string; role: string }[];
 };
+
+export type Library = { id: string; name: string };
+
+const EDITOR_ROLES = ["owner", "admin", "member", "editor"];
+
+export function canEditRole(role?: string) {
+	return (
+		!!role && role.split(",").some((value) => EDITOR_ROLES.includes(value))
+	);
+}
+
+/** Libraries songs and setlists can be copied or moved to: yours, and bands you can edit. */
+export function destinations(account: string, owner: string, bands: Band[]) {
+	const libraries: Library[] = [
+		{ id: account, name: "Personal" },
+		...bands
+			.filter((band) => canEditRole(band.role))
+			.map(({ id, name }) => ({ id, name })),
+	];
+	return libraries.filter((library) => library.id !== owner);
+}
+
+/** Moving takes songs out of the current library, so it must be editable too. */
+export function canMoveFrom(account: string, owner: string, bands: Band[]) {
+	return (
+		owner === account ||
+		canEditRole(bands.find((band) => band.id === owner)?.role)
+	);
+}

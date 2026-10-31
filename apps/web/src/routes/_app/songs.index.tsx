@@ -1,3 +1,4 @@
+import { type Arrangement, copyArrangement } from "@chords/data";
 import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
@@ -5,6 +6,9 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@chords/ui/components/dropdown-menu";
 import {
@@ -30,7 +34,14 @@ import { z } from "zod";
 import { PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import { useApp } from "#/features/app-context";
-import { api, exportSheet, freshArrangement } from "#/lib/songs";
+import {
+	api,
+	canMoveFrom,
+	destinations,
+	exportSheet,
+	freshArrangement,
+	type Library,
+} from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/songs/")({
 	validateSearch: z.object({ q: z.string().optional() }),
@@ -39,8 +50,23 @@ export const Route = createFileRoute("/_app/songs/")({
 
 function Songs() {
 	const app = useApp();
-	const { songs, owner, account, bands, store, save, run } = app;
+	const { songs, owner, account, bands, setlists, store, save, saveMany, run } =
+		app;
 	const { q = "" } = Route.useSearch();
+	const targets = destinations(account, owner, bands);
+	const movable = canMoveFrom(account, owner, bands);
+	const move = (song: Arrangement, target: Library) => {
+		if (
+			setlists.some((list) =>
+				list.data.entries.some((entry) => entry.arrangementId === song.id),
+			)
+		)
+			throw new Error("Remove this song from its setlists before moving it.");
+		return saveMany([
+			copyArrangement(song, target.id),
+			{ ...song, archived: true },
+		]);
+	};
 	const navigate = useNavigate({ from: Route.fullPath });
 	const queryClient = useQueryClient();
 	const shown = songs.filter((song) =>
@@ -156,31 +182,53 @@ function Songs() {
 													>
 														Publish
 													</DropdownMenuItem>
-													{(owner === account
-														? bands.map((band) => ({
-																id: band.id,
-																name: band.name,
-															}))
-														: [{ id: account, name: "Personal" }]
-													).map((target) => (
-														<DropdownMenuItem
-															key={target.id}
-															onClick={() =>
-																void run(
-																	() =>
-																		save(
-																			freshArrangement(target.id, {
-																				...song.data,
-																				copiedFrom: song.id,
-																			}),
-																		),
-																	`Copied to ${target.name}`,
-																)
-															}
-														>
-															Copy to {target.name}
-														</DropdownMenuItem>
-													))}
+													{targets.length ? (
+														<DropdownMenuSub>
+															<DropdownMenuSubTrigger>
+																Copy to
+															</DropdownMenuSubTrigger>
+															<DropdownMenuSubContent>
+																{targets.map((target) => (
+																	<DropdownMenuItem
+																		key={target.id}
+																		onClick={() =>
+																			void run(
+																				() =>
+																					save(
+																						copyArrangement(song, target.id),
+																					),
+																				`Copied to ${target.name}`,
+																			)
+																		}
+																	>
+																		{target.name}
+																	</DropdownMenuItem>
+																))}
+															</DropdownMenuSubContent>
+														</DropdownMenuSub>
+													) : null}
+													{targets.length && movable ? (
+														<DropdownMenuSub>
+															<DropdownMenuSubTrigger>
+																Move to
+															</DropdownMenuSubTrigger>
+															<DropdownMenuSubContent>
+																{targets.map((target) => (
+																	<DropdownMenuItem
+																		key={target.id}
+																		onClick={() =>
+																			void run(
+																				() => move(song, target),
+																				`Moved to ${target.name}`,
+																			)
+																		}
+																	>
+																		{target.name}
+																	</DropdownMenuItem>
+																))}
+															</DropdownMenuSubContent>
+														</DropdownMenuSub>
+													) : null}
 													<DropdownMenuSeparator />
 													<DropdownMenuItem
 														variant="destructive"

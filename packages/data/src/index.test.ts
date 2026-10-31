@@ -2,7 +2,10 @@ import "fake-indexeddb/auto";
 import { afterEach, expect, test } from "bun:test";
 import {
 	type Arrangement,
+	copyArrangement,
+	copySetlist,
 	createSongbookStore,
+	duplicateSongMessage,
 	type Operation,
 	type Setlist,
 	type SongbookStore,
@@ -244,4 +247,74 @@ test("a conflict survives reopening, preserves local lyrics, and resolves explic
 		content: "[F]Other person’s lyrics",
 	});
 	expect(reopened.getStatus().pending).toBe(0);
+});
+
+test("a copied setlist and its new songs save together, and a duplicate song saves nothing", async () => {
+	const account = crypto.randomUUID();
+	const band = crypto.randomUUID();
+	const store = await open(account);
+	const source = song(account);
+	const list: Setlist = {
+		id: crypto.randomUUID(),
+		kind: "setlist",
+		owner: account,
+		version: 0,
+		updatedAt: new Date().toISOString(),
+		archived: false,
+		data: {
+			title: "Friday",
+			date: "",
+			entries: [
+				{ id: "a", arrangementId: source.id, key: "D", notes: "" },
+				{ id: "b", arrangementId: source.id, key: "C", notes: "" },
+			],
+		},
+	};
+	await store.saveMany([source, list]);
+	const copy = copySetlist(list, [source], band, []);
+	expect(copy.songs).toHaveLength(1);
+	expect(copy.list.data.entries.map((entry) => entry.arrangementId)).toEqual([
+		copy.songs[0].id,
+		copy.songs[0].id,
+	]);
+	await store.saveMany([...copy.songs, copy.list, { ...list, archived: true }]);
+	expect(store.records.get(copy.songs[0].id)).toMatchObject({
+		owner: band,
+		data: { copiedFrom: source.id },
+	});
+	expect(store.records.get(copy.list.id)).toMatchObject({
+		owner: band,
+		data: { title: "Friday" },
+	});
+	expect(store.records.get(list.id)?.archived).toBe(true);
+	await expect(
+		store.saveMany([copyArrangement(source, band), copy.list]),
+	).rejects.toThrow(duplicateSongMessage);
+	const bandSongs = [...store.records.values()].filter(
+		(row) => row.kind === "arrangement" && row.owner === band,
+	);
+	expect(bandSongs).toHaveLength(1);
+});
+
+test("copying a setlist reuses songs the destination already has", async () => {
+	const account = crypto.randomUUID();
+	const band = crypto.randomUUID();
+	const source = song(account);
+	const existing = { ...song(band), data: { ...source.data } };
+	const list: Setlist = {
+		id: crypto.randomUUID(),
+		kind: "setlist",
+		owner: account,
+		version: 0,
+		updatedAt: new Date().toISOString(),
+		archived: false,
+		data: {
+			title: "Friday",
+			date: "",
+			entries: [{ id: "a", arrangementId: source.id, key: "C", notes: "" }],
+		},
+	};
+	const copy = copySetlist(list, [source], band, [existing]);
+	expect(copy.songs).toHaveLength(0);
+	expect(copy.list.data.entries[0].arrangementId).toBe(existing.id);
 });

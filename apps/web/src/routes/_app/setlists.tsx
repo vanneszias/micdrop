@@ -1,4 +1,4 @@
-import type { Setlist } from "@chords/data";
+import { copySetlist, type Setlist } from "@chords/data";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,6 +15,9 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@chords/ui/components/dropdown-menu";
 import {
@@ -43,15 +46,45 @@ import { EllipsisVertical, FileUp, ListMusic, Plus } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
+import { canMoveFrom, destinations, type Library } from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/setlists")({
 	component: Setlists,
 });
 
 function Setlists() {
-	const { setlists, owner, save, run } = useApp();
+	const {
+		setlists,
+		songs,
+		arrangements,
+		owner,
+		account,
+		bands,
+		save,
+		saveMany,
+		run,
+	} = useApp();
 	const navigate = useNavigate();
 	const [removing, setRemoving] = useState<Setlist>();
+	const targets = destinations(account, owner, bands);
+	const movable = canMoveFrom(account, owner, bands);
+	const transfer = (list: Setlist, target: Library, move: boolean) =>
+		run(
+			() => {
+				const copy = copySetlist(
+					list,
+					songs,
+					target.id,
+					arrangements.filter((song) => song.owner === target.id),
+				);
+				return saveMany([
+					...copy.songs,
+					copy.list,
+					...(move ? [{ ...list, archived: true }] : []),
+				]);
+			},
+			`${move ? "Moved" : "Copied"} to ${target.name}`,
+		);
 	const create = () =>
 		run(async () => {
 			const row: Setlist = {
@@ -136,6 +169,44 @@ function Setlists() {
 																Open
 															</Link>
 														</DropdownMenuItem>
+														{targets.length ? (
+															<DropdownMenuSub>
+																<DropdownMenuSubTrigger>
+																	Copy to
+																</DropdownMenuSubTrigger>
+																<DropdownMenuSubContent>
+																	{targets.map((target) => (
+																		<DropdownMenuItem
+																			key={target.id}
+																			onClick={() =>
+																				void transfer(list, target, false)
+																			}
+																		>
+																			{target.name}
+																		</DropdownMenuItem>
+																	))}
+																</DropdownMenuSubContent>
+															</DropdownMenuSub>
+														) : null}
+														{targets.length && movable ? (
+															<DropdownMenuSub>
+																<DropdownMenuSubTrigger>
+																	Move to
+																</DropdownMenuSubTrigger>
+																<DropdownMenuSubContent>
+																	{targets.map((target) => (
+																		<DropdownMenuItem
+																			key={target.id}
+																			onClick={() =>
+																				void transfer(list, target, true)
+																			}
+																		>
+																			{target.name}
+																		</DropdownMenuItem>
+																	))}
+																</DropdownMenuSubContent>
+															</DropdownMenuSub>
+														) : null}
 														<DropdownMenuSeparator />
 														<DropdownMenuItem
 															variant="destructive"

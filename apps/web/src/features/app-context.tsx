@@ -26,6 +26,7 @@ type App = ReturnType<typeof useSongbook> & {
 	setlists: Setlist[];
 	busy: boolean;
 	save: (row: SongRecord) => Promise<void>;
+	saveMany: (rows: SongRecord[]) => Promise<void>;
 	run: (fn: () => Promise<unknown>, success?: string) => Promise<boolean>;
 	createSong: (data?: Partial<Arrangement["data"]>) => Promise<void>;
 };
@@ -83,6 +84,13 @@ export function AppProvider({
 		},
 		[store],
 	);
+	const saveMany = useCallback(
+		async (rows: SongRecord[]) => {
+			await store.saveMany(rows);
+			void store.sync();
+		},
+		[store],
+	);
 	const run = useCallback(
 		async (fn: () => Promise<unknown>, success?: string) => {
 			setBusy(true);
@@ -121,6 +129,7 @@ export function AppProvider({
 		setlists,
 		busy,
 		save,
+		saveMany,
 		run,
 		createSong,
 	};
