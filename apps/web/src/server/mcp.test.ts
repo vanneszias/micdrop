@@ -146,6 +146,7 @@ test.skipIf(!base)(
 		const tools = await rpc("tools/list", {});
 		expect(tools.result?.tools?.map((tool) => tool.name).sort()).toEqual([
 			"add_song",
+			"create_setlist",
 			"get_song",
 			"import_song_from_url",
 			"list_libraries",
@@ -193,6 +194,26 @@ test.skipIf(!base)(
 		});
 		expect(stale?.isError).toBe(true);
 		expect(stale?.content?.[0].text).toContain("changed since version");
+
+		const setlist = await call("create_setlist", {
+			title: "Friday gig",
+			date: "2026-11-06",
+			songs: [
+				{ id: songId },
+				{ id: songId, key: "A", notes: "Last chorus twice" },
+			],
+		});
+		expect(setlist?.isError).toBeFalsy();
+		expect(
+			(
+				setlist?.structuredContent as { setlist: { songs: { key: string }[] } }
+			).setlist.songs.map((entry) => entry.key),
+		).toEqual(["G", "A"]);
+		const missing = await call("create_setlist", {
+			title: "Broken",
+			songs: [{ id: "nope" }],
+		});
+		expect(missing?.isError).toBe(true);
 	},
 	30_000,
 );

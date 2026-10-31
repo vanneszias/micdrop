@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
-import type { Arrangement } from "@chords/data";
+import type { Arrangement, Setlist } from "@chords/data";
 import {
+	KEYS,
 	keyDistance,
 	normalizeSheet,
 	transposeChordPro,
@@ -76,18 +77,21 @@ async function findSong(userId: string, id: string) {
 		throw new HttpError(404, `No song with id ${id} in your songbooks.`);
 	return song;
 }
-async function save(userId: string, song: Arrangement) {
+async function save<R extends Arrangement | Setlist>(
+	userId: string,
+	record: R,
+) {
 	const saved = await saveOperation(userId, {
 		id: crypto.randomUUID(),
-		record: song,
-		baseVersion: song.version,
+		record,
+		baseVersion: record.version,
 	});
 	if ("conflict" in saved)
 		throw new HttpError(
 			409,
-			`The song changed since version ${song.version}; it is now version ${saved.conflict.version}. Fetch it again with get_song and reapply your edit.`,
+			`The song changed since version ${record.version}; it is now version ${saved.conflict.version}. Fetch it again with get_song and reapply your edit.`,
 		);
-	return saved.record as Arrangement;
+	return saved.record as R;
 }
 function newSong(
 	owner: string,
@@ -325,6 +329,93 @@ function buildServer(caller: Caller) {
 			});
 			return { song: { ...summary(saved), version: saved.version } };
 		}),
+	);
+	server.registerTool(
+		"create_setlist",
+		{
+			title: "Create setlist",
+			description:
+				"Create a setlist from songs in one library, in playing order. Find song ids with search_songs; every song must belong to the setlist's library.",
+			inputSchema: z.object({
+				title: z.string().min(1).max(200).describe("Setlist title"),
+				date: z
+					.string()
+					.regex(/^\d{4}-\d{2}-\d{2}$/)
+					.optional()
+					.describe("Performance date as YYYY-MM-DD"),
+				library: SongFields.library,
+				songs: z
+					.array(
+						z.object({
+							id: z.string().describe("Song id"),
+							key: z
+								.string()
+								.max(10)
+								.optional()
+								.describe(
+									"Key to play it in. Defaults to the song's sounding key (written key plus capo).",
+								),
+							notes: z.string().max(2000).default(""),
+						}),
+					)
+					.max(200)
+					.default([]),
+			}),
+		},
+		tool(
+			caller,
+			"songs:write",
+			async ({ title, date, library, songs: picks }) => {
+				const owner = library || userId;
+				const available = await songs(userId);
+				const entries = picks.map((pick) => {
+					const song = available.find((record) => record.id === pick.id);
+					if (!song)
+						throw new HttpError(
+							404,
+							`No song with id ${pick.id} in your songbooks.`,
+						);
+					if (song.owner !== owner)
+						throw new HttpError(
+							400,
+							`"${song.data.title}" is in another library. Add it to library ${owner} first, or create the setlist in library ${song.owner}.`,
+						);
+					return {
+						id: crypto.randomUUID(),
+						arrangementId: song.id,
+						key:
+							pick.key ||
+							KEYS[
+								(keyDistance("C", song.data.key) + song.data.sourceCapo) % 12
+							],
+						notes: pick.notes,
+					};
+				});
+				const list = await save(userId, {
+					id: crypto.randomUUID(),
+					kind: "setlist",
+					owner,
+					version: 0,
+					archived: false,
+					updatedAt: new Date().toISOString(),
+					data: { title: title.trim(), date: date ?? "", entries },
+				} satisfies Setlist);
+				return {
+					setlist: {
+						id: list.id,
+						library: list.owner,
+						title: list.data.title,
+						date: list.data.date,
+						songs: entries.map((entry) => ({
+							id: entry.arrangementId,
+							title: available.find((song) => song.id === entry.arrangementId)
+								?.data.title,
+							key: entry.key,
+						})),
+					},
+				};
+			},
+		),
 	);
 	return server;
 }
