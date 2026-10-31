@@ -36,7 +36,9 @@ import {
 	User,
 	Users,
 } from "lucide-react";
+import { useState } from "react";
 import { useApp } from "#/features/app-context";
+import { ConnectAssistantDialog } from "#/features/connect-assistant";
 import { authClient } from "#/lib/auth-client";
 
 const items = [
@@ -59,42 +61,49 @@ function AccountMenu({
 	side: "top" | "right";
 }) {
 	const { user, store, run, busy } = useApp();
+	const [connecting, setConnecting] = useState(false);
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-			<DropdownMenuContent className="min-w-56" align="end" side={side}>
-				<DropdownMenuLabel className="font-normal">
-					<div className="truncate font-medium">{user?.name}</div>
-					<div className="truncate text-xs text-muted-foreground">
-						{user?.email}
-					</div>
-				</DropdownMenuLabel>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					disabled={busy}
-					onSelect={() =>
-						void run(
-							() => store.importLocal(),
-							"Local songs copied to your account",
-						)
-					}
-				>
-					Import this device’s songs
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					disabled={busy}
-					onSelect={() =>
-						void run(async () => {
-							await authClient.signOut();
-							localStorage.removeItem("chords:account");
-							window.location.assign("/");
-						})
-					}
-				>
-					Sign out
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+				<DropdownMenuContent className="min-w-56" align="end" side={side}>
+					<DropdownMenuLabel className="font-normal">
+						<div className="truncate font-medium">{user?.name}</div>
+						<div className="truncate text-xs text-muted-foreground">
+							{user?.email}
+						</div>
+					</DropdownMenuLabel>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						disabled={busy}
+						onSelect={() =>
+							void run(
+								() => store.importLocal(),
+								"Local songs copied to your account",
+							)
+						}
+					>
+						Import this device’s songs
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={() => setConnecting(true)}>
+						Add to Claude or ChatGPT
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						disabled={busy}
+						onSelect={() =>
+							void run(async () => {
+								await authClient.signOut();
+								localStorage.removeItem("chords:account");
+								window.location.assign("/");
+							})
+						}
+					>
+						Sign out
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<ConnectAssistantDialog open={connecting} onOpenChange={setConnecting} />
+		</>
 	);
 }
 

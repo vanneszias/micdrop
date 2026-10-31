@@ -1,11 +1,31 @@
 import { env } from "cloudflare:workers";
+import { cimd } from "@better-auth/cimd";
+import { mcp } from "@better-auth/mcp";
+import { validateSourceUrl } from "@chords/imports";
 import { betterAuth } from "better-auth";
-import { organization } from "better-auth/plugins";
+import { jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
 import { HttpError } from "./http-error";
 
 export { HttpError } from "./http-error";
+
+export const MCP_SCOPES = ["songs:read", "songs:write"];
+
+export function mcpResource() {
+	return new URL("/mcp", process.env.BETTER_AUTH_URL || env.BETTER_AUTH_URL)
+		.href;
+}
+
+// Workers cannot reach private networks, so a public-hostname check plus refusing redirects
+// covers what CIMD requires of the transport.
+async function fetchClientMetadataResource(
+	input: RequestInfo | URL,
+	init?: RequestInit,
+) {
+	validateSourceUrl(input instanceof Request ? input.url : String(input));
+	return fetch(input, { ...init, redirect: "manual" });
+}
 
 export function getAuth() {
 	const secret = process.env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET;
@@ -28,6 +48,17 @@ export function getAuth() {
 				: {},
 		plugins: [
 			organization({ requireEmailVerificationOnInvitation: true }),
+			jwt(),
+			mcp({
+				resource: mcpResource(),
+				loginPage: "/login",
+				consentPage: "/consent",
+				scopes: ["openid", "profile", "email", "offline_access", ...MCP_SCOPES],
+				// ChatGPT registers dynamically; Claude uses client metadata documents.
+				allowDynamicClientRegistration: true,
+				allowUnauthenticatedClientRegistration: true,
+			}),
+			cimd({ fetchClientMetadataResource, metadataProfile: "mcp-2026-07-28" }),
 			tanstackStartCookies(),
 		],
 	});

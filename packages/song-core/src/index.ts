@@ -137,6 +137,14 @@ export function exportChordPro(
 	return `{title: ${safe(metadata.title)}}\n{artist: ${safe(metadata.artist)}}\n{key: ${safe(metadata.key)}}\n{capo: ${metadata.sourceCapo}}\n\n${new ChordProFormatter().format(song).trim()}`;
 }
 
+/** Rewrites every chord in a ChordPro sheet by a number of semitones. */
+export function transposeChordPro(content: string, semitones: number): string {
+	if (!semitones) return content;
+	return new ChordProFormatter().format(
+		new ChordProParser().parse(content).transpose(semitones),
+	);
+}
+
 /** Project ChordSheetJS's AST into renderer rows. Incomplete edits stay visible as text. */
 export function sheetLines(content: string, semitones = 0): SheetLine[] {
 	try {

@@ -10,7 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppBandsRouteImport } from './routes/_app/bands'
 import { Route as AppCommunityRouteImport } from './routes/_app/community'
@@ -35,9 +38,24 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConsentRoute = ConsentRouteImport.update({
+  id: '/consent',
+  path: '/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
+  id: '/.well-known/$',
+  path: '/.well-known/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -138,7 +156,10 @@ const AppSongsIdEditRoute = AppSongsIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/setlists': typeof AppSetlistsRouteWithChildren
@@ -159,7 +180,10 @@ export interface FileRoutesByFullPath {
   '/songs/$id/': typeof AppSongsIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/api/bands': typeof ApiBandsRoute
@@ -182,7 +206,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/_app/bands': typeof AppBandsRoute
   '/_app/community': typeof AppCommunityRoute
   '/_app/setlists': typeof AppSetlistsRouteWithChildren
@@ -207,7 +234,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/consent'
     | '/login'
+    | '/mcp'
+    | '/.well-known/$'
     | '/bands'
     | '/community'
     | '/setlists'
@@ -228,7 +258,10 @@ export interface FileRouteTypes {
     | '/songs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/consent'
     | '/login'
+    | '/mcp'
+    | '/.well-known/$'
     | '/bands'
     | '/community'
     | '/api/bands'
@@ -250,7 +283,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/consent'
     | '/login'
+    | '/mcp'
+    | '/.well-known/$'
     | '/_app/bands'
     | '/_app/community'
     | '/_app/setlists'
@@ -274,7 +310,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  ConsentRoute: typeof ConsentRoute
   LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
+  DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   ApiBandsRoute: typeof ApiBandsRoute
   ApiImportRoute: typeof ApiImportRoute
   ApiImportPdfRoute: typeof ApiImportPdfRouteWithChildren
@@ -293,11 +332,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/consent': {
+      id: '/consent'
+      path: '/consent'
+      fullPath: '/consent'
+      preLoaderRoute: typeof ConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/$': {
+      id: '/.well-known/$'
+      path: '/.well-known/$'
+      fullPath: '/.well-known/$'
+      preLoaderRoute: typeof DotwellKnownSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -490,7 +550,10 @@ const ApiImportPdfRouteWithChildren = ApiImportPdfRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  ConsentRoute: ConsentRoute,
   LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
+  DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   ApiBandsRoute: ApiBandsRoute,
   ApiImportRoute: ApiImportRoute,
   ApiImportPdfRoute: ApiImportPdfRouteWithChildren,

@@ -24,14 +24,17 @@ export function decode(row: Stored): SongRecord {
 		data: JSON.parse(row.data),
 	});
 }
-export async function getRecords(request: Request) {
-	const user = await requireUser(request);
+export async function listRecords(userId: string) {
 	const { results } = await env.DB.prepare(
 		"SELECT * FROM records WHERE owner = ? OR owner IN (SELECT organizationId FROM member WHERE userId = ?)",
 	)
-		.bind(user.id, user.id)
+		.bind(userId, userId)
 		.all<Stored>();
-	return Response.json({ records: results.map(decode) });
+	return results.map(decode);
+}
+export async function getRecords(request: Request) {
+	const user = await requireUser(request);
+	return Response.json({ records: await listRecords(user.id) });
 }
 const OperationSchema = z.object({
 	id: z.string().uuid(),
@@ -40,9 +43,20 @@ const OperationSchema = z.object({
 });
 export async function saveRecord(request: Request) {
 	const user = await requireUser(request);
-	const operation = OperationSchema.parse(await request.json());
-	const { record, baseVersion, id } = operation;
-	if (!(await canAccess(record.owner, user.id, true)))
+	const result = await saveOperation(
+		user.id,
+		OperationSchema.parse(await request.json()),
+	);
+	return "conflict" in result
+		? Response.json({ server: result.conflict }, { status: 409 })
+		: Response.json(result);
+}
+/** Applies one idempotent operation. A stale baseVersion yields the server copy, never an overwrite. */
+export async function saveOperation(
+	userId: string,
+	{ record, baseVersion, id }: z.infer<typeof OperationSchema>,
+): Promise<{ record: SongRecord } | { conflict: SongRecord }> {
+	if (!(await canAccess(record.owner, userId, true)))
 		throw new HttpError(
 			403,
 			"You no longer have permission to edit this library. Save your work as a personal copy.",
@@ -50,14 +64,14 @@ export async function saveRecord(request: Request) {
 	const completed = await env.DB.prepare(
 		"SELECT * FROM operations WHERE id = ? AND user_id = ?",
 	)
-		.bind(id, user.id)
+		.bind(id, userId)
 		.first<{ record_id: string; version: number }>();
 	if (completed) {
 		const row = await env.DB.prepare("SELECT * FROM records WHERE id = ?")
 			.bind(completed.record_id)
 			.first<Stored>();
 		if (!row) throw new HttpError(404, "Arrangement not found");
-		return Response.json({ record: decode(row) });
+		return { record: decode(row) };
 	}
 	const existing = await env.DB.prepare("SELECT * FROM records WHERE id = ?")
 		.bind(record.id)
@@ -117,12 +131,12 @@ export async function saveRecord(request: Request) {
 		).bind(record.id, id),
 		env.DB.prepare(
 			"INSERT OR IGNORE INTO operations SELECT ?,?,id,version FROM records WHERE id = ? AND last_operation = ?",
-		).bind(id, user.id, record.id, id),
+		).bind(id, userId, record.id, id),
 	]);
 	const accepted = await env.DB.prepare(
 		"SELECT id FROM operations WHERE id = ? AND user_id = ?",
 	)
-		.bind(id, user.id)
+		.bind(id, userId)
 		.first();
 	const current = await env.DB.prepare("SELECT * FROM records WHERE id = ?")
 		.bind(record.id)
@@ -142,7 +156,6 @@ export async function saveRecord(request: Request) {
 			400,
 			"Cannot create a record from an existing revision.",
 		);
-	if (!accepted)
-		return Response.json({ server: decode(current) }, { status: 409 });
-	return Response.json({ record: decode(current) });
+	if (!accepted) return { conflict: decode(current) };
+	return { record: decode(current) };
 }

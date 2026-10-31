@@ -9,9 +9,9 @@ import {
 import { Input } from "@chords/ui/components/input";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "#/lib/auth-client";
+import { authClient, pendingAuthorization } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/login")({
 	head: () => ({ meta: [{ title: "Sign in · Mic Drop" }] }),
@@ -111,9 +111,15 @@ function Login() {
 	const { data: session } = authClient.useSession();
 	const [mode, setMode] = useState<"signin" | "signup">("signin");
 	const [busy, setBusy] = useState(false);
+	// An assistant connecting over MCP sent the user here; resume its authorization.
+	const done = useCallback(async () => {
+		const authorization = pendingAuthorization();
+		if (authorization) window.location.assign(authorization);
+		else await navigate({ to: "/songs", replace: true });
+	}, [navigate]);
 	useEffect(() => {
-		if (session) void navigate({ to: "/songs", replace: true });
-	}, [session, navigate]);
+		if (session) void done();
+	}, [session, done]);
 	const run = async (action: () => Promise<void>) => {
 		setBusy(true);
 		try {
@@ -150,7 +156,7 @@ function Login() {
 											})
 										: await authClient.signIn.email({ email, password });
 								if (result.error) throw new Error(result.error.message);
-								await navigate({ to: "/songs" });
+								await done();
 							});
 						}}
 					>
@@ -216,7 +222,9 @@ function Login() {
 										void run(async () => {
 											const result = await authClient.signIn.social({
 												provider: "google",
-												callbackURL: "/songs",
+												callbackURL: pendingAuthorization()
+													? window.location.href
+													: "/songs",
 											});
 											if (result.error)
 												throw new Error(

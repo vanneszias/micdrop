@@ -6,12 +6,12 @@ import { defineConfig } from "vite";
 export default defineConfig({
 	resolve: { tsconfigPaths: true },
 	plugins: [
-		// The offline shell has no server, so its route tree skips src/routes/api.
+		// The offline shell has no server, so its route tree skips server-only routes.
 		tanstackRouter({
 			target: "react",
 			routesDirectory: "./src/routes",
 			generatedRouteTree: "./src/routeTree.offline.gen.ts",
-			routeFileIgnorePattern: "api",
+			routeFileIgnorePattern: "api|mcp|well-known",
 			autoCodeSplitting: false,
 		}),
 		react(),
