@@ -7,6 +7,6 @@
   "observability": { "enabled": true, "traces": { "enabled": true } },
   "d1_databases": [{ "binding": "DB", "database_name": "chords", "database_id": "4026fa4f-3cfe-4fd2-a53d-a619b186f1b0", "migrations_dir": "migrations" }],
   "browser": { "binding": "BROWSER" },
-  "routes": [{ "pattern": "chords.micdrop.day", "custom_domain": true }],
-  "vars": { "BETTER_AUTH_URL": "https://chords.micdrop.day" }
+  "routes": [{ "pattern": "micdrop.day", "custom_domain": true }],
+  "vars": { "BETTER_AUTH_URL": "https://micdrop.day" }
 }
