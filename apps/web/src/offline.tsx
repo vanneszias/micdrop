@@ -4,17 +4,17 @@ import { createRoot } from "react-dom/client";
 import { routeTree } from "./routeTree.offline.gen";
 import "./styles.css";
 
-const element = document.getElementById("offline-root");
-if (element) {
-	const queryClient = new QueryClient();
-	const router = createRouter({
-		routeTree,
-		context: { queryClient },
-		defaultPreload: "intent",
-	});
-	createRoot(element).render(
-		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
-		</QueryClientProvider>,
-	);
-}
+const queryClient = new QueryClient();
+const router = createRouter({
+	routeTree,
+	context: { queryClient },
+	defaultPreload: "intent",
+});
+// The root route renders <html> itself, so the document is the React root.
+// Mounted inside a <div>, React claims <body> around its own container and
+// events reaching a portal on <body> loop forever, freezing the tab.
+createRoot(document).render(
+	<QueryClientProvider client={queryClient}>
+		<RouterProvider router={router} />
+	</QueryClientProvider>,
+);
