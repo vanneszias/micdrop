@@ -71,14 +71,29 @@ bun run check
 bun run test
 bun run build
 # With the development server running:
-CHORDS_TEST_URL=http://localhost:3000 bun test apps/web/src/server
+CHORDS_TEST_URL=http://localhost:3000 bun test --preload ./apps/web/scripts/integration-preload.ts apps/web/src/server
 ```
 
 Tests cover music conversion/transposition, bounded imports, atomic saves, restart recovery, changes during synchronization, and durable conflicts. The opt-in integration test creates fixture accounts in local D1 and exercises replay, revisions, private access, band permissions, publishing, search, and voting.
 
 ## Cloudflare deployment
 
-The checked-in D1 ID is a **local-development placeholder**. Before deployment, create a D1 database and replace `database_id` in `apps/web/wrangler.jsonc`. Set `BETTER_AUTH_URL` to the deployed origin and configure secrets with Wrangler. Apply migrations to that database, regenerate types with `bun run --filter @chords/web cf:typegen`, then deploy.
+The checked-in configuration targets the `chords` Worker and D1 database in account `6495d15c9d09b19ddc65f0a01892a183`, served at `https://micdrop.day`. The D1 ID is the existing production database; local commands simulate it without accessing production data. Configure runtime secrets (including `BETTER_AUTH_SECRET`) on the Worker with Wrangler; deployment preserves existing secrets.
+
+### GitHub Actions
+
+`.github/workflows/ci.yml` uses GitHub-hosted Ubuntu runners and Bun 1.4.4. Pull requests and pushes to `master` run typecheck, Biome, unit tests, local D1 migrations, a production build, deployment dry run, and server integration tests against a local production preview. Integration tests use a fixed test-only auth secret, an explicit local storage path, and a localhost upstream; they never use production credentials or data.
+
+After checks pass on `master`, the deployment job builds the app, applies pending **remote production D1 migrations**, then deploys the Worker. Deployments are serialized and an in-progress deployment is never cancelled. Manual runs are available through Actions → CI and deployment → Run workflow; only `master` can deploy. Keep migrations compatible with the currently deployed Worker, since they run before the new code is deployed. Rolling back Worker code does not roll back D1 changes.
+
+One-time GitHub setup:
+
+1. Create a `production` environment limited to the `master` branch.
+2. Set its `CLOUDFLARE_ACCOUNT_ID` variable to `6495d15c9d09b19ddc65f0a01892a183`.
+3. Add its `CLOUDFLARE_API_TOKEN` secret. Start with Cloudflare's **Edit Cloudflare Workers** token template, scoped to this account and the `micdrop.day` zone, and include **D1: Edit** for migrations. Ensure the token can deploy the Worker's Browser Run binding. Use a dedicated CI token, separate from local OAuth credentials.
+4. Merge the workflow into `master` to activate automatic deployment. If Cloudflare Workers Builds is also connected to this repository, disable its automatic builds so only this workflow deploys.
+
+See [Cloudflare's GitHub Actions authentication guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) and [Wrangler permissions](https://developers.cloudflare.com/workers/authorization/workers/). Actions are pinned to commit SHAs, dependencies use the frozen Bun lockfile, the GitHub token has read-only repository access, and Cloudflare credentials are available only to production deployment steps.
 
 No Cloudflare resources are created or deployed by the local setup commands.
 
