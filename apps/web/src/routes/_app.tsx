@@ -108,7 +108,7 @@ function ShellSkeleton() {
 }
 
 function Shell() {
-	const { error } = useApp();
+	const { error, bands } = useApp();
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
@@ -124,7 +124,9 @@ function Shell() {
 					className={cn(
 						"flex min-h-0 flex-1 flex-col animate-in fade-in-0 slide-in-from-bottom-1 duration-200",
 						showsBottomNav(pathname) &&
-							"pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
+							(bands.length
+								? "pb-[calc(6.25rem+env(safe-area-inset-bottom))] md:pb-0"
+								: "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"),
 					)}
 				>
 					<Outlet />
