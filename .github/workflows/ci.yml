@@ -36,7 +36,7 @@ jobs:
       - name: Test local D1 integration
         shell: bash
         run: |
-          bun run preview --local-upstream localhost:3000 --persist-to "$GITHUB_WORKSPACE/apps/web/.wrangler/state" --var BETTER_AUTH_URL:http://localhost:3000 --var BETTER_AUTH_SECRET:ci-only-test-secret-at-least-32-characters > "$RUNNER_TEMP/chords-server.log" 2>&1 &
+          bun run preview --local-upstream localhost:3000 --persist-to "$GITHUB_WORKSPACE/apps/web/.wrangler/state" --var BETTER_AUTH_URL:http://localhost:3000 --var BETTER_AUTH_SECRET:ci-only-test-secret-at-least-32-characters --var SENTRY_DSN: >"$RUNNER_TEMP/chords-server.log" 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in {1..60}; do
@@ -83,6 +83,8 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "Set the production CLOUDFLARE_API_TOKEN secret"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Set the production CLOUDFLARE_ACCOUNT_ID variable"; exit 1; }
       - run: bun run build
+        env:
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
       - name: Apply production migrations
         working-directory: apps/web
         env:

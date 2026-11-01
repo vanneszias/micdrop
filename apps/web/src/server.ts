@@ -8,4 +8,11 @@ import { createServerEntry } from "@tanstack/react-start/server-entry";
 const fetch = createStartHandler(defaultStreamHandler);
 const serverEntry = createServerEntry({ fetch }) as ExportedHandler<Env>;
 
-export default withSentry<Env>((env) => ({ dsn: env.SENTRY_DSN }), serverEntry);
+export default withSentry<Env>(
+	(env) => ({
+		dsn: env.SENTRY_DSN,
+		enabled: !import.meta.env.DEV,
+		release: import.meta.env.VITE_SENTRY_RELEASE,
+	}),
+	serverEntry,
+);

@@ -4,6 +4,7 @@ import { mcp } from "@better-auth/mcp";
 import { validateSourceUrl } from "@chords/imports";
 import { captureException } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
+import { isAPIError } from "better-auth/api";
 import { jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
@@ -62,6 +63,14 @@ export function getAuth() {
 			cimd({ fetchClientMetadataResource, metadataProfile: "mcp-2026-07-28" }),
 			tanstackStartCookies(),
 		],
+		onAPIError: {
+			// Better Auth answers its own failures with a 500, so report them before they vanish.
+			onError(error, ctx) {
+				if (isAPIError(error) && error.statusCode < 500) return;
+				captureException(error);
+				ctx.logger.error("auth_error", error);
+			},
+		},
 	});
 }
 export async function requireUser(request: Request) {
