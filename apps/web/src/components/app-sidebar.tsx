@@ -30,6 +30,7 @@ import {
 	Cloud,
 	CloudOff,
 	Globe,
+	Heart,
 	ListMusic,
 	LogIn,
 	Music,
@@ -327,6 +328,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						)}
 					</SidebarMenuItem>
 				</SidebarMenu>
+				<p className="px-2 pt-1 pb-0.5 text-center text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+					Made with{" "}
+					<Heart className="inline size-3 align-[-1px] fill-rose-500 text-rose-500" />{" "}
+					by{" "}
+					<a
+						href="https://zias.be"
+						target="_blank"
+						rel="noreferrer"
+						className="font-medium text-foreground underline-offset-4 transition-colors hover:text-rose-500 hover:underline"
+					>
+						zias.be
+					</a>
+				</p>
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>
