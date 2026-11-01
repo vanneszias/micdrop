@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
 import { validateSourceUrl } from "@chords/imports";
+import { captureException } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
@@ -98,6 +99,7 @@ export function endpoint(
 					{ error: "Invalid input. Check your changes and try again." },
 					{ status: 400 },
 				);
+			captureException(error);
 			console.error(
 				JSON.stringify({
 					event: "endpoint_error",

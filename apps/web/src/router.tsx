@@ -3,11 +3,17 @@ import {
 	Link,
 } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
+import {
+	captureClientError,
+	initSentryClient,
+} from "./integrations/sentry/client";
 import { getContext } from "./integrations/tanstack-query/root-provider";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
 	const context = getContext();
+
+	if (!import.meta.env.SSR) initSentryClient();
 
 	const router = createTanStackRouter({
 		routeTree,
@@ -15,6 +21,9 @@ export function getRouter() {
 		scrollRestoration: true,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
+		defaultOnCatch: (error) => {
+			if (!import.meta.env.SSR) captureClientError(error);
+		},
 		defaultNotFoundComponent: () => (
 			<div className="grid min-h-svh place-content-center gap-2 p-6 text-center">
 				<p className="font-medium">This page isn’t here</p>
