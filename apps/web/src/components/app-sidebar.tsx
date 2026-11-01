@@ -108,8 +108,71 @@ function AccountMenu({
 	);
 }
 
+function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
+	const app = useApp();
+	const navigate = useNavigate();
+	const workspace =
+		app.owner === app.account
+			? "Personal"
+			: app.bands.find((band) => band.id === app.owner)?.name || "Band";
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				{mobile ? (
+					<button
+						type="button"
+						aria-label={`Switch library, current: ${workspace}`}
+						className="flex h-11 w-full min-w-0 items-center gap-2 border-b px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+					>
+						<Users className="size-4 shrink-0" />
+						<span className="shrink-0 text-muted-foreground">Library</span>
+						<span className="truncate font-medium">{workspace}</span>
+						<ChevronsUpDown className="ml-auto size-4 shrink-0" />
+					</button>
+				) : (
+					<SidebarMenuButton
+						tooltip={workspace}
+						aria-label={`Switch library, current: ${workspace}`}
+					>
+						<Users />
+						<span className="truncate group-data-[collapsible=icon]:hidden">
+							{workspace}
+						</span>
+						<ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
+					</SidebarMenuButton>
+				)}
+			</DropdownMenuTrigger>
+			<DropdownMenuContent
+				className="min-w-56"
+				align="start"
+				side={mobile ? "top" : "right"}
+			>
+				<DropdownMenuLabel className="text-xs text-muted-foreground">
+					Library
+				</DropdownMenuLabel>
+				<DropdownMenuRadioGroup
+					value={app.owner}
+					onValueChange={(value) => {
+						app.setOwner(value);
+						void navigate({ to: "/songs" });
+					}}
+				>
+					<DropdownMenuRadioItem value={app.account}>
+						Personal
+					</DropdownMenuRadioItem>
+					{app.bands.map((band) => (
+						<DropdownMenuRadioItem key={band.id} value={band.id}>
+							{band.name}
+						</DropdownMenuRadioItem>
+					))}
+				</DropdownMenuRadioGroup>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
 export function BottomNav() {
-	const { user } = useApp();
+	const { user, bands } = useApp();
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
@@ -123,38 +186,41 @@ export function BottomNav() {
 		<nav
 			data-print="hide"
 			aria-label="Main"
-			className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+			className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
 		>
-			{tabs.map((item) => {
-				const active = pathname.startsWith(item.to);
-				return (
-					<Link
-						key={item.to}
-						to={item.to}
-						aria-current={active ? "page" : undefined}
-						className={cn(
-							"flex h-14 flex-col items-center justify-center gap-1 text-[11px] transition-all active:scale-90",
-							active ? "text-foreground" : "text-muted-foreground",
-						)}
-					>
-						<item.icon
+			{bands.length ? <LibrarySwitcher mobile /> : null}
+			<div className="grid grid-cols-5">
+				{tabs.map((item) => {
+					const active = pathname.startsWith(item.to);
+					return (
+						<Link
+							key={item.to}
+							to={item.to}
+							aria-current={active ? "page" : undefined}
 							className={cn(
-								"size-5 transition-transform",
-								active && "scale-110",
+								"flex h-14 flex-col items-center justify-center gap-1 text-[11px] transition-all active:scale-90",
+								active ? "text-foreground" : "text-muted-foreground",
 							)}
-						/>
-						{item.label}
-					</Link>
-				);
-			})}
-			{user ? (
-				<AccountMenu side="top">
-					<button type="button" className={tabClass}>
-						<User className="size-5" />
-						Account
-					</button>
-				</AccountMenu>
-			) : null}
+						>
+							<item.icon
+								className={cn(
+									"size-5 transition-transform",
+									active && "scale-110",
+								)}
+							/>
+							{item.label}
+						</Link>
+					);
+				})}
+				{user ? (
+					<AccountMenu side="top">
+						<button type="button" className={tabClass}>
+							<User className="size-5" />
+							Account
+						</button>
+					</AccountMenu>
+				) : null}
+			</div>
 		</nav>
 	);
 }
@@ -162,14 +228,9 @@ export function BottomNav() {
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	const app = useApp();
 	const { isMobile, setOpenMobile } = useSidebar();
-	const navigate = useNavigate();
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
-	const workspace =
-		app.owner === app.account
-			? "Personal"
-			: app.bands.find((band) => band.id === app.owner)?.name || "Band";
 	const status = !app.online
 		? "Offline"
 		: app.syncing
@@ -208,42 +269,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					</SidebarMenuItem>
 					{app.bands.length ? (
 						<SidebarMenuItem>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<SidebarMenuButton tooltip={workspace}>
-										<Users />
-										<span className="truncate group-data-[collapsible=icon]:hidden">
-											{workspace}
-										</span>
-										<ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-									</SidebarMenuButton>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									className="min-w-56"
-									align="start"
-									side="right"
-								>
-									<DropdownMenuLabel className="text-xs text-muted-foreground">
-										Library
-									</DropdownMenuLabel>
-									<DropdownMenuRadioGroup
-										value={app.owner}
-										onValueChange={(value) => {
-											app.setOwner(value);
-											void navigate({ to: "/songs" });
-										}}
-									>
-										<DropdownMenuRadioItem value={app.account}>
-											Personal
-										</DropdownMenuRadioItem>
-										{app.bands.map((band) => (
-											<DropdownMenuRadioItem key={band.id} value={band.id}>
-												{band.name}
-											</DropdownMenuRadioItem>
-										))}
-									</DropdownMenuRadioGroup>
-								</DropdownMenuContent>
-							</DropdownMenu>
+							<LibrarySwitcher />
 						</SidebarMenuItem>
 					) : null}
 				</SidebarMenu>
