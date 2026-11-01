@@ -15,3 +15,14 @@ export function pendingAuthorization() {
 	query.delete("exp");
 	return `/api/auth/oauth2/authorize?${query}`;
 }
+
+/** Where to go after signing in, when a page such as an invite sent the user here. */
+export function returnPath() {
+	if (typeof window === "undefined") return;
+	const path = new URLSearchParams(window.location.search).get("redirect");
+	if (!path) return;
+	// Same-origin paths only, so the login page can't bounce users to another site.
+	const url = new URL(path, window.location.origin);
+	if (url.origin !== window.location.origin) return;
+	return `${url.pathname}${url.search}${url.hash}`;
+}

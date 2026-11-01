@@ -11,7 +11,11 @@ import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { authClient, pendingAuthorization } from "#/lib/auth-client";
+import {
+	authClient,
+	pendingAuthorization,
+	returnPath,
+} from "#/lib/auth-client";
 
 export const Route = createFileRoute("/login")({
 	head: () => ({ meta: [{ title: "Sign in · Mic Drop" }] }),
@@ -115,7 +119,7 @@ function Login() {
 	const done = useCallback(async () => {
 		const authorization = pendingAuthorization();
 		if (authorization) window.location.assign(authorization);
-		else await navigate({ to: "/songs", replace: true });
+		else await navigate({ href: returnPath() ?? "/songs", replace: true });
 	}, [navigate]);
 	useEffect(() => {
 		if (session) void done();
@@ -224,7 +228,7 @@ function Login() {
 												provider: "google",
 												callbackURL: pendingAuthorization()
 													? window.location.href
-													: "/songs",
+													: (returnPath() ?? "/songs"),
 											});
 											if (result.error)
 												throw new Error(

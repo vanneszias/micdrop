@@ -58,6 +58,8 @@ export function Player({
 	notes,
 	next,
 	previous,
+	readOnly,
+	actions,
 }: {
 	arrangement: Arrangement;
 	account: string;
@@ -65,6 +67,8 @@ export function Player({
 	notes?: string;
 	next?: () => void;
 	previous?: () => void;
+	readOnly?: boolean;
+	actions?: React.ReactNode;
 }) {
 	const [shown, setShown] = useState(arrangement);
 	const preferenceKey = `chords:player:${account}`;
@@ -183,15 +187,18 @@ export function Player({
 	return (
 		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
 			<PageHeader title={shown.data.title} back>
-				<Button variant="ghost" size="icon-sm" asChild>
-					<Link
-						to="/songs/$id/edit"
-						params={{ id: arrangement.id }}
-						aria-label="Edit song"
-					>
-						<Pencil />
-					</Link>
-				</Button>
+				{actions}
+				{readOnly ? null : (
+					<Button variant="ghost" size="icon-sm" asChild>
+						<Link
+							to="/songs/$id/edit"
+							params={{ id: arrangement.id }}
+							aria-label="Edit song"
+						>
+							<Pencil />
+						</Link>
+					</Button>
+				)}
 				<Button
 					variant="ghost"
 					size="icon-sm"

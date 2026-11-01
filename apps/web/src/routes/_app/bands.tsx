@@ -36,10 +36,11 @@ import {
 } from "@chords/ui/components/select";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus, Users, X } from "lucide-react";
+import { Link2, Plus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
+import { ShareDialog } from "#/features/share-dialog";
 import { api, type Band } from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/bands")({ component: Bands });
@@ -139,12 +140,22 @@ function BandCard({
 	run: (fn: () => Promise<unknown>, success?: string) => Promise<boolean>;
 }) {
 	const [role, setRole] = useState("editor");
+	const [inviting, setInviting] = useState(false);
 	const owner = band.role === "owner";
 	return (
 		<Card className="animate-in fade-in-0">
 			<CardHeader>
 				<CardTitle>{band.name}</CardTitle>
-				<CardAction>
+				<CardAction className="flex items-center gap-2">
+					{owner ? (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setInviting(true)}
+						>
+							<Link2 /> Invite link
+						</Button>
+					) : null}
 					<Badge variant="secondary">{band.role}</Badge>
 				</CardAction>
 			</CardHeader>
@@ -220,6 +231,15 @@ function BandCard({
 						<Button variant="outline">Add</Button>
 					</form>
 				</CardFooter>
+			) : null}
+			{inviting ? (
+				<ShareDialog
+					kind="invite"
+					target={band.id}
+					title={band.name}
+					open
+					onOpenChange={setInviting}
+				/>
 			) : null}
 		</Card>
 	);

@@ -16,9 +16,11 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppBandsRouteImport } from './routes/_app/bands'
 import { Route as AppCommunityRouteImport } from './routes/_app/community'
 import { Route as AppSetlistsRouteImport } from './routes/_app/setlists'
+import { Route as AppInviteTokenRouteImport } from './routes/_app/invite.$token'
 import { Route as AppSetlistsIndexRouteImport } from './routes/_app/setlists.index'
 import { Route as AppSetlistsIdRouteImport } from './routes/_app/setlists.$id'
 import { Route as AppSetlistsImportRouteImport } from './routes/_app/setlists_.import'
+import { Route as AppSharedTokenRouteImport } from './routes/_app/shared.$token'
 import { Route as AppSongsIndexRouteImport } from './routes/_app/songs.index'
 import { Route as AppSongsNewRouteImport } from './routes/_app/songs.new'
 import { Route as AppSongsIdIndexRouteImport } from './routes/_app/songs.$id.index'
@@ -58,6 +60,11 @@ const AppSetlistsRoute = AppSetlistsRouteImport.update({
   path: '/setlists',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInviteTokenRoute = AppInviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSetlistsIndexRoute = AppSetlistsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -71,6 +78,11 @@ const AppSetlistsIdRoute = AppSetlistsIdRouteImport.update({
 const AppSetlistsImportRoute = AppSetlistsImportRouteImport.update({
   id: '/setlists_/import',
   path: '/setlists/import',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSharedTokenRoute = AppSharedTokenRouteImport.update({
+  id: '/shared/$token',
+  path: '/shared/$token',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSongsIndexRoute = AppSongsIndexRouteImport.update({
@@ -101,8 +113,10 @@ export interface FileRoutesByFullPath {
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/setlists': typeof AppSetlistsRouteWithChildren
+  '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
   '/setlists/import': typeof AppSetlistsImportRoute
+  '/shared/$token': typeof AppSharedTokenRoute
   '/songs/new': typeof AppSongsNewRoute
   '/setlists/': typeof AppSetlistsIndexRoute
   '/songs/': typeof AppSongsIndexRoute
@@ -115,8 +129,10 @@ export interface FileRoutesByTo {
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/': typeof AppIndexRoute
+  '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
   '/setlists/import': typeof AppSetlistsImportRoute
+  '/shared/$token': typeof AppSharedTokenRoute
   '/songs/new': typeof AppSongsNewRoute
   '/setlists': typeof AppSetlistsIndexRoute
   '/songs': typeof AppSongsIndexRoute
@@ -132,8 +148,10 @@ export interface FileRoutesById {
   '/_app/community': typeof AppCommunityRoute
   '/_app/setlists': typeof AppSetlistsRouteWithChildren
   '/_app/': typeof AppIndexRoute
+  '/_app/invite/$token': typeof AppInviteTokenRoute
   '/_app/setlists/$id': typeof AppSetlistsIdRoute
   '/_app/setlists_/import': typeof AppSetlistsImportRoute
+  '/_app/shared/$token': typeof AppSharedTokenRoute
   '/_app/songs/new': typeof AppSongsNewRoute
   '/_app/setlists/': typeof AppSetlistsIndexRoute
   '/_app/songs/': typeof AppSongsIndexRoute
@@ -149,8 +167,10 @@ export interface FileRouteTypes {
     | '/bands'
     | '/community'
     | '/setlists'
+    | '/invite/$token'
     | '/setlists/$id'
     | '/setlists/import'
+    | '/shared/$token'
     | '/songs/new'
     | '/setlists/'
     | '/songs/'
@@ -163,8 +183,10 @@ export interface FileRouteTypes {
     | '/bands'
     | '/community'
     | '/'
+    | '/invite/$token'
     | '/setlists/$id'
     | '/setlists/import'
+    | '/shared/$token'
     | '/songs/new'
     | '/setlists'
     | '/songs'
@@ -179,8 +201,10 @@ export interface FileRouteTypes {
     | '/_app/community'
     | '/_app/setlists'
     | '/_app/'
+    | '/_app/invite/$token'
     | '/_app/setlists/$id'
     | '/_app/setlists_/import'
+    | '/_app/shared/$token'
     | '/_app/songs/new'
     | '/_app/setlists/'
     | '/_app/songs/'
@@ -245,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSetlistsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/invite/$token': {
+      id: '/_app/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof AppInviteTokenRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/setlists/': {
       id: '/_app/setlists/'
       path: '/'
@@ -264,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/setlists/import'
       fullPath: '/setlists/import'
       preLoaderRoute: typeof AppSetlistsImportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shared/$token': {
+      id: '/_app/shared/$token'
+      path: '/shared/$token'
+      fullPath: '/shared/$token'
+      preLoaderRoute: typeof AppSharedTokenRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/songs/': {
@@ -316,7 +354,9 @@ interface AppRouteChildren {
   AppCommunityRoute: typeof AppCommunityRoute
   AppSetlistsRoute: typeof AppSetlistsRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
+  AppInviteTokenRoute: typeof AppInviteTokenRoute
   AppSetlistsImportRoute: typeof AppSetlistsImportRoute
+  AppSharedTokenRoute: typeof AppSharedTokenRoute
   AppSongsNewRoute: typeof AppSongsNewRoute
   AppSongsIndexRoute: typeof AppSongsIndexRoute
   AppSongsIdEditRoute: typeof AppSongsIdEditRoute
@@ -328,7 +368,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppCommunityRoute: AppCommunityRoute,
   AppSetlistsRoute: AppSetlistsRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
+  AppInviteTokenRoute: AppInviteTokenRoute,
   AppSetlistsImportRoute: AppSetlistsImportRoute,
+  AppSharedTokenRoute: AppSharedTokenRoute,
   AppSongsNewRoute: AppSongsNewRoute,
   AppSongsIndexRoute: AppSongsIndexRoute,
   AppSongsIdEditRoute: AppSongsIdEditRoute,

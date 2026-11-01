@@ -23,10 +23,13 @@ import { Route as ApiImportRouteImport } from './routes/api/import'
 import { Route as ApiImportPdfRouteImport } from './routes/api/import-pdf'
 import { Route as ApiPublicationsRouteImport } from './routes/api/publications'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiSharesRouteImport } from './routes/api/shares'
 import { Route as ApiSyncRouteImport } from './routes/api/sync'
+import { Route as AppInviteTokenRouteImport } from './routes/_app/invite.$token'
 import { Route as AppSetlistsIndexRouteImport } from './routes/_app/setlists.index'
 import { Route as AppSetlistsIdRouteImport } from './routes/_app/setlists.$id'
 import { Route as AppSetlistsImportRouteImport } from './routes/_app/setlists_.import'
+import { Route as AppSharedTokenRouteImport } from './routes/_app/shared.$token'
 import { Route as AppSongsIndexRouteImport } from './routes/_app/songs.index'
 import { Route as AppSongsNewRouteImport } from './routes/_app/songs.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -103,10 +106,20 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSharesRoute = ApiSharesRouteImport.update({
+  id: '/api/shares',
+  path: '/api/shares',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSyncRoute = ApiSyncRouteImport.update({
   id: '/api/sync',
   path: '/api/sync',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppInviteTokenRoute = AppInviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSetlistsIndexRoute = AppSetlistsIndexRouteImport.update({
   id: '/',
@@ -121,6 +134,11 @@ const AppSetlistsIdRoute = AppSetlistsIdRouteImport.update({
 const AppSetlistsImportRoute = AppSetlistsImportRouteImport.update({
   id: '/setlists_/import',
   path: '/setlists/import',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSharedTokenRoute = AppSharedTokenRouteImport.update({
+  id: '/shared/$token',
+  path: '/shared/$token',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSongsIndexRoute = AppSongsIndexRouteImport.update({
@@ -168,9 +186,12 @@ export interface FileRoutesByFullPath {
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/shares': typeof ApiSharesRoute
   '/api/sync': typeof ApiSyncRoute
+  '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
   '/setlists/import': typeof AppSetlistsImportRoute
+  '/shared/$token': typeof AppSharedTokenRoute
   '/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
@@ -191,10 +212,13 @@ export interface FileRoutesByTo {
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/shares': typeof ApiSharesRoute
   '/api/sync': typeof ApiSyncRoute
   '/': typeof AppIndexRoute
+  '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
   '/setlists/import': typeof AppSetlistsImportRoute
+  '/shared/$token': typeof AppSharedTokenRoute
   '/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
@@ -218,10 +242,13 @@ export interface FileRoutesById {
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/shares': typeof ApiSharesRoute
   '/api/sync': typeof ApiSyncRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/invite/$token': typeof AppInviteTokenRoute
   '/_app/setlists/$id': typeof AppSetlistsIdRoute
   '/_app/setlists_/import': typeof AppSetlistsImportRoute
+  '/_app/shared/$token': typeof AppSharedTokenRoute
   '/_app/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
@@ -246,9 +273,12 @@ export interface FileRouteTypes {
     | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
+    | '/api/shares'
     | '/api/sync'
+    | '/invite/$token'
     | '/setlists/$id'
     | '/setlists/import'
+    | '/shared/$token'
     | '/songs/new'
     | '/api/auth/$'
     | '/api/import-pdf/$id'
@@ -269,10 +299,13 @@ export interface FileRouteTypes {
     | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
+    | '/api/shares'
     | '/api/sync'
     | '/'
+    | '/invite/$token'
     | '/setlists/$id'
     | '/setlists/import'
+    | '/shared/$token'
     | '/songs/new'
     | '/api/auth/$'
     | '/api/import-pdf/$id'
@@ -295,10 +328,13 @@ export interface FileRouteTypes {
     | '/api/import-pdf'
     | '/api/publications'
     | '/api/search'
+    | '/api/shares'
     | '/api/sync'
     | '/_app/'
+    | '/_app/invite/$token'
     | '/_app/setlists/$id'
     | '/_app/setlists_/import'
+    | '/_app/shared/$token'
     | '/_app/songs/new'
     | '/api/auth/$'
     | '/api/import-pdf/$id'
@@ -319,6 +355,7 @@ export interface RootRouteChildren {
   ApiImportPdfRoute: typeof ApiImportPdfRouteWithChildren
   ApiPublicationsRoute: typeof ApiPublicationsRoute
   ApiSearchRoute: typeof ApiSearchRoute
+  ApiSharesRoute: typeof ApiSharesRoute
   ApiSyncRoute: typeof ApiSyncRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -423,12 +460,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/shares': {
+      id: '/api/shares'
+      path: '/api/shares'
+      fullPath: '/api/shares'
+      preLoaderRoute: typeof ApiSharesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/sync': {
       id: '/api/sync'
       path: '/api/sync'
       fullPath: '/api/sync'
       preLoaderRoute: typeof ApiSyncRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/invite/$token': {
+      id: '/_app/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof AppInviteTokenRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/setlists/': {
       id: '/_app/setlists/'
@@ -449,6 +500,13 @@ declare module '@tanstack/react-router' {
       path: '/setlists/import'
       fullPath: '/setlists/import'
       preLoaderRoute: typeof AppSetlistsImportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shared/$token': {
+      id: '/_app/shared/$token'
+      path: '/shared/$token'
+      fullPath: '/shared/$token'
+      preLoaderRoute: typeof AppSharedTokenRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/songs/': {
@@ -515,7 +573,9 @@ interface AppRouteChildren {
   AppCommunityRoute: typeof AppCommunityRoute
   AppSetlistsRoute: typeof AppSetlistsRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
+  AppInviteTokenRoute: typeof AppInviteTokenRoute
   AppSetlistsImportRoute: typeof AppSetlistsImportRoute
+  AppSharedTokenRoute: typeof AppSharedTokenRoute
   AppSongsNewRoute: typeof AppSongsNewRoute
   AppSongsIndexRoute: typeof AppSongsIndexRoute
   AppSongsIdEditRoute: typeof AppSongsIdEditRoute
@@ -527,7 +587,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppCommunityRoute: AppCommunityRoute,
   AppSetlistsRoute: AppSetlistsRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
+  AppInviteTokenRoute: AppInviteTokenRoute,
   AppSetlistsImportRoute: AppSetlistsImportRoute,
+  AppSharedTokenRoute: AppSharedTokenRoute,
   AppSongsNewRoute: AppSongsNewRoute,
   AppSongsIndexRoute: AppSongsIndexRoute,
   AppSongsIdEditRoute: AppSongsIdEditRoute,
@@ -559,6 +621,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImportPdfRoute: ApiImportPdfRouteWithChildren,
   ApiPublicationsRoute: ApiPublicationsRoute,
   ApiSearchRoute: ApiSearchRoute,
+  ApiSharesRoute: ApiSharesRoute,
   ApiSyncRoute: ApiSyncRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

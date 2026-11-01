@@ -46,6 +46,7 @@ import { EllipsisVertical, FileUp, ListMusic, Plus } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
+import { ShareDialog } from "#/features/share-dialog";
 import { canMoveFrom, destinations, type Library } from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/setlists")({
@@ -66,6 +67,7 @@ function Setlists() {
 	} = useApp();
 	const navigate = useNavigate();
 	const [removing, setRemoving] = useState<Setlist>();
+	const [sharing, setSharing] = useState<Setlist>();
 	const targets = destinations(account, owner, bands);
 	const movable = canMoveFrom(account, owner, bands);
 	const transfer = (list: Setlist, target: Library, move: boolean) =>
@@ -169,6 +171,12 @@ function Setlists() {
 																Open
 															</Link>
 														</DropdownMenuItem>
+														<DropdownMenuItem
+															disabled={account === "local"}
+															onClick={() => setSharing(list)}
+														>
+															Share link
+														</DropdownMenuItem>
 														{targets.length ? (
 															<DropdownMenuSub>
 																<DropdownMenuSubTrigger>
@@ -266,6 +274,16 @@ function Setlists() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+			{sharing ? (
+				<ShareDialog
+					key={sharing.id}
+					kind="record"
+					target={sharing.id}
+					title={sharing.data.title}
+					open
+					onOpenChange={(open) => !open && setSharing(undefined)}
+				/>
+			) : null}
 			<Outlet />
 		</>
 	);

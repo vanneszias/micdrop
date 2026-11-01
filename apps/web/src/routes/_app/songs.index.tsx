@@ -30,10 +30,12 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { EllipsisVertical, Music, Plus } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 import { PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import { useApp } from "#/features/app-context";
+import { ShareDialog } from "#/features/share-dialog";
 import {
 	api,
 	canMoveFrom,
@@ -67,6 +69,7 @@ function Songs() {
 			{ ...song, archived: true },
 		]);
 	};
+	const [sharing, setSharing] = useState<Arrangement>();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const queryClient = useQueryClient();
 	const shown = songs.filter((song) =>
@@ -182,6 +185,12 @@ function Songs() {
 													>
 														Publish
 													</DropdownMenuItem>
+													<DropdownMenuItem
+														disabled={account === "local"}
+														onClick={() => setSharing(song)}
+													>
+														Share link
+													</DropdownMenuItem>
 													{targets.length ? (
 														<DropdownMenuSub>
 															<DropdownMenuSubTrigger>
@@ -277,6 +286,16 @@ function Songs() {
 					</Empty>
 				)}
 			</div>
+			{sharing ? (
+				<ShareDialog
+					key={sharing.id}
+					kind="record"
+					target={sharing.id}
+					title={sharing.data.title}
+					open
+					onOpenChange={(open) => !open && setSharing(undefined)}
+				/>
+			) : null}
 		</>
 	);
 }

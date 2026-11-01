@@ -50,7 +50,7 @@ const items = [
 
 // Playing a song is full screen on mobile, like a native performance mode.
 export function showsBottomNav(pathname: string) {
-	return !/^\/songs\/(?!new$)[^/]+$/.test(pathname);
+	return !/^\/(songs\/(?!new$)|shared\/)[^/]+$/.test(pathname);
 }
 
 function AccountMenu({
