@@ -1,4 +1,5 @@
 import { env, waitUntil } from "cloudflare:workers";
+import { captureException } from "@sentry/cloudflare";
 import { HttpError } from "./http-error";
 import {
 	extractPdf,
@@ -52,10 +53,12 @@ export async function startPdfJob(request: Request, userId: string) {
 					error instanceof HttpError
 						? error.message
 						: "The import failed unexpectedly. Try again.";
-				if (!(error instanceof HttpError))
+				if (!(error instanceof HttpError)) {
+					captureException(error);
 					logImport(id, "crashed", {
 						message: error instanceof Error ? error.stack : String(error),
 					});
+				}
 				await finish(id, "failed", { error: message, status });
 			}
 		})(),
