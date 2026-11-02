@@ -5,6 +5,7 @@ import {
 	PdfSetlist,
 	validatePdf,
 } from "@chords/imports/pdf";
+import { logger } from "@sentry/cloudflare";
 import { z } from "zod";
 import { HttpError } from "./http-error";
 
@@ -16,6 +17,7 @@ export function logImport(
 	console.log(
 		JSON.stringify({ event: `pdf_import.${event}`, jobId, ...fields }),
 	);
+	logger.info(`pdf_import.${event}`, { jobId, ...fields });
 }
 
 export function requireKey(apiKey?: string) {

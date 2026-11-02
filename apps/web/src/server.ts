@@ -1,4 +1,4 @@
-import { withSentry } from "@sentry/cloudflare";
+import { consoleLoggingIntegration, withSentry } from "@sentry/cloudflare";
 import {
 	createStartHandler,
 	defaultStreamHandler,
@@ -13,6 +13,8 @@ export default withSentry<Env>(
 		dsn: env.SENTRY_DSN,
 		enabled: !import.meta.env.DEV,
 		release: import.meta.env.VITE_SENTRY_RELEASE,
+		tracesSampleRate: 1,
+		integrations: [consoleLoggingIntegration({ levels: ["warn", "error"] })],
 	}),
 	serverEntry,
 );

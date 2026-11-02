@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
 import { validateSourceUrl } from "@chords/imports";
-import { captureException } from "@sentry/cloudflare";
+import { captureException, logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { isAPIError } from "better-auth/api";
 import { jwt, organization } from "better-auth/plugins";
@@ -39,6 +39,15 @@ export function getAuth() {
 		baseURL: process.env.BETTER_AUTH_URL || env.BETTER_AUTH_URL,
 		database: { dialect: new D1Dialect({ database: env.DB }), type: "sqlite" },
 		emailAndPassword: { enabled: true, minPasswordLength: 10 },
+		databaseHooks: {
+			user: {
+				create: {
+					after: async (user) => {
+						logger.info("user.signed_up", { userId: user.id });
+					},
+				},
+			},
+		},
 		socialProviders:
 			googleId && googleSecret
 				? {

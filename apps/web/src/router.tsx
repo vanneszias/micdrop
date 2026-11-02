@@ -13,8 +13,6 @@ import { routeTree } from "./routeTree.gen";
 export function getRouter() {
 	const context = getContext();
 
-	if (!import.meta.env.SSR) initSentryClient();
-
 	const router = createTanStackRouter({
 		routeTree,
 		context,
@@ -35,6 +33,7 @@ export function getRouter() {
 	});
 
 	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient });
+	if (!import.meta.env.SSR) initSentryClient(router);
 
 	return router;
 }
