@@ -118,4 +118,15 @@ Local integration tests provision their own temporary admin account using the lo
 
 The search regression fixture exercises 10,000 songs, exact and typo matches, performing artists and pagination. Local SQLite timings are not a production capacity guarantee. Admin tools currently use explicit group/publication IDs; their scope is deliberately small.
 
+### Seeding the catalogue from OpenSong
+
+`apps/web/scripts/import-opensong.ts` converts a folder of OpenSong XML files to ChordPro and writes SQL that inserts them as public arrangements owned by one account; the catalogue triggers publish them. Use a dedicated account: its owner syncs every record it owns to their devices.
+
+```sh
+bun run apps/web/scripts/import-opensong.ts ~/Downloads/en --owner <account-id> --out opensong.sql
+cd apps/web && bunx wrangler d1 execute chords --local --file ../../opensong.sql
+```
+
+Chord lines are placed onto their lyric lines by column, as OpenSong lays them out; chords are kept as written, except that the shorthands `X(9)`, `X(4)` and `X2(no3)` become `Xadd9`, `Xsus4` and `Xsus2` so they transpose. Other chord-line text (`x2`, bar lines, notes) becomes ChordPro annotations, and `[V1]`-style headers become verse/chorus/bridge sections. The original XML is kept as each record's raw import. Identical sheets saved under other titles are imported once, with the other titles as tags. Copyright and CCLI notices are shown in the sheet and description. Files without a key use their first chord (or C). Record IDs derive from the owner and file name, so re-running skips songs that already exist and never overwrites edits. The SQL only inserts when the owner account exists. Running it against the production database (`--remote`) publishes the songs immediately.
+
 See [the agreed product plan](docs/catalogue-and-repertoire-plan.md) for the complete model and acceptance scenarios.

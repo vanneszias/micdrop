@@ -107,6 +107,10 @@ export function keyDistance(from: string, to: string): number {
 	return 0;
 }
 
+export function isChord(value: string): boolean {
+	return !!Chord.parse(value);
+}
+
 export function transposeChord(value: string, semitones: number): string {
 	const chord = Chord.parse(value);
 	return chord ? chord.transpose(semitones).normalize().toString() : value;
