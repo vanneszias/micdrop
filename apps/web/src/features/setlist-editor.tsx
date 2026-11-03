@@ -20,17 +20,37 @@ import {
 import { Button } from "@chords/ui/components/button";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import { cn } from "@chords/ui/lib/utils";
+import {
+	closestCenter,
+	DndContext,
+	type DragEndEvent,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	useSortable,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	ArrowDown,
 	ArrowUp,
 	Download,
+	GripVertical,
 	Play,
 	Printer,
 	Trash2,
 	X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
@@ -81,13 +101,19 @@ export function SetlistEditor({
 			),
 		});
 	}
-	function move(index: number, delta: number) {
-		const entries = [...list.data.entries];
-		[entries[index], entries[index + delta]] = [
-			entries[index + delta],
-			entries[index],
-		];
-		update({ ...list.data, entries });
+	function move(from: number, to: number) {
+		update({ ...list.data, entries: arrayMove(list.data.entries, from, to) });
+	}
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+		useSensor(KeyboardSensor, {
+			coordinateGetter: sortableKeyboardCoordinates,
+		}),
+	);
+	function drop({ active, over }: DragEndEvent) {
+		if (!over || active.id === over.id) return;
+		const ids = list.data.entries.map((entry) => entry.id);
+		move(ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
 	}
 	function play(index: number) {
 		void navigate({
@@ -233,92 +259,105 @@ export function SetlistEditor({
 						/>
 					</Field>
 				</div>
-				<ol className="divide-y rounded-lg border">
-					{list.data.entries.map((entry, index) => {
-						const song = songs.find(
-							(value) => value.id === entry.arrangementId,
-						);
-						return (
-							<li
-								key={entry.id}
-								className="flex flex-wrap items-center gap-2 p-3 animate-in fade-in-0 slide-in-from-top-1"
-							>
-								<span className="w-5 font-mono text-xs text-muted-foreground">
-									{index + 1}
-								</span>
-								<div className="min-w-40 flex-1">
-									<Button
-										variant="link"
-										className="h-auto p-0"
-										disabled={!song}
-										onClick={() => play(index)}
+				<DndContext
+					sensors={sensors}
+					collisionDetection={closestCenter}
+					modifiers={[restrictToVerticalAxis]}
+					onDragEnd={drop}
+				>
+					<SortableContext
+						items={list.data.entries.map((entry) => entry.id)}
+						strategy={verticalListSortingStrategy}
+					>
+						<ol className="divide-y rounded-lg border">
+							{list.data.entries.map((entry, index) => {
+								const song = songs.find(
+									(value) => value.id === entry.arrangementId,
+								);
+								return (
+									<SortableEntry
+										key={entry.id}
+										id={entry.id}
+										label={`Reorder ${song?.data.title || `song ${index + 1}`}`}
 									>
-										{song?.data.title || "Song unavailable"}
-									</Button>
-									<Input
-										aria-label={`Notes for song ${index + 1}`}
-										placeholder="Notes"
-										className="mt-1 h-7 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
-										value={entry.notes}
-										onChange={(event) =>
-											patch(entry.id, { notes: event.target.value })
-										}
-									/>
-								</div>
-								<KeySelect
-									className="w-20"
-									value={entry.key}
-									onChange={(key) => patch(entry.id, { key })}
-								/>
-								<CapoSelect
-									value={
-										entry.capo ??
-										song?.data.performanceCapo ??
-										song?.data.sourceCapo ??
-										0
-									}
-									onChange={(capo) => patch(entry.id, { capo })}
-									className="w-28"
-								/>
-								<div className="flex">
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										aria-label="Move up"
-										disabled={index === 0}
-										onClick={() => move(index, -1)}
-									>
-										<ArrowUp />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										aria-label="Move down"
-										disabled={index === list.data.entries.length - 1}
-										onClick={() => move(index, 1)}
-									>
-										<ArrowDown />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										aria-label="Remove song"
-										onClick={() =>
-											update({
-												...list.data,
-												entries: list.data.entries.filter(
-													(value) => value.id !== entry.id,
-												),
-											})
-										}
-									>
-										<X />
-									</Button>
-								</div>
-							</li>
-						);
-					})}
-				</ol>
+										<span className="w-5 font-mono text-xs text-muted-foreground">
+											{index + 1}
+										</span>
+										<div className="min-w-40 flex-1">
+											<Button
+												variant="link"
+												className="h-auto p-0"
+												disabled={!song}
+												onClick={() => play(index)}
+											>
+												{song?.data.title || "Song unavailable"}
+											</Button>
+											<Input
+												aria-label={`Notes for song ${index + 1}`}
+												placeholder="Notes"
+												className="mt-1 h-7 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+												value={entry.notes}
+												onChange={(event) =>
+													patch(entry.id, { notes: event.target.value })
+												}
+											/>
+										</div>
+										<KeySelect
+											className="w-20"
+											value={entry.key}
+											onChange={(key) => patch(entry.id, { key })}
+										/>
+										<CapoSelect
+											value={
+												entry.capo ??
+												song?.data.performanceCapo ??
+												song?.data.sourceCapo ??
+												0
+											}
+											onChange={(capo) => patch(entry.id, { capo })}
+											className="w-28"
+										/>
+										<div className="flex">
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												aria-label="Move up"
+												disabled={index === 0}
+												onClick={() => move(index, index - 1)}
+											>
+												<ArrowUp />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												aria-label="Move down"
+												disabled={index === list.data.entries.length - 1}
+												onClick={() => move(index, index + 1)}
+											>
+												<ArrowDown />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												aria-label="Remove song"
+												onClick={() =>
+													update({
+														...list.data,
+														entries: list.data.entries.filter(
+															(value) => value.id !== entry.id,
+														),
+													})
+												}
+											>
+												<X />
+											</Button>
+										</div>
+									</SortableEntry>
+								);
+							})}
+						</ol>
+					</SortableContext>
+				</DndContext>
 				<div className="space-y-3">
 					<h2 className="font-medium">Add songs</h2>
 					<CatalogueSearch
@@ -330,5 +369,47 @@ export function SetlistEditor({
 				</div>
 			</div>
 		</>
+	);
+}
+
+function SortableEntry({
+	id,
+	label,
+	children,
+}: {
+	id: string;
+	label: string;
+	children: ReactNode;
+}) {
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		setActivatorNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id });
+	return (
+		<li
+			ref={setNodeRef}
+			style={{ transform: CSS.Translate.toString(transform), transition }}
+			className={cn(
+				"relative flex flex-wrap items-center gap-2 bg-background p-3 animate-in fade-in-0 slide-in-from-top-1",
+				isDragging && "z-10 rounded-lg shadow-lg ring-1 ring-border",
+			)}
+		>
+			<button
+				ref={setActivatorNodeRef}
+				type="button"
+				aria-label={label}
+				className="-ml-1 cursor-grab touch-none rounded p-1 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+				{...attributes}
+				{...listeners}
+			>
+				<GripVertical className="size-4" />
+			</button>
+			{children}
+		</li>
 	);
 }
