@@ -15,6 +15,7 @@ import {
 	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupContent,
+	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuBadge,
@@ -105,6 +106,66 @@ function AccountMenu({
 			</DropdownMenu>
 			<ConnectAssistantDialog open={connecting} onOpenChange={setConnecting} />
 		</>
+	);
+}
+
+// While playing from a setlist, list its songs so any of them is one click away.
+function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
+	const { setlists, arrangements } = useApp();
+	const location = useRouterState({ select: (state) => state.location });
+	const search = location.search as { setlist?: string; index?: number };
+	const list = /^\/songs\/[^/]+$/.test(location.pathname)
+		? setlists.find((row) => row.id === search.setlist)
+		: undefined;
+	if (!list) return null;
+	const current = search.index ?? 0;
+	return (
+		<SidebarGroup>
+			<SidebarGroupLabel asChild>
+				<Link to="/setlists/$id" params={{ id: list.id }} onClick={onNavigate}>
+					<ListMusic className="mr-2" />
+					<span className="truncate">{list.data.title}</span>
+				</Link>
+			</SidebarGroupLabel>
+			<SidebarGroupContent>
+				<SidebarMenu>
+					{list.data.entries.map((entry, position) => {
+						const song = arrangements.find(
+							(row) => row.id === entry.arrangementId,
+						);
+						const title = song?.data.title ?? "Missing song";
+						return (
+							<SidebarMenuItem key={entry.id}>
+								<SidebarMenuButton
+									asChild
+									tooltip={`${position + 1}. ${title}`}
+									isActive={position === current}
+								>
+									<Link
+										to="/songs/$id"
+										params={{ id: entry.arrangementId }}
+										search={{ setlist: list.id, index: position }}
+										replace
+										onClick={onNavigate}
+										aria-current={position === current ? "page" : undefined}
+									>
+										<span className="flex size-4 shrink-0 items-center justify-center font-mono text-xs tabular-nums text-muted-foreground">
+											{position + 1}
+										</span>
+										<span className="truncate">{title}</span>
+										{entry.key ? (
+											<span className="ml-auto font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+												{entry.key}
+											</span>
+										) : null}
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						);
+					})}
+				</SidebarMenu>
+			</SidebarGroupContent>
+		</SidebarGroup>
 	);
 }
 
@@ -300,6 +361,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
+				<SetlistOverview onNavigate={() => setOpenMobile(false)} />
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
