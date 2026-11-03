@@ -1,0 +1,113 @@
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@chords/ui/components/sheet";
+import { cn } from "@chords/ui/lib/utils";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { ChevronDown, ListMusic } from "lucide-react";
+import { useState } from "react";
+import { useApp } from "#/features/app-context";
+
+// The setlist the current song was opened from, with each entry's song resolved.
+export function usePlayingSetlist() {
+	const { setlists, arrangements } = useApp();
+	const location = useRouterState({ select: (state) => state.location });
+	const search = location.search as { setlist?: string; index?: number };
+	const list = /^\/songs\/[^/]+$/.test(location.pathname)
+		? setlists.find((row) => row.id === search.setlist)
+		: undefined;
+	if (!list) return null;
+	return {
+		list,
+		current: search.index ?? 0,
+		entries: list.data.entries.map((entry) => ({
+			...entry,
+			title:
+				arrangements.find((row) => row.id === entry.arrangementId)?.data
+					.title ?? "Missing song",
+		})),
+	};
+}
+
+// Mobile has no sidebar while playing, so the header title opens the setlist.
+export function SetlistSheet({ title }: { title: string }) {
+	const playing = usePlayingSetlist();
+	const [open, setOpen] = useState(false);
+	if (!playing) return title;
+	const { list, current, entries } = playing;
+	return (
+		<Sheet open={open} onOpenChange={setOpen}>
+			<SheetTrigger asChild>
+				<button
+					type="button"
+					className="flex max-w-full min-w-0 flex-col items-start rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					aria-label={`Song ${current + 1} of ${entries.length} in ${list.data.title}, show setlist`}
+				>
+					<span className="w-full truncate">{title}</span>
+					<span className="flex w-full min-w-0 items-center gap-1 text-xs font-normal text-muted-foreground">
+						<span className="shrink-0 tabular-nums">
+							{current + 1} of {entries.length}
+						</span>
+						<span aria-hidden>·</span>
+						<span className="truncate">{list.data.title}</span>
+						<ChevronDown className="size-3 shrink-0" />
+					</span>
+				</button>
+			</SheetTrigger>
+			<SheetContent
+				side="bottom"
+				className="max-h-[75svh] gap-0 rounded-t-3xl pb-[env(safe-area-inset-bottom)]"
+			>
+				<SheetHeader className="border-b">
+					<SheetTitle className="flex items-center gap-2">
+						<ListMusic className="size-4" />
+						<Link
+							to="/setlists/$id"
+							params={{ id: list.id }}
+							className="truncate underline-offset-4 hover:underline"
+						>
+							{list.data.title}
+						</Link>
+					</SheetTitle>
+					<SheetDescription>
+						{entries.length} songs · playing {current + 1}
+					</SheetDescription>
+				</SheetHeader>
+				<ol className="overflow-y-auto p-2">
+					{entries.map((entry, position) => (
+						<li key={entry.id}>
+							<Link
+								to="/songs/$id"
+								params={{ id: entry.arrangementId }}
+								search={{ setlist: list.id, index: position }}
+								replace
+								onClick={() => setOpen(false)}
+								aria-current={position === current ? "page" : undefined}
+								className={cn(
+									"flex h-12 items-center gap-3 rounded-2xl px-3 text-sm transition-colors active:scale-[0.98]",
+									position === current
+										? "bg-accent font-medium text-accent-foreground"
+										: "hover:bg-accent/50",
+								)}
+							>
+								<span className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
+									{position + 1}
+								</span>
+								<span className="truncate">{entry.title}</span>
+								{entry.key ? (
+									<span className="ml-auto font-mono text-xs text-muted-foreground">
+										{entry.key}
+									</span>
+								) : null}
+							</Link>
+						</li>
+					))}
+				</ol>
+			</SheetContent>
+		</Sheet>
+	);
+}

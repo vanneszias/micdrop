@@ -41,6 +41,7 @@ import {
 import { useState } from "react";
 import { useApp } from "#/features/app-context";
 import { ConnectAssistantDialog } from "#/features/connect-assistant";
+import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
 
 const items = [
@@ -111,14 +112,9 @@ function AccountMenu({
 
 // While playing from a setlist, list its songs so any of them is one click away.
 function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
-	const { setlists, arrangements } = useApp();
-	const location = useRouterState({ select: (state) => state.location });
-	const search = location.search as { setlist?: string; index?: number };
-	const list = /^\/songs\/[^/]+$/.test(location.pathname)
-		? setlists.find((row) => row.id === search.setlist)
-		: undefined;
-	if (!list) return null;
-	const current = search.index ?? 0;
+	const playing = usePlayingSetlist();
+	if (!playing) return null;
+	const { list, current, entries } = playing;
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel asChild>
@@ -129,11 +125,8 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 			</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{list.data.entries.map((entry, position) => {
-						const song = arrangements.find(
-							(row) => row.id === entry.arrangementId,
-						);
-						const title = song?.data.title ?? "Missing song";
+					{entries.map((entry, position) => {
+						const title = entry.title;
 						return (
 							<SidebarMenuItem key={entry.id}>
 								<SidebarMenuButton

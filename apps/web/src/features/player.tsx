@@ -30,6 +30,7 @@ import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
+import { SetlistSheet } from "#/features/setlist-overview";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
@@ -196,7 +197,17 @@ export function Player({
 	}, [next, previous]);
 	return (
 		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
-			<PageHeader title={shown.data.title} back>
+			<PageHeader
+				title={
+					<>
+						<span className="hidden md:inline">{shown.data.title}</span>
+						<span className="md:hidden">
+							<SetlistSheet title={shown.data.title} />
+						</span>
+					</>
+				}
+				back
+			>
 				{actions}
 				{readOnly ? null : (
 					<Button variant="ghost" size="icon-sm" asChild>
