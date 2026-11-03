@@ -69,7 +69,8 @@
 .sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: oklch(0.25 0.04 85); background: oklch(0.93 0.09 95); font-size: .65em; font-weight: 800; line-height: 1.5; padding: .05em .45em; margin: 0 .4em .2em 0; border-radius: .35em; }
 .sheet-chord-empty { background: none; }
 .sheet-lyric { min-height: 1.6em; }
-.sheet-line, .sheet-note { break-inside: avoid; } .sheet-section { break-after: avoid; }
+.sheet-text { margin: 0 0 .15em; white-space: pre-wrap; }
+.sheet-line, .sheet-text, .sheet-note { break-inside: avoid; } .sheet-section { break-after: avoid; }
 
 /* Chord diagrams */
 .chord-diagrams { display: flex; flex-wrap: nowrap; gap: 1rem; overflow-x: auto; }
