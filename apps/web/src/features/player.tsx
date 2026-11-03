@@ -57,6 +57,7 @@ export function Player({
 	arrangement,
 	account,
 	performanceKey,
+	performanceCapo,
 	notes,
 	next,
 	previous,
@@ -66,6 +67,7 @@ export function Player({
 	arrangement: Arrangement;
 	account: string;
 	performanceKey?: string;
+	performanceCapo?: number;
 	notes?: string;
 	next?: () => void;
 	previous?: () => void;
@@ -79,6 +81,7 @@ export function Player({
 	const [savedSong] = useState(() => load(songPreferences, songPreferenceKey));
 	const [key, setKey] = useState(
 		performanceKey ||
+			arrangement.data.performanceKey ||
 			savedSong?.key ||
 			KEYS[
 				(keyDistance("C", arrangement.data.key) + arrangement.data.sourceCapo) %
@@ -86,7 +89,10 @@ export function Player({
 			],
 	);
 	const [capo, setCapo] = useState(
-		savedSong?.capo ?? arrangement.data.sourceCapo,
+		performanceCapo ??
+			arrangement.data.performanceCapo ??
+			savedSong?.capo ??
+			arrangement.data.sourceCapo,
 	);
 	const [shapes, setShapes] = useState(saved?.shapes ?? true);
 	const [fontSize, setFontSize] = useState(saved?.fontSize ?? 23);

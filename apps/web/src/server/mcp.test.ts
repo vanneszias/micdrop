@@ -164,16 +164,20 @@ test.skipIf(!base)(
 		const songId = (added?.structuredContent as { song: { id: string } }).song
 			.id;
 		const duplicate = await call("add_song", {
-			title: "harbor lights ",
+			title: "Harbor Lights",
+			songId,
+			arrangementName: "Acoustic",
 			artist: "The Testers",
 			content: "[G]Again",
 		});
-		expect(duplicate?.isError).toBe(true);
+		expect(duplicate?.isError).toBeFalsy();
 
 		const found = await call("search_songs", { query: "harbor" });
 		expect(
-			(found?.structuredContent as { songs: { id: string }[] }).songs[0].id,
-		).toBe(songId);
+			(found?.structuredContent as { songs: { id: string }[] }).songs.some(
+				(song) => song.id === songId,
+			),
+		).toBe(true);
 
 		const song = (await call("get_song", { id: songId, transpose_to: "A" }))
 			?.structuredContent as { version: number; content: string; key: string };

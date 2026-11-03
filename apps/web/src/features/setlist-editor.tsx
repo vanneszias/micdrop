@@ -1,5 +1,10 @@
-import type { Arrangement, Setlist, SongRecord } from "@chords/data";
-import { KEYS, keyDistance } from "@chords/song-core";
+import {
+	type Arrangement,
+	addToSetlist,
+	type Setlist,
+	type SongRecord,
+} from "@chords/data";
+import { keyDistance } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
 import {
 	AlertDialog,
@@ -15,13 +20,6 @@ import {
 import { Button } from "@chords/ui/components/button";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@chords/ui/components/select";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	ArrowDown,
@@ -36,25 +34,26 @@ import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
-import { KeySelect } from "#/components/key-select";
+import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
+import { useApp } from "./app-context";
+import { CatalogueSearch } from "./catalogue-search";
 
 export function SetlistEditor({
 	list,
 	getSource,
 	songs,
-	available,
 	save,
 	onClose,
 }: {
 	list: Setlist;
 	getSource: (id: string) => Promise<File | undefined>;
 	songs: Arrangement[];
-	available: Arrangement[];
 	save: (row: SongRecord) => Promise<void>;
 	onClose: () => void;
 }) {
 	const navigate = useNavigate();
+	const { saveMany } = useApp();
 	const [source, setSource] = useState<File | undefined>();
 	useEffect(() => {
 		let active = true;
@@ -271,6 +270,16 @@ export function SetlistEditor({
 									value={entry.key}
 									onChange={(key) => patch(entry.id, { key })}
 								/>
+								<CapoSelect
+									value={
+										entry.capo ??
+										song?.data.performanceCapo ??
+										song?.data.sourceCapo ??
+										0
+									}
+									onChange={(capo) => patch(entry.id, { capo })}
+									className="w-28"
+								/>
 								<div className="flex">
 									<Button
 										variant="ghost"
@@ -310,39 +319,15 @@ export function SetlistEditor({
 						);
 					})}
 				</ol>
-				<Select
-					value=""
-					onValueChange={(id) => {
-						const song = available.find((value) => value.id === id);
-						if (song)
-							update({
-								...list.data,
-								entries: [
-									...list.data.entries,
-									{
-										id: crypto.randomUUID(),
-										arrangementId: song.id,
-										key: KEYS[
-											(keyDistance("C", song.data.key) + song.data.sourceCapo) %
-												12
-										],
-										notes: "",
-									},
-								],
-							});
-					}}
-				>
-					<SelectTrigger className="w-full" aria-label="Add a song">
-						<SelectValue placeholder="Add a song…" />
-					</SelectTrigger>
-					<SelectContent>
-						{available.map((song) => (
-							<SelectItem key={song.id} value={song.id}>
-								{song.data.title}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<div className="space-y-3">
+					<h2 className="font-medium">Add songs</h2>
+					<CatalogueSearch
+						onSelect={async (source) => {
+							const { rows } = addToSetlist(list, source, songs);
+							await saveMany(rows);
+						}}
+					/>
+				</div>
 			</div>
 		</>
 	);

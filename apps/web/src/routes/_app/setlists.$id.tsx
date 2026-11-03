@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_app/setlists/$id")({
 
 function SetlistPage() {
 	const { id } = Route.useParams();
-	const { setlists, arrangements, songs, store, save } = useApp();
+	const { setlists, arrangements, store, save } = useApp();
 	const navigate = useNavigate();
 	const list = setlists.find((row) => row.id === id);
 	const close = () => void navigate({ to: "/setlists" });
@@ -35,7 +35,6 @@ function SetlistPage() {
 						list={list}
 						getSource={store.getImportSource}
 						songs={arrangements}
-						available={songs}
 						save={save}
 						onClose={close}
 					/>

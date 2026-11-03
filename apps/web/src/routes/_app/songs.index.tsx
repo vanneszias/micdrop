@@ -1,4 +1,8 @@
-import { type Arrangement, copyArrangement } from "@chords/data";
+import {
+	type Arrangement,
+	arrangementFingerprint,
+	copyArrangement,
+} from "@chords/data";
 import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
@@ -27,17 +31,16 @@ import {
 	TableHeader,
 	TableRow,
 } from "@chords/ui/components/table";
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { EllipsisVertical, Music, Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
 import {
-	api,
 	canMoveFrom,
 	destinations,
 	exportSheet,
@@ -52,8 +55,7 @@ export const Route = createFileRoute("/_app/songs/")({
 
 function Songs() {
 	const app = useApp();
-	const { songs, owner, account, bands, setlists, store, save, saveMany, run } =
-		app;
+	const { songs, owner, account, bands, setlists, save, saveMany, run } = app;
 	const { q = "" } = Route.useSearch();
 	const targets = destinations(account, owner, bands);
 	const movable = canMoveFrom(account, owner, bands);
@@ -71,7 +73,6 @@ function Songs() {
 	};
 	const [sharing, setSharing] = useState<Arrangement>();
 	const navigate = useNavigate({ from: Route.fullPath });
-	const queryClient = useQueryClient();
 	const shown = songs.filter((song) =>
 		`${song.data.title} ${song.data.artist} ${song.data.tags.join(" ")} ${song.data.content}`
 			.toLowerCase()
@@ -86,7 +87,7 @@ function Songs() {
 	);
 	return (
 		<>
-			<PageHeader title="Songs">{songs.length ? add : null}</PageHeader>
+			<PageHeader title="Repertoire">{songs.length ? add : null}</PageHeader>
 			<div className="w-full space-y-4 p-4">
 				{songs.length ? (
 					<SearchInput
@@ -123,7 +124,12 @@ function Songs() {
 												{song.data.title}
 											</Link>
 											<div className="text-xs text-muted-foreground">
-												{song.data.artist || "Unknown artist"}
+												{song.data.artist || "Unknown artist"} ·{" "}
+												{song.data.arrangementName || "Standard"} ·{" "}
+												{song.data.draft
+													? "Draft"
+													: song.data.visibility || "private"}
+												{song.data.preferred ? " · Preferred" : ""}
 											</div>
 										</TableCell>
 										<TableCell>
@@ -155,7 +161,9 @@ function Songs() {
 																	save(
 																		freshArrangement(owner, {
 																			...song.data,
-																			title: `${song.data.title} (copy)`,
+																			arrangementName: `${song.data.arrangementName || "Standard"} (copy)`,
+																			visibility: "private",
+																			songId: song.data.songId || song.id,
 																			copiedFrom: song.id,
 																		}),
 																	),
@@ -169,18 +177,35 @@ function Songs() {
 														Export ChordPro
 													</DropdownMenuItem>
 													<DropdownMenuItem
-														disabled={account === "local"}
+														disabled={
+															account === "local" ||
+															!movable ||
+															!!song.data.reviewRequired
+														}
 														onClick={() =>
 															void run(async () => {
-																await store.sync();
-																await api("/api/publications", {
-																	action: "publish",
-																	recordId: song.id,
+																if (
+																	song.data.copiedFrom &&
+																	song.data.sourceContentHash ===
+																		(await arrangementFingerprint(
+																			song.data.content,
+																		))
+																) {
+																	toast.info(
+																		"This arrangement is already public. Your unchanged copy stays private.",
+																	);
+																	return;
+																}
+																await save({
+																	...song,
+																	data: {
+																		...song.data,
+																		visibility: "public",
+																		draft: false,
+																	},
 																});
-																await queryClient.invalidateQueries({
-																	queryKey: ["publications"],
-																});
-															}, "Published to community")
+																toast.success("Publication saved");
+															})
 														}
 													>
 														Publish

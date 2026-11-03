@@ -8,7 +8,14 @@ import {
 	ItemTitle,
 } from "@chords/ui/components/item";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, FileUp, ListMusic, Music, Plus } from "lucide-react";
+import {
+	ChevronRight,
+	FileUp,
+	Globe,
+	ListMusic,
+	Music,
+	Plus,
+} from "lucide-react";
 import { PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 
@@ -38,6 +45,12 @@ function Home() {
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
+					<Button asChild variant="outline">
+						<Link to="/community">
+							<Globe />
+							Search catalogue
+						</Link>
+					</Button>
 					<Button asChild>
 						<Link to="/songs/new">
 							<Plus /> Add song

@@ -132,9 +132,16 @@ async function activeLink(id: string) {
 
 // Recipients get the sheet, not the library it lives in or the page it was imported from.
 function shared<T extends SongRecord>(record: T): T {
-	return record.kind === "arrangement"
-		? { ...record, owner: "shared", data: { ...record.data, rawSource: "" } }
-		: { ...record, owner: "shared" };
+	if (record.kind !== "arrangement") return { ...record, owner: "shared" };
+	const {
+		privateNotes,
+		performanceKey,
+		performanceCapo,
+		preferred,
+		reviewRequired,
+		...data
+	} = record.data;
+	return { ...record, owner: "shared", data: { ...data, rawSource: "" } };
 }
 
 /** Anyone holding the link can read it; no account needed. */

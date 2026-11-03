@@ -3,5 +3,5 @@
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts", "./react": "./src/react.tsx" },
-  "dependencies": { "@tanstack/react-db": "0.5.7", "zod": "^4.3.6", "react": "^19.2.0" }
+  "dependencies": { "@chords/song-core": "workspace:*", "@tanstack/react-db": "0.5.7", "zod": "^4.3.6", "react": "^19.2.0" }
 }
