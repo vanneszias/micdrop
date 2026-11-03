@@ -36,6 +36,7 @@ const preferences = z.object({
 	fontSize: z.number().min(14).max(40).default(23),
 	columns: z.number().int().min(1).max(3).default(1),
 	diagrams: z.boolean().default(false),
+	lyricsOnly: z.boolean().default(false),
 	speed: z.number().min(5).max(80).default(25),
 });
 const songPreferences = z.object({
@@ -90,13 +91,21 @@ export function Player({
 	const [fontSize, setFontSize] = useState(saved?.fontSize ?? 23);
 	const [columns, setColumns] = useState(saved?.columns ?? 1);
 	const [diagrams, setDiagrams] = useState(saved?.diagrams ?? false);
+	const [lyricsOnly, setLyricsOnly] = useState(saved?.lyricsOnly ?? false);
 	const [scrolling, setScrolling] = useState(false);
 	const [speed, setSpeed] = useState(saved?.speed ?? 25);
 	useEffect(() => {
 		try {
 			localStorage.setItem(
 				preferenceKey,
-				JSON.stringify({ shapes, fontSize, columns, diagrams, speed }),
+				JSON.stringify({
+					shapes,
+					fontSize,
+					columns,
+					diagrams,
+					lyricsOnly,
+					speed,
+				}),
 			);
 			localStorage.setItem(songPreferenceKey, JSON.stringify({ key, capo }));
 		} catch {
@@ -111,6 +120,7 @@ export function Player({
 		fontSize,
 		columns,
 		diagrams,
+		lyricsOnly,
 		speed,
 	]);
 	const sheet = useRef<HTMLElement>(null);
@@ -213,7 +223,9 @@ export function Player({
 				className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2"
 			>
 				<KeySelect value={key} onChange={setKey} label="Key" className="w-20" />
-				<CapoSelect value={capo} onChange={setCapo} className="w-28" />
+				{lyricsOnly ? null : (
+					<CapoSelect value={capo} onChange={setCapo} className="w-28" />
+				)}
 				<Popover>
 					<PopoverTrigger asChild>
 						<Button variant="outline" size="icon" aria-label="View options">
@@ -222,13 +234,23 @@ export function Player({
 					</PopoverTrigger>
 					<PopoverContent align="start" className="w-64 space-y-4">
 						<div className="flex items-center justify-between">
-							<Label htmlFor="shapes">Guitar shapes</Label>
+							<Label htmlFor="lyrics-only">Lyrics only</Label>
 							<Switch
-								id="shapes"
-								checked={shapes}
-								onCheckedChange={setShapes}
+								id="lyrics-only"
+								checked={lyricsOnly}
+								onCheckedChange={setLyricsOnly}
 							/>
 						</div>
+						{lyricsOnly ? null : (
+							<div className="flex items-center justify-between">
+								<Label htmlFor="shapes">Guitar shapes</Label>
+								<Switch
+									id="shapes"
+									checked={shapes}
+									onCheckedChange={setShapes}
+								/>
+							</div>
+						)}
 						<div className="space-y-2">
 							<Label>Columns</Label>
 							<ToggleGroup
@@ -256,14 +278,16 @@ export function Player({
 						</div>
 					</PopoverContent>
 				</Popover>
-				<Toggle
-					variant="outline"
-					pressed={diagrams}
-					onPressedChange={setDiagrams}
-					aria-label="Chord diagrams"
-				>
-					<Guitar />
-				</Toggle>
+				{lyricsOnly ? null : (
+					<Toggle
+						variant="outline"
+						pressed={diagrams}
+						onPressedChange={setDiagrams}
+						aria-label="Chord diagrams"
+					>
+						<Guitar />
+					</Toggle>
+				)}
 				{arrangement.updatedAt !== shown.updatedAt ? (
 					<Button
 						variant="secondary"
@@ -293,7 +317,8 @@ export function Player({
 					</h2>
 					<p className="text-muted-foreground">{shown.data.artist}</p>
 					<p className="mt-3 mb-8 font-mono text-xs text-muted-foreground">
-						Key {key} · Capo {capo && shapes ? capo : "none"}
+						Key {key}
+						{lyricsOnly ? null : ` · Capo ${capo && shapes ? capo : "none"}`}
 					</p>
 					{notes ? (
 						<p className="mb-6 rounded-md border bg-muted/30 p-3 text-sm">
@@ -305,10 +330,11 @@ export function Player({
 						semitones={delta}
 						fontSize={fontSize}
 						columns={columns}
+						chords={!lyricsOnly}
 					/>
 				</article>
 			</section>
-			{diagrams ? (
+			{diagrams && !lyricsOnly ? (
 				<div data-print="hide" className="shrink-0 border-t px-4 py-3">
 					<ChordDiagrams content={shown.data.content} semitones={delta} />
 				</div>

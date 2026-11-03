@@ -7,11 +7,13 @@ export function SongSheet({
 	semitones = 0,
 	fontSize = 20,
 	columns = 1,
+	chords = true,
 }: {
 	content: string;
 	semitones?: number;
 	fontSize?: number;
 	columns?: number;
+	chords?: boolean;
 }) {
 	const lines = useMemo(
 		() => sheetLines(content, semitones),
@@ -37,6 +39,13 @@ export function SongSheet({
 					>
 						{line.label}
 					</p>
+				) : !chords ? (
+					// Lyrics-only view drops chord-only rows such as intros and riffs.
+					line.tokens.some((token) => token.text.trim()) ? (
+						<p key={`line-${index}`} className="sheet-text">
+							{line.tokens.map((token) => token.text).join("")}
+						</p>
+					) : null
 				) : (
 					<div key={`line-${index}`} className="sheet-line">
 						{line.tokens.map((token, i) => (
