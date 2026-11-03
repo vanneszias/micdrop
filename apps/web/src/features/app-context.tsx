@@ -6,6 +6,7 @@ import {
 	createContext,
 	useCallback,
 	useContext,
+	useEffect,
 	useMemo,
 	useState,
 } from "react";
@@ -47,13 +48,36 @@ export function AppProvider({
 	const songbook = useSongbook();
 	const { store, records } = songbook;
 	const navigate = useNavigate();
-	const [owner, setOwner] = useState(account);
+	const ownerKey = `chords:owner:${account}`;
+	const [owner, setOwnerState] = useState(
+		() =>
+			(typeof localStorage === "undefined"
+				? null
+				: localStorage.getItem(ownerKey)) || account,
+	);
+	const setOwner = useCallback(
+		(id: string) => {
+			setOwnerState(id);
+			if (id === account) localStorage.removeItem(ownerKey);
+			else localStorage.setItem(ownerKey, id);
+		},
+		[account, ownerKey],
+	);
 	const [busy, setBusy] = useState(false);
 	const bandsQuery = useQuery({
 		queryKey: ["bands", account],
 		queryFn: () => api<{ bands: Band[] }>("/api/bands"),
 		enabled: account !== "local" && online,
 	});
+	useEffect(() => {
+		// Fall back to Personal when the remembered band is gone (left or deleted).
+		if (
+			owner !== account &&
+			bandsQuery.isSuccess &&
+			!bandsQuery.data.bands.some((band) => band.id === owner)
+		)
+			setOwner(account);
+	}, [owner, account, bandsQuery.isSuccess, bandsQuery.data, setOwner]);
 	const arrangements = useMemo(
 		() =>
 			records.filter(
