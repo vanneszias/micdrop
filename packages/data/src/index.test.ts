@@ -2,13 +2,14 @@ import "fake-indexeddb/auto";
 import { afterEach, expect, test } from "bun:test";
 import {
 	type Arrangement,
+	addToSetlist,
 	copyArrangement,
 	copySetlist,
 	createSongbookStore,
-	duplicateSongMessage,
 	type Operation,
 	type Setlist,
 	type SongbookStore,
+	searchRelevance,
 } from "./index";
 
 const originalFetch = globalThis.fetch;
@@ -96,7 +97,7 @@ test("PDF imports atomically retain songs, setlist, outbox and original file acr
 	);
 	const other = await open(crypto.randomUUID());
 	expect(await other.getImportSource(list.id)).toBeUndefined();
-	const duplicate = { ...row, id: crypto.randomUUID() };
+	const duplicate = { ...row };
 	const secondList = { ...list, id: crypto.randomUUID() };
 	await expect(
 		reopened.saveImport([duplicate, secondList], {
@@ -121,49 +122,97 @@ test("PDF imports atomically retain songs, setlist, outbox and original file acr
 	expect(afterFailure.records.has(secondList.id)).toBe(false);
 	expect(afterFailure.getStatus().pending).toBe(2);
 });
-test("songbook uniqueness is atomic across tabs and applies to edits and restores", async () => {
+test("a repertoire supports multiple arrangements of the same song and private stable copies", async () => {
 	const account = crypto.randomUUID();
 	const store = await open(account);
-	const otherTab = await open(account);
-	const row = song(account);
-	const duplicate = {
-		...song(account),
-		data: { ...row.data, title: "  OFFLINE SONG  " },
-	};
-	const results = await Promise.allSettled([
-		store.save(row),
-		otherTab.save(duplicate),
-	]);
-	expect(results.map((result) => result.status)).toEqual([
-		"fulfilled",
-		"rejected",
-	]);
-	expect(otherTab.getStatus().pending).toBe(0);
-	await store.save({ ...row, data: { ...row.data, content: "[D]Edited" } });
-	await store.save({
-		...duplicate,
+	const source = song(account);
+	const acoustic = {
+		...source,
 		id: crypto.randomUUID(),
-		owner: "another-songbook",
-	});
-	await store.save({ ...duplicate, archived: true });
-	await expect(store.save(duplicate)).rejects.toThrow("already exists");
-	const different = {
-		...song(account),
-		data: { ...row.data, artist: "Another artist" },
+		data: {
+			...source.data,
+			songId: source.id,
+			arrangementName: "Acoustic",
+			content: "[G]Acoustic",
+		},
 	};
-	await store.save(different);
-	await expect(store.save({ ...different, data: row.data })).rejects.toThrow(
-		"already exists",
-	);
-	await store.save({ ...row, archived: true });
-	await store.save(duplicate);
+	await store.saveMany([source, acoustic]);
+	const copy = copyArrangement(source, "band");
+	await store.save(copy);
+	await store.save({
+		...source,
+		data: { ...source.data, content: "[D]Updated public source" },
+	});
 	const reopened = await open(account);
+	expect(reopened.records.get(copy.id)?.data).toMatchObject({
+		visibility: "private",
+		content: "[C]Hello",
+		songId: source.id,
+		copiedFrom: source.id,
+	});
+	expect(reopened.records.has(acoustic.id)).toBe(true);
+});
+test("setlist additions reuse the exact source, preserve versions, and save atomically", async () => {
+	const account = crypto.randomUUID();
+	const store = await open(account);
+	const source = {
+		...song("public"),
+		data: {
+			...song("public").data,
+			performanceKey: "D",
+			privateNotes: "Quiet bridge",
+		},
+	};
+	const list: Setlist = {
+		id: crypto.randomUUID(),
+		owner: account,
+		kind: "setlist",
+		version: 0,
+		archived: false,
+		updatedAt: source.updatedAt,
+		data: { title: "Show", date: "", entries: [] },
+	};
+	const addition = addToSetlist(list, source, []);
+	await store.saveMany(addition.rows);
+	expect(addition.song.data.visibility).toBe("private");
+	const updated = addition.rows.at(-1) as Setlist;
+	expect(updated.data.entries[0]).toMatchObject({
+		key: "D",
+		notes: "Quiet bridge",
+		arrangementId: addition.song.id,
+	});
+	const repeated = addToSetlist(updated, source, [addition.song]);
+	expect(repeated.rows).toHaveLength(1);
+	expect(repeated.song.id).toBe(addition.song.id);
+	const alternate = {
+		...source,
+		id: crypto.randomUUID(),
+		data: { ...source.data, content: "[F]Different arrangement" },
+	};
+	expect(addToSetlist(updated, alternate, [addition.song]).song.id).not.toBe(
+		addition.song.id,
+	);
+	store.dispose();
+	const reopened = await open(account);
+	expect(reopened.records.has(addition.song.id)).toBe(true);
+	expect(reopened.records.get(list.id)?.data).toMatchObject(updated.data);
+	expect(reopened.getStatus().pending).toBe(2);
+});
+test("search ranks exact matches over fuzzy repertoire candidates and lyrics", () => {
+	const data = song("test").data;
+	expect(searchRelevance({ ...data, title: "Hallelujah" }, "Hallelujah")).toBe(
+		1000,
+	);
 	expect(
-		[...reopened.records.values()].filter(
-			(record) => record.owner === account && !record.archived,
+		searchRelevance({ ...data, title: "Hallelujah" }, "Halelujah"),
+	).toBeGreaterThan(400);
+	expect(
+		searchRelevance(
+			{ ...data, title: "Other", content: "Hallelujah" },
+			"Hallelujah",
 		),
-	).toHaveLength(2);
-	expect(reopened.getStatus().pending).toBe(4);
+	).toBe(100);
+	expect(searchRelevance(data, "unrelated")).toBe(0);
 });
 test("an edit made while a previous write is in flight is kept and rebased", async () => {
 	const account = crypto.randomUUID();
@@ -249,7 +298,7 @@ test("a conflict survives reopening, preserves local lyrics, and resolves explic
 	expect(reopened.getStatus().pending).toBe(0);
 });
 
-test("a copied setlist and its new songs save together, and a duplicate song saves nothing", async () => {
+test("a copied setlist and its new songs save together", async () => {
 	const account = crypto.randomUUID();
 	const band = crypto.randomUUID();
 	const store = await open(account);
@@ -287,9 +336,6 @@ test("a copied setlist and its new songs save together, and a duplicate song sav
 		data: { title: "Friday" },
 	});
 	expect(store.records.get(list.id)?.archived).toBe(true);
-	await expect(
-		store.saveMany([copyArrangement(source, band), copy.list]),
-	).rejects.toThrow(duplicateSongMessage);
 	const bandSongs = [...store.records.values()].filter(
 		(row) => row.kind === "arrangement" && row.owner === band,
 	);
@@ -300,7 +346,7 @@ test("copying a setlist reuses songs the destination already has", async () => {
 	const account = crypto.randomUUID();
 	const band = crypto.randomUUID();
 	const source = song(account);
-	const existing = { ...song(band), data: { ...source.data } };
+	const existing = copyArrangement(source, band);
 	const list: Setlist = {
 		id: crypto.randomUUID(),
 		kind: "setlist",

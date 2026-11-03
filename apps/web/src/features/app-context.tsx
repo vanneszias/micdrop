@@ -64,11 +64,29 @@ export function AppProvider({
 		[account, ownerKey],
 	);
 	const [busy, setBusy] = useState(false);
+	const [cachedBands, setCachedBands] = useState<Band[]>(() => {
+		try {
+			return typeof localStorage === "undefined"
+				? []
+				: JSON.parse(localStorage.getItem(`chords:bands:${account}`) || "[]");
+		} catch {
+			return [];
+		}
+	});
 	const bandsQuery = useQuery({
 		queryKey: ["bands", account],
 		queryFn: () => api<{ bands: Band[] }>("/api/bands"),
 		enabled: account !== "local" && online,
 	});
+	useEffect(() => {
+		if (bandsQuery.data) {
+			setCachedBands(bandsQuery.data.bands);
+			localStorage.setItem(
+				`chords:bands:${account}`,
+				JSON.stringify(bandsQuery.data.bands),
+			);
+		}
+	}, [bandsQuery.data, account]);
 	useEffect(() => {
 		// Fall back to Personal when the remembered band is gone (left or deleted).
 		if (
@@ -103,10 +121,25 @@ export function AppProvider({
 	);
 	const save = useCallback(
 		async (row: SongRecord) => {
-			await store.save(row);
+			if (row.kind === "arrangement" && row.data.preferred) {
+				const others = arrangements.filter(
+					(song) =>
+						song.owner === row.owner &&
+						song.id !== row.id &&
+						(song.data.songId || song.id) === (row.data.songId || row.id) &&
+						song.data.preferred,
+				);
+				await store.saveMany([
+					...others.map((song) => ({
+						...song,
+						data: { ...song.data, preferred: false },
+					})),
+					row,
+				]);
+			} else await store.save(row);
 			void store.sync();
 		},
-		[store],
+		[store, arrangements],
 	);
 	const saveMany = useCallback(
 		async (rows: SongRecord[]) => {
@@ -133,7 +166,11 @@ export function AppProvider({
 	);
 	const createSong = useCallback(
 		async (data?: Partial<Arrangement["data"]>) => {
-			const row = freshArrangement(owner, data);
+			const row = freshArrangement(owner, {
+				...data,
+				draft: true,
+				reviewRequired: true,
+			});
 			await save(row);
 			await navigate({ to: "/songs/$id/edit", params: { id: row.id } });
 		},
@@ -146,7 +183,7 @@ export function AppProvider({
 		user,
 		owner,
 		setOwner,
-		bands: bandsQuery.data?.bands ?? [],
+		bands: bandsQuery.data?.bands ?? cachedBands,
 		refetchBands: bandsQuery.refetch,
 		arrangements,
 		songs,

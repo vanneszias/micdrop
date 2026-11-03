@@ -1,4 +1,11 @@
-import { type Setlist, type SongbookStore, songIdentity } from "@chords/data";
+import {
+	type Arrangement,
+	copyArrangement,
+	type Setlist,
+	type SongbookStore,
+	savedArrangement,
+	songIdentity,
+} from "@chords/data";
 import {
 	MAX_PDF_BYTES,
 	normalizePdfSetlist,
@@ -32,6 +39,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { freshArrangement } from "#/lib/songs";
+import { CatalogueSearch } from "./catalogue-search";
 
 export function PdfSetlistImport({
 	owner,
@@ -49,6 +57,25 @@ export function PdfSetlistImport({
 	const [draft, setDraft] = useState<PdfSetlist | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [reviewIndex, setReviewIndex] = useState(0);
+	const [choices, setChoices] = useState<
+		Record<
+			number,
+			{
+				visibility?: string;
+				name?: string;
+				songId?: string;
+				source?: Arrangement;
+				reviewed?: boolean;
+			}
+		>
+	>({});
+	function choice(patch: Partial<(typeof choices)[number]>) {
+		setChoices((current) => ({
+			...current,
+			[reviewIndex]: { ...current[reviewIndex], ...patch },
+		}));
+	}
+
 	async function extract() {
 		if (!file) return;
 		setBusy(true);
@@ -99,6 +126,8 @@ export function PdfSetlistImport({
 		setBusy(true);
 		try {
 			const checked = normalizePdfSetlist(draft);
+			if (checked.songs.some((_, index) => !choices[index]?.reviewed))
+				throw new Error("Review every song before saving this import.");
 			const songs: ReturnType<typeof freshArrangement>[] = [];
 			const byIdentity = new Map<string, ReturnType<typeof freshArrangement>>();
 			const list: Setlist = {
@@ -111,27 +140,37 @@ export function PdfSetlistImport({
 				data: {
 					title: checked.title,
 					date: "",
-					entries: checked.songs.map((song) => {
-						const arrangement = freshArrangement(owner, {
+					entries: checked.songs.map((song, index) => {
+						const selection = choices[index] || {};
+						let arrangement = freshArrangement(owner, {
 							...song,
 							key: song.key || "C",
 							tags: ["PDF import"],
 							sourceUrl: "",
+							songId: selection.songId,
+							arrangementName: selection.name || "",
+							visibility:
+								selection.visibility === "private" ? "private" : "public",
+							draft: selection.visibility === "draft",
 						});
-						const identity = songIdentity(arrangement.data);
-						const previous = byIdentity.get(identity);
-						// Repeated appearances share an arrangement only when the extracted sheets match.
-						if (
-							previous &&
-							(previous.data.content !== arrangement.data.content ||
-								previous.data.key !== arrangement.data.key ||
-								previous.data.sourceCapo !== arrangement.data.sourceCapo)
-						)
-							throw new Error(
-								`Different sheets share the title “${song.title}”. Give each version a distinct title.`,
+						if (selection.source) {
+							const library = [...store.records.values()].filter(
+								(row) => row.kind === "arrangement",
 							);
+							arrangement =
+								savedArrangement(selection.source, owner, library) ||
+								copyArrangement(selection.source, owner);
+						}
+						const identity = JSON.stringify([
+							selection.source?.id || songIdentity(arrangement.data),
+							arrangement.data.content,
+							arrangement.data.key,
+							arrangement.data.sourceCapo,
+						]);
+						const previous = byIdentity.get(identity);
+
 						if (!previous) {
-							songs.push(arrangement);
+							if (!store.records.has(arrangement.id)) songs.push(arrangement);
 							byIdentity.set(identity, arrangement);
 						}
 						return {
@@ -157,6 +196,16 @@ export function PdfSetlistImport({
 	}
 	const song = draft?.songs[reviewIndex];
 	function updateSong(patch: Partial<PdfSetlist["songs"][number]>) {
+		choice({
+			reviewed: false,
+			...("content" in patch ||
+			"title" in patch ||
+			"artist" in patch ||
+			"key" in patch ||
+			"sourceCapo" in patch
+				? { source: undefined }
+				: {}),
+		});
 		setDraft((current) =>
 			current
 				? {
@@ -257,6 +306,84 @@ export function PdfSetlistImport({
 			</Field>
 			{song ? (
 				<>
+					<Field>
+						<FieldLabel htmlFor="import-visibility">
+							Visibility for this song
+						</FieldLabel>
+						<select
+							id="import-visibility"
+							className="h-9 rounded-md border bg-background px-3 text-sm"
+							value={choices[reviewIndex]?.visibility || "public"}
+							onChange={(event) => choice({ visibility: event.target.value })}
+							disabled={!!choices[reviewIndex]?.source}
+						>
+							<option value="public">Public on save</option>
+							<option value="private">Private</option>
+							<option value="draft">Draft</option>
+						</select>
+					</Field>
+					<Field>
+						<FieldLabel htmlFor="import-version">
+							Arrangement / version
+						</FieldLabel>
+						<Input
+							id="import-version"
+							value={choices[reviewIndex]?.name || ""}
+							onChange={(event) => choice({ name: event.target.value })}
+						/>
+					</Field>
+					<details className="rounded-lg border p-3" key={reviewIndex}>
+						<summary className="cursor-pointer text-sm">
+							Find existing songs and arrangements
+						</summary>
+						<div className="mt-3 space-y-2">
+							<CatalogueSearch
+								initialQuery={song.title}
+								chooseGroup={(group) =>
+									choice({ songId: group.id, source: undefined })
+								}
+								onSelect={async (source) => {
+									updateSong({
+										title: source.data.title,
+										artist: source.data.artist,
+										key: source.data.key,
+										sourceCapo: source.data.sourceCapo,
+										content: source.data.content,
+									});
+									choice({
+										source,
+										songId: source.data.songId || source.id,
+										visibility: "private",
+									});
+									toast.success(
+										"Existing arrangement selected; a private repertoire copy will be used.",
+									);
+								}}
+							/>
+							{choices[reviewIndex]?.source ? (
+								<p className="text-sm">
+									Using: {choices[reviewIndex].source?.data.title} ·{" "}
+									{choices[reviewIndex].source?.data.arrangementName ||
+										"Standard"}
+								</p>
+							) : null}
+							<Button
+								size="sm"
+								variant="outline"
+								onClick={() => choice({ songId: undefined, source: undefined })}
+							>
+								Use extracted sheet as a new song
+							</Button>
+						</div>
+					</details>
+					<label className="flex items-center gap-2 text-sm">
+						<input
+							type="checkbox"
+							checked={!!choices[reviewIndex]?.reviewed}
+							onChange={(event) => choice({ reviewed: event.target.checked })}
+						/>
+						I reviewed this song's content, grouping and visibility
+					</label>
 					<div className="grid gap-3 sm:grid-cols-2">
 						<Field>
 							<FieldLabel htmlFor="song-title">Title</FieldLabel>
@@ -347,11 +474,18 @@ export function PdfSetlistImport({
 				</>
 			) : null}
 			<FieldDescription>
-				{draft.songs.length} songs in PDF order. The PDF stays on this device.
+				{draft.songs.length} songs in PDF order ·{" "}
+				{Object.values(choices).filter((value) => value.reviewed).length}{" "}
+				reviewed. New arrangements are public unless marked private or draft.
+				The PDF stays on this device.
 			</FieldDescription>
 			<div className="flex gap-2">
 				<Button
-					disabled={busy || !draft.title.trim()}
+					disabled={
+						busy ||
+						!draft.title.trim() ||
+						draft.songs.some((_, index) => !choices[index]?.reviewed)
+					}
 					onClick={() => void save()}
 				>
 					{busy ? <Spinner /> : null} Save
@@ -361,6 +495,7 @@ export function PdfSetlistImport({
 					disabled={busy}
 					onClick={() => {
 						setDraft(null);
+						setChoices({});
 						setReviewIndex(0);
 					}}
 				>

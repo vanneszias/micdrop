@@ -36,7 +36,8 @@ function Play() {
 			account={account}
 			arrangement={song}
 			performanceKey={entries[index]?.key}
-			notes={entries[index]?.notes}
+			performanceCapo={entries[index]?.capo}
+			notes={entries[index]?.notes ?? song.data.privateNotes}
 			previous={index > 0 ? go(index - 1) : undefined}
 			next={index < entries.length - 1 ? go(index + 1) : undefined}
 		/>

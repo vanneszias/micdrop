@@ -39,6 +39,8 @@ export function freshArrangement(
 			sourceUrl: "",
 			rawSource: "",
 			copiedFrom: "",
+			visibility: "public",
+			draft: false,
 			...data,
 		},
 	};

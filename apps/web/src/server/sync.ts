@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import {
-	duplicateSongMessage,
+	arrangementFingerprint,
 	RecordSchema,
 	type SongRecord,
 } from "@chords/data";
@@ -85,34 +85,39 @@ export async function saveOperation(
 			"Ownership cannot be changed. Make a copy into the destination library.",
 		);
 	const now = new Date().toISOString();
+	if (record.kind === "arrangement") {
+		record.data.songId ||= record.id;
+		const group = await env.DB.prepare(
+			"SELECT COALESCE(merged_into,id) AS id FROM catalogue_songs WHERE id=?",
+		)
+			.bind(record.data.songId)
+			.first<{ id: string }>();
+		record.data.songId = group?.id || record.data.songId;
+		if (
+			record.data.visibility === "public" &&
+			!record.data.draft &&
+			!record.data.reviewRequired &&
+			!record.data.content.trim()
+		)
+			throw new HttpError(
+				422,
+				"Add a chord sheet before publishing, or save privately / as a draft.",
+			);
+		record.data.contentHash = await arrangementFingerprint(record.data.content);
+		if (
+			record.data.copiedFrom &&
+			record.data.sourceContentHash === record.data.contentHash &&
+			record.data.visibility === "public"
+		)
+			record.data.visibility = "private";
+	}
 	const data = JSON.stringify(record.data);
-	// The guard is part of the write, so simultaneous imports cannot both succeed.
-	const uniqueSong = `NOT EXISTS (
-		SELECT 1 FROM records WHERE owner = ? AND kind = 'arrangement'
-		AND archived = 0 AND id != ?
-		AND lower(trim(json_extract(data, '$.title'))) = lower(trim(?))
-		AND lower(trim(json_extract(data, '$.artist'))) = lower(trim(?))
-	)`;
-	const guard =
-		record.kind === "arrangement" && !record.archived ? uniqueSong : "1";
-	const guardValues =
-		record.kind === "arrangement" && !record.archived
-			? [record.owner, record.id, record.data.title, record.data.artist]
-			: [];
 	const mutation = existing
 		? env.DB.prepare(
-				`UPDATE records SET data = ?, version = version + 1, updated_at = ?, archived = ?, last_operation = ? WHERE id = ? AND version = ? AND ${guard}`,
-			).bind(
-				data,
-				now,
-				Number(record.archived),
-				id,
-				record.id,
-				baseVersion,
-				...guardValues,
-			)
+				`UPDATE records SET data = ?, version = version + 1, updated_at = ?, archived = ?, last_operation = ? WHERE id = ? AND version = ?`,
+			).bind(data, now, Number(record.archived), id, record.id, baseVersion)
 		: env.DB.prepare(
-				`INSERT OR IGNORE INTO records (id,kind,owner,version,updated_at,archived,data,last_operation) SELECT ?,?,?,1,?,?,?,? WHERE ? = 0 AND ${guard}`,
+				`INSERT OR IGNORE INTO records (id,kind,owner,version,updated_at,archived,data,last_operation) SELECT ?,?,?,1,?,?,?,? WHERE ? = 0`,
 			).bind(
 				record.id,
 				record.kind,
@@ -122,7 +127,6 @@ export async function saveOperation(
 				data,
 				id,
 				baseVersion,
-				...guardValues,
 			);
 	await env.DB.batch([
 		mutation,
@@ -141,16 +145,7 @@ export async function saveOperation(
 	const current = await env.DB.prepare("SELECT * FROM records WHERE id = ?")
 		.bind(record.id)
 		.first<Stored>();
-	if (
-		!accepted &&
-		guardValues.length &&
-		(!current || current.version === baseVersion)
-	) {
-		const duplicate = await env.DB.prepare(`SELECT ${uniqueSong} AS available`)
-			.bind(...guardValues)
-			.first<{ available: number }>();
-		if (!duplicate?.available) throw new HttpError(422, duplicateSongMessage);
-	}
+
 	if (!current)
 		throw new HttpError(
 			400,

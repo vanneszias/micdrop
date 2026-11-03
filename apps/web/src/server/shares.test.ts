@@ -52,6 +52,9 @@ test.skipIf(!base)(
 				tags: [],
 				sourceUrl: "",
 				rawSource: "private import source",
+				privateNotes: "private rehearsal notes",
+				performanceKey: "F#",
+				performanceCapo: 4,
 				copiedFrom: "",
 			},
 		});
@@ -114,6 +117,9 @@ test.skipIf(!base)(
 		expect(shared.share.kind).toBe("song");
 		expect(shared.share.record.data.title).toBe(mine.data.title);
 		expect(shared.share.record.data.rawSource).toBe("");
+		expect(shared.share.record.data.privateNotes).toBeUndefined();
+		expect(shared.share.record.data.performanceKey).toBeUndefined();
+		expect(shared.share.record.data.performanceCapo).toBeUndefined();
 		expect(shared.share.record.owner).toBe("shared");
 
 		// A setlist only carries songs from its own library.

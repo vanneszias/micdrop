@@ -1,6 +1,6 @@
 # Chords
 
-A private-first songbook for individuals and bands. Import chord sheets, edit a standardized arrangement, build setlists, and play in your own key and capo.
+A shared song catalogue with personal and band repertoires. Discover published arrangements, save independent private copies, build setlists, and play in your own key and capo.
 
 ## Run locally
 
@@ -36,7 +36,11 @@ Keep existing `.env.local` values when updating configuration. Secrets are read 
 - Transpose, separate sounding chords from capo shapes, guitar diagrams with alternative fingerings, adjustable text, and autoscroll.
 - Personal and band setlists, ordering, repeated songs, performance keys, band notes, playing navigation, and standardized print layouts.
 - Bands with owner/editor/viewer permissions. For this initial release, owners add an existing account by email; invitation email delivery is not configured.
-- Explicit publication/update/unpublication and one changeable up/downvote per account.
+- Public catalogue reading without an account, grouped songs and covers, version previews, typo-tolerant title/artist search, and lower-priority lyrics/tag matches.
+- New arrangements are public after review and final save unless marked private or draft. Normal public edits update on save; draft revisions preserve the last published snapshot.
+- Independent private repertoire copies, multiple arrangements and a preferred version per song, private performance settings and rehearsal notes.
+- Setlist search combines the active repertoire, personal songs, and the public catalogue. Saving and adding a new repertoire copy is atomic locally. Publisher changes never alter saved copies.
+- Reports and catalogue admin tools for hiding entries, moving arrangements and merging song groups. One changeable up/downvote per account.
 - Account-isolated offline storage, durable pending edits, idempotent server writes, revision conflicts with both versions preserved.
 
 All synchronized records in an accessible library are retained locally; a separate selective-download policy is not implemented yet. Band records follow the latest synchronized version, while an active playing view offers an update notice. Independent copies keep their attribution.
@@ -50,7 +54,7 @@ All synchronized records in an accessible library are retained locally; a separa
 
 Import previews retain raw text and the source URL. Extraction currently targets `<pre>` blocks. Pages with other structures may need a source adapter or paste fallback. Imported key/capo metadata must be reviewed in the editor.
 
-PDF imports save songs, the setlist, pending sync operations, and the original PDF in one local transaction. The original PDF remains on the importing device and can be downloaded from its setlist; it is not synchronized. Each song retains the AI's unedited source transcription. Existing songs are never overwritten: rename conflicting imported titles/artists before saving. Repeated identical songs share an arrangement and keep separate setlist entries. Unknown keys default to C after review; AI extraction can need corrections, especially for chord placement and capo notation.
+PDF imports save songs, the setlist, pending sync operations, and the original PDF in one local transaction. The original PDF remains on the importing device and can be downloaded from its setlist; it is not synchronized. Each song retains the AI's unedited source transcription. Review content, grouping and visibility for every extracted entry before saving. Existing songs are never overwritten; choose an existing arrangement, link a new arrangement to an existing song, or keep a distinct song group. Repeated identical sheets share an arrangement and keep separate setlist entries. Unknown keys default to C after review; AI extraction can need corrections, especially for chord placement and capo notation.
 
 ## Offline production check
 
@@ -102,4 +106,16 @@ No Cloudflare resources are created or deployed by the local setup commands.
 - Conflict handling is revision-based, with explicit resolution rather than real-time text merging.
 - Guitar diagrams use the MIT-licensed `@tombatossals/chords-db` dataset; unsupported shapes remain readable as chord names.
 - Local player preferences are stored per account and arrangement. They do not yet synchronize between devices.
-- Email verification/recovery delivery, invite emails, catalog moderation, selective downloads, and additional site adapters remain follow-up work.
+- Email verification/recovery delivery, invite emails, selective downloads, and additional site adapters remain follow-up work.
+
+## Catalogue administration
+
+Migration `0005_catalogue.sql` preserves existing private libraries and published snapshots; it does not publish old private records. Legacy song groups remain separate until explicitly merged. Public result pages contain summaries; full sheets are loaded only for previewing or saving. The public catalogue is not synchronized wholesale to devices.
+
+Administrator access is explicitly granted through the `catalogue_admins` table. Band ownership does not grant catalogue-wide privileges. An authorised operator can grant access with `INSERT INTO catalogue_admins(user_id) VALUES ('<account-id>');` in the intended database; there is no self-promotion endpoint. The Catalogue page then displays reporting and maintenance tools. Actions are recorded in `catalogue_actions`. Merges and regrouping preserve revision history and saved copies; merging also preserves old group IDs as aliases.
+
+Local integration tests provision their own temporary admin account using the local Wrangler binary. Set `CHORDS_TEST_D1_STATE` when using a nondefault local persistence directory. Never point integration tests at production.
+
+The search regression fixture exercises 10,000 songs, exact and typo matches, performing artists and pagination. Local SQLite timings are not a production capacity guarantee. Admin tools currently use explicit group/publication IDs; their scope is deliberately small.
+
+See [the agreed product plan](docs/catalogue-and-repertoire-plan.md) for the complete model and acceptance scenarios.

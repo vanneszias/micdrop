@@ -95,7 +95,16 @@ async function save<R extends Arrangement | Setlist>(
 }
 function newSong(
 	owner: string,
-	input: { title: string; artist: string; key?: string; tags: string[] },
+	input: {
+		title: string;
+		artist: string;
+		key?: string;
+		tags: string[];
+		visibility?: "public" | "private";
+		draft?: boolean;
+		songId?: string;
+		arrangementName?: string;
+	},
 	raw: string,
 	sourceUrl = "",
 ) {
@@ -118,12 +127,36 @@ function newSong(
 			sourceUrl,
 			rawSource: raw,
 			copiedFrom: "",
+			visibility: input.visibility || "public",
+			draft: input.draft || false,
+			songId: input.songId,
+			arrangementName: input.arrangementName,
 		},
 	};
 	return { song, warnings };
 }
 
+const CatalogueFields = {
+	visibility: z
+		.enum(["public", "private"])
+		.default("public")
+		.describe(
+			"New arrangements are public on save unless private is selected.",
+		),
+	draft: z
+		.boolean()
+		.default(false)
+		.describe("Keep unfinished changes unpublished; usable in setlists."),
+	songId: z
+		.string()
+		.min(1)
+		.max(100)
+		.optional()
+		.describe("Existing song group id; omit for a genuinely new song."),
+	arrangementName: z.string().max(200).optional(),
+};
 const SongFields = {
+	...CatalogueFields,
 	title: z.string().min(1).max(200).describe("Song title"),
 	artist: z.string().max(200).default("").describe("Artist or band"),
 	key: z
@@ -255,6 +288,7 @@ function buildServer(caller: Caller) {
 			description:
 				"Fetch a public chord page and add its chord sheet as a song. Use rendered: true for pages that build the sheet with JavaScript.",
 			inputSchema: z.object({
+				...CatalogueFields,
 				url: z.string().url().max(2000),
 				rendered: z.boolean().default(false),
 				title: SongFields.title.optional().describe("Overrides the page title"),
@@ -295,6 +329,9 @@ function buildServer(caller: Caller) {
 			inputSchema: z.object({
 				id: z.string(),
 				version: z.number().int().min(1),
+				visibility: CatalogueFields.visibility.optional(),
+				draft: CatalogueFields.draft.optional(),
+				arrangementName: CatalogueFields.arrangementName,
 				title: SongFields.title.optional(),
 				artist: z.string().max(200).optional(),
 				key: SongFields.key,

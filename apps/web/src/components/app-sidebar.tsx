@@ -45,9 +45,9 @@ import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
 
 const items = [
-	{ to: "/songs", label: "Songs", icon: Music },
+	{ to: "/songs", label: "Repertoire", icon: Music },
 	{ to: "/setlists", label: "Setlists", icon: ListMusic },
-	{ to: "/community", label: "Community", icon: Globe },
+	{ to: "/community", label: "Catalogue", icon: Globe },
 	{ to: "/bands", label: "Bands", icon: Users },
 ] as const;
 

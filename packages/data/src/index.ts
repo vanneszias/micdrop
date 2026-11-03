@@ -1,3 +1,4 @@
+import { KEYS, keyDistance } from "@chords/song-core";
 import {
 	createCollection,
 	localOnlyCollectionOptions,
@@ -14,6 +15,18 @@ export const ArrangementData = z.object({
 	sourceUrl: z.string().max(2000).default(""),
 	rawSource: z.string().max(200_000).default(""),
 	copiedFrom: z.string().default(""),
+	songId: z.string().min(1).max(100).optional(),
+	contentHash: z.string().length(64).optional(),
+	sourceContentHash: z.string().length(64).optional(),
+	arrangementName: z.string().max(200).optional(),
+	description: z.string().max(2000).optional(),
+	visibility: z.enum(["public", "private"]).optional(),
+	draft: z.boolean().optional(),
+	reviewRequired: z.boolean().optional(),
+	preferred: z.boolean().optional(),
+	performanceKey: z.string().max(10).optional(),
+	performanceCapo: z.number().int().min(0).max(12).optional(),
+	privateNotes: z.string().max(2000).optional(),
 });
 export const SetlistData = z.object({
 	title: z.string().min(1).max(200),
@@ -24,6 +37,7 @@ export const SetlistData = z.object({
 				id: z.string(),
 				arrangementId: z.string(),
 				key: z.string().max(10),
+				capo: z.number().int().min(0).max(12).optional(),
 				notes: z.string().max(2000),
 			}),
 		)
@@ -55,12 +69,58 @@ export function songIdentity(data: Arrangement["data"]) {
 	return JSON.stringify([normalize(data.title), normalize(data.artist)]);
 }
 
-export const duplicateSongMessage =
-	"A song with this title and artist already exists in this songbook.";
+export function songGroup(song: Arrangement) {
+	return song.data.songId || song.id;
+}
 
-const isActiveArrangement = (row: SongRecord): row is Arrangement =>
-	row.kind === "arrangement" && !row.archived;
-const songKey = (row: Arrangement) => `${row.owner}:${songIdentity(row.data)}`;
+export function savedArrangement(
+	source: Arrangement,
+	owner: string,
+	library: Arrangement[],
+) {
+	return library.find(
+		(row) =>
+			row.owner === owner &&
+			!row.archived &&
+			(row.id === source.id || row.data.copiedFrom === source.id) &&
+			(row.id === source.id || row.data.content === source.data.content),
+	);
+}
+
+export function addToSetlist(
+	list: Setlist,
+	source: Arrangement,
+	library: Arrangement[],
+) {
+	const existing = savedArrangement(source, list.owner, library);
+	const song =
+		existing ||
+		(source.owner === list.owner
+			? source
+			: copyArrangement(source, list.owner));
+	const updated: Setlist = {
+		...list,
+		data: {
+			...list.data,
+			entries: [
+				...list.data.entries,
+				{
+					id: crypto.randomUUID(),
+					arrangementId: song.id,
+					key:
+						song.data.performanceKey ||
+						KEYS[(keyDistance("C", song.data.key) + song.data.sourceCapo) % 12],
+					capo: song.data.performanceCapo ?? song.data.sourceCapo,
+					notes: song.data.privateNotes || "",
+				},
+			],
+		},
+	};
+	return {
+		song,
+		rows: existing || source.owner === list.owner ? [updated] : [song, updated],
+	};
+}
 
 /** A new arrangement in `owner`'s library, remembering the song it came from. */
 export function copyArrangement(song: Arrangement, owner: string): Arrangement {
@@ -71,7 +131,16 @@ export function copyArrangement(song: Arrangement, owner: string): Arrangement {
 		version: 0,
 		archived: false,
 		updatedAt: new Date().toISOString(),
-		data: { ...song.data, copiedFrom: song.id },
+		data: {
+			...song.data,
+			songId: songGroup(song),
+			copiedFrom: song.id,
+			sourceContentHash: song.data.contentHash,
+			visibility: "private",
+			reviewRequired: false,
+			draft: false,
+			preferred: false,
+		},
 	};
 }
 
@@ -90,9 +159,12 @@ export function copySetlist(
 	for (const entry of list.data.entries) {
 		const source = songs.find((song) => song.id === entry.arrangementId);
 		if (!source) continue;
-		const identity = songIdentity(source.data);
+
 		let target = [...library, ...copied].find(
-			(song) => songIdentity(song.data) === identity,
+			(song) =>
+				song.id === source.id ||
+				(song.data.copiedFrom === source.id &&
+					song.data.content === source.data.content),
 		);
 		if (!target) {
 			target = copyArrangement(source, owner);
@@ -158,7 +230,7 @@ export function createSongbookStore(account: string) {
 			request<Operation[]>(tx.objectStore("outbox").getAll()),
 			request<Conflict[]>(tx.objectStore("conflicts").getAll()),
 		]);
-		for (const row of rows) apply(row);
+		for (const row of rows) apply(RecordSchema.parse(row));
 		pending = operations.length;
 		conflicts = storedConflicts.map((conflict) => ({
 			...conflict,
@@ -208,24 +280,7 @@ export function createSongbookStore(account: string) {
 		});
 		const tx = database.transaction(["records", "outbox"], "readwrite");
 		const done = transactionDone(tx);
-		if (record.kind === "arrangement" && !record.archived) {
-			const rows = await request<SongRecord[]>(
-				tx.objectStore("records").getAll(),
-			);
-			if (
-				rows.some(
-					(row) =>
-						row.id !== record.id &&
-						row.owner === record.owner &&
-						row.kind === "arrangement" &&
-						!row.archived &&
-						songIdentity(row.data) === songIdentity(record.data),
-				)
-			) {
-				await done;
-				throw new Error(duplicateSongMessage);
-			}
-		}
+
 		const previous = await request<Operation | undefined>(
 			tx.objectStore("outbox").get(record.id),
 		);
@@ -253,21 +308,7 @@ export function createSongbookStore(account: string) {
 		);
 		const tx = database.transaction(["records", "outbox"], "readwrite");
 		const done = transactionDone(tx);
-		const next = new Map(
-			(await request<SongRecord[]>(tx.objectStore("records").getAll())).map(
-				(row) => [row.id, row] as const,
-			),
-		);
-		for (const row of rows) next.set(row.id, row);
-		const touched = new Set(rows.filter(isActiveArrangement).map(songKey));
-		const counts = new Map<string, number>();
-		for (const row of next.values())
-			if (isActiveArrangement(row) && touched.has(songKey(row)))
-				counts.set(songKey(row), (counts.get(songKey(row)) ?? 0) + 1);
-		if ([...counts.values()].some((count) => count > 1)) {
-			await done;
-			throw new Error(duplicateSongMessage);
-		}
+
 		for (const row of rows) {
 			const previous = await request<Operation | undefined>(
 				tx.objectStore("outbox").get(row.id),
@@ -283,7 +324,7 @@ export function createSongbookStore(account: string) {
 			} satisfies Operation);
 		}
 		await done;
-		for (const row of rows) apply(row);
+		for (const row of rows) apply(RecordSchema.parse(row));
 		error = "";
 		await refresh();
 		channel?.postMessage("changed");
@@ -315,29 +356,12 @@ export function createSongbookStore(account: string) {
 			tx.objectStore("records").getAll(),
 		);
 		const ids = new Set(existing.map((row) => row.id));
-		const identities = new Set(
-			existing
-				.filter(
-					(row): row is Arrangement =>
-						row.kind === "arrangement" && !row.archived,
-				)
-				.map((row) => `${row.owner}:${songIdentity(row.data)}`),
-		);
 		for (const row of rows) {
-			const identity =
-				row.kind === "arrangement"
-					? `${row.owner}:${songIdentity(row.data)}`
-					: "";
-			if (ids.has(row.id) || (identity && identities.has(identity))) {
+			if (ids.has(row.id)) {
 				await done;
-				throw new Error(
-					identity && identities.has(identity)
-						? `${duplicateSongMessage} Rename the imported song before saving.`
-						: "This import already exists.",
-				);
+				throw new Error("This import already exists.");
 			}
 			ids.add(row.id);
-			if (identity) identities.add(identity);
 		}
 		for (const record of rows) {
 			tx.objectStore("records").add(record);
@@ -517,3 +541,5 @@ export function createSongbookStore(account: string) {
 	};
 }
 export type SongbookStore = ReturnType<typeof createSongbookStore>;
+
+export * from "./catalogue";
