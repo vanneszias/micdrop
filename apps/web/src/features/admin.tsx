@@ -1,9 +1,23 @@
+import { Badge } from "@chords/ui/components/badge";
+import { Button } from "@chords/ui/components/button";
 import {
 	Card,
 	CardContent,
 	CardHeader,
 	CardTitle,
 } from "@chords/ui/components/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@chords/ui/components/dialog";
+import { Field, FieldLabel } from "@chords/ui/components/field";
+import { Input } from "@chords/ui/components/input";
+import { Spinner } from "@chords/ui/components/spinner";
 import {
 	Table,
 	TableBody,
@@ -13,6 +27,8 @@ import {
 	TableRow,
 } from "@chords/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { useId, useState } from "react";
 import { api } from "#/lib/songs";
 import { useApp } from "./app-context";
 
@@ -116,5 +132,151 @@ export function Rows<T>({
 				))}
 			</TableBody>
 		</Table>
+	);
+}
+
+export type Page<T> = { rows: T[]; next: number | null };
+
+export function Pager({
+	offset,
+	next,
+	onChange,
+}: {
+	offset: number;
+	next: number | null | undefined;
+	onChange: (offset: number) => void;
+}) {
+	return (
+		<div className="flex justify-end gap-2">
+			<Button
+				variant="outline"
+				size="sm"
+				disabled={!offset}
+				onClick={() => onChange(Math.max(0, offset - 50))}
+			>
+				Previous
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				disabled={next == null}
+				onClick={() => next != null && onChange(next)}
+			>
+				Next
+			</Button>
+		</div>
+	);
+}
+
+const linkClass = "font-medium underline-offset-4 hover:underline";
+
+/** Links a record owner to its admin page, whether it is a person or a band. */
+export function OwnerLink({
+	id,
+	kind,
+	name,
+}: {
+	id: string;
+	kind: "user" | "band";
+	name: string | null;
+}) {
+	return kind === "user" ? (
+		<Link to="/admin/users/$id" params={{ id }} className={linkClass}>
+			{name ?? id}
+		</Link>
+	) : (
+		<Link to="/admin/bands/$id" params={{ id }} className={linkClass}>
+			{name ?? id} <Badge variant="outline">band</Badge>
+		</Link>
+	);
+}
+
+export function RecordLink({
+	id,
+	children,
+}: {
+	id: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<Link to="/admin/library/$id" params={{ id }} className={linkClass}>
+			{children}
+		</Link>
+	);
+}
+
+export function ErrorText({ error }: { error: Error | null }) {
+	return error ? (
+		<p role="alert" className="text-sm text-destructive">
+			{error.message}
+		</p>
+	) : null;
+}
+
+/** An irreversible action that asks for a phrase to be typed back first. */
+export function TypedConfirm({
+	label,
+	title,
+	description,
+	phrase,
+	onConfirm,
+}: {
+	label: string;
+	title: string;
+	description: string;
+	phrase: string;
+	onConfirm: () => Promise<boolean>;
+}) {
+	const { busy } = useApp();
+	const [open, setOpen] = useState(false);
+	const [typed, setTyped] = useState("");
+	const id = useId();
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(value) => {
+				setOpen(value);
+				setTyped("");
+			}}
+		>
+			<DialogTrigger asChild>
+				<Button size="sm" variant="destructive" disabled={busy}>
+					{label}
+				</Button>
+			</DialogTrigger>
+			<DialogContent>
+				<form
+					className="space-y-4"
+					onSubmit={(event) => {
+						event.preventDefault();
+						void onConfirm().then((done) => done && setOpen(false));
+					}}
+				>
+					<DialogHeader>
+						<DialogTitle>{title}</DialogTitle>
+						<DialogDescription>{description}</DialogDescription>
+					</DialogHeader>
+					<Field>
+						<FieldLabel htmlFor={id}>
+							Type <strong className="select-all">{phrase}</strong> to confirm
+						</FieldLabel>
+						<Input
+							id={id}
+							value={typed}
+							autoComplete="off"
+							onChange={(event) => setTyped(event.target.value)}
+						/>
+					</Field>
+					<DialogFooter>
+						<Button
+							variant="destructive"
+							disabled={busy || typed.trim() !== phrase}
+						>
+							{busy ? <Spinner /> : null} {label}
+						</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }

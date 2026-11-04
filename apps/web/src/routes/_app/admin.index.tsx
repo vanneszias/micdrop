@@ -1,9 +1,15 @@
-import { Badge } from "@chords/ui/components/badge";
 import { Card, CardContent } from "@chords/ui/components/card";
 import { Skeleton } from "@chords/ui/components/skeleton";
 import { cn } from "@chords/ui/lib/utils";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { bytes, Rows, Section, useAdmin, when } from "#/features/admin";
+import {
+	bytes,
+	OwnerLink,
+	Rows,
+	Section,
+	useAdmin,
+	when,
+} from "#/features/admin";
 
 export const Route = createFileRoute("/_app/admin/")({ component: Overview });
 
@@ -158,14 +164,9 @@ function Overview() {
 						columns={[
 							[
 								"Owner",
-								(row) =>
-									row.kind === "user" ? (
-										<UserLink id={row.id}>{row.name ?? row.id}</UserLink>
-									) : (
-										<span>
-											{row.name ?? row.id} <Badge variant="outline">band</Badge>
-										</span>
-									),
+								(row) => (
+									<OwnerLink id={row.id} kind={row.kind} name={row.name} />
+								),
 							],
 							["Records", (row) => row.records],
 							["Size", (row) => bytes(row.bytes)],

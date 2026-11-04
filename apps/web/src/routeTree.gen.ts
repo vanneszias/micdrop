@@ -28,6 +28,9 @@ import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSharesRouteImport } from './routes/api/shares'
 import { Route as ApiSyncRouteImport } from './routes/api/sync'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin.index'
+import { Route as AppAdminAuditRouteImport } from './routes/_app/admin.audit'
+import { Route as AppAdminClientsRouteImport } from './routes/_app/admin.clients'
+import { Route as AppAdminLinksRouteImport } from './routes/_app/admin.links'
 import { Route as AppInviteTokenRouteImport } from './routes/_app/invite.$token'
 import { Route as AppSetlistsIndexRouteImport } from './routes/_app/setlists.index'
 import { Route as AppSetlistsIdRouteImport } from './routes/_app/setlists.$id'
@@ -37,6 +40,10 @@ import { Route as AppSongsIndexRouteImport } from './routes/_app/songs.index'
 import { Route as AppSongsNewRouteImport } from './routes/_app/songs.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiImportPdfIdRouteImport } from './routes/api/import-pdf.$id'
+import { Route as AppAdminBandsIndexRouteImport } from './routes/_app/admin.bands.index'
+import { Route as AppAdminBandsIdRouteImport } from './routes/_app/admin.bands.$id'
+import { Route as AppAdminLibraryIndexRouteImport } from './routes/_app/admin.library.index'
+import { Route as AppAdminLibraryIdRouteImport } from './routes/_app/admin.library.$id'
 import { Route as AppAdminUsersIndexRouteImport } from './routes/_app/admin.users.index'
 import { Route as AppAdminUsersIdRouteImport } from './routes/_app/admin.users.$id'
 import { Route as AppSongsIdIndexRouteImport } from './routes/_app/songs.$id.index'
@@ -136,6 +143,21 @@ const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminClientsRoute = AppAdminClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminLinksRoute = AppAdminLinksRouteImport.update({
+  id: '/links',
+  path: '/links',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppInviteTokenRoute = AppInviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -181,6 +203,26 @@ const ApiImportPdfIdRoute = ApiImportPdfIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ApiImportPdfRoute,
 } as any)
+const AppAdminBandsIndexRoute = AppAdminBandsIndexRouteImport.update({
+  id: '/bands/',
+  path: '/bands/',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminBandsIdRoute = AppAdminBandsIdRouteImport.update({
+  id: '/bands/$id',
+  path: '/bands/$id',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminLibraryIndexRoute = AppAdminLibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminLibraryIdRoute = AppAdminLibraryIdRouteImport.update({
+  id: '/library/$id',
+  path: '/library/$id',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminUsersIndexRoute = AppAdminUsersIndexRouteImport.update({
   id: '/users/',
   path: '/users/',
@@ -220,6 +262,9 @@ export interface FileRoutesByFullPath {
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRoute
   '/api/sync': typeof ApiSyncRoute
+  '/admin/audit': typeof AppAdminAuditRoute
+  '/admin/clients': typeof AppAdminClientsRoute
+  '/admin/links': typeof AppAdminLinksRoute
   '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
   '/setlists/import': typeof AppSetlistsImportRoute
@@ -230,8 +275,12 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AppAdminIndexRoute
   '/setlists/': typeof AppSetlistsIndexRoute
   '/songs/': typeof AppSongsIndexRoute
+  '/admin/bands/$id': typeof AppAdminBandsIdRoute
+  '/admin/library/$id': typeof AppAdminLibraryIdRoute
   '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/admin/bands/': typeof AppAdminBandsIndexRoute
+  '/admin/library/': typeof AppAdminLibraryIndexRoute
   '/admin/users/': typeof AppAdminUsersIndexRoute
   '/songs/$id/': typeof AppSongsIdIndexRoute
 }
@@ -251,6 +300,9 @@ export interface FileRoutesByTo {
   '/api/shares': typeof ApiSharesRoute
   '/api/sync': typeof ApiSyncRoute
   '/': typeof AppIndexRoute
+  '/admin/audit': typeof AppAdminAuditRoute
+  '/admin/clients': typeof AppAdminClientsRoute
+  '/admin/links': typeof AppAdminLinksRoute
   '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
   '/setlists/import': typeof AppSetlistsImportRoute
@@ -261,8 +313,12 @@ export interface FileRoutesByTo {
   '/admin': typeof AppAdminIndexRoute
   '/setlists': typeof AppSetlistsIndexRoute
   '/songs': typeof AppSongsIndexRoute
+  '/admin/bands/$id': typeof AppAdminBandsIdRoute
+  '/admin/library/$id': typeof AppAdminLibraryIdRoute
   '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/admin/bands': typeof AppAdminBandsIndexRoute
+  '/admin/library': typeof AppAdminLibraryIndexRoute
   '/admin/users': typeof AppAdminUsersIndexRoute
   '/songs/$id': typeof AppSongsIdIndexRoute
 }
@@ -286,6 +342,9 @@ export interface FileRoutesById {
   '/api/shares': typeof ApiSharesRoute
   '/api/sync': typeof ApiSyncRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/audit': typeof AppAdminAuditRoute
+  '/_app/admin/clients': typeof AppAdminClientsRoute
+  '/_app/admin/links': typeof AppAdminLinksRoute
   '/_app/invite/$token': typeof AppInviteTokenRoute
   '/_app/setlists/$id': typeof AppSetlistsIdRoute
   '/_app/setlists_/import': typeof AppSetlistsImportRoute
@@ -296,8 +355,12 @@ export interface FileRoutesById {
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/setlists/': typeof AppSetlistsIndexRoute
   '/_app/songs/': typeof AppSongsIndexRoute
+  '/_app/admin/bands/$id': typeof AppAdminBandsIdRoute
+  '/_app/admin/library/$id': typeof AppAdminLibraryIdRoute
   '/_app/admin/users/$id': typeof AppAdminUsersIdRoute
   '/_app/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/_app/admin/bands/': typeof AppAdminBandsIndexRoute
+  '/_app/admin/library/': typeof AppAdminLibraryIndexRoute
   '/_app/admin/users/': typeof AppAdminUsersIndexRoute
   '/_app/songs/$id/': typeof AppSongsIdIndexRoute
 }
@@ -321,6 +384,9 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/shares'
     | '/api/sync'
+    | '/admin/audit'
+    | '/admin/clients'
+    | '/admin/links'
     | '/invite/$token'
     | '/setlists/$id'
     | '/setlists/import'
@@ -331,8 +397,12 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/setlists/'
     | '/songs/'
+    | '/admin/bands/$id'
+    | '/admin/library/$id'
     | '/admin/users/$id'
     | '/songs/$id/edit'
+    | '/admin/bands/'
+    | '/admin/library/'
     | '/admin/users/'
     | '/songs/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -352,6 +422,9 @@ export interface FileRouteTypes {
     | '/api/shares'
     | '/api/sync'
     | '/'
+    | '/admin/audit'
+    | '/admin/clients'
+    | '/admin/links'
     | '/invite/$token'
     | '/setlists/$id'
     | '/setlists/import'
@@ -362,8 +435,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/setlists'
     | '/songs'
+    | '/admin/bands/$id'
+    | '/admin/library/$id'
     | '/admin/users/$id'
     | '/songs/$id/edit'
+    | '/admin/bands'
+    | '/admin/library'
     | '/admin/users'
     | '/songs/$id'
   id:
@@ -386,6 +463,9 @@ export interface FileRouteTypes {
     | '/api/shares'
     | '/api/sync'
     | '/_app/'
+    | '/_app/admin/audit'
+    | '/_app/admin/clients'
+    | '/_app/admin/links'
     | '/_app/invite/$token'
     | '/_app/setlists/$id'
     | '/_app/setlists_/import'
@@ -396,8 +476,12 @@ export interface FileRouteTypes {
     | '/_app/admin/'
     | '/_app/setlists/'
     | '/_app/songs/'
+    | '/_app/admin/bands/$id'
+    | '/_app/admin/library/$id'
     | '/_app/admin/users/$id'
     | '/_app/songs/$id/edit'
+    | '/_app/admin/bands/'
+    | '/_app/admin/library/'
     | '/_app/admin/users/'
     | '/_app/songs/$id/'
   fileRoutesById: FileRoutesById
@@ -554,6 +638,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminIndexRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/admin/audit': {
+      id: '/_app/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AppAdminAuditRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/clients': {
+      id: '/_app/admin/clients'
+      path: '/clients'
+      fullPath: '/admin/clients'
+      preLoaderRoute: typeof AppAdminClientsRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/links': {
+      id: '/_app/admin/links'
+      path: '/links'
+      fullPath: '/admin/links'
+      preLoaderRoute: typeof AppAdminLinksRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/invite/$token': {
       id: '/_app/invite/$token'
       path: '/invite/$token'
@@ -617,6 +722,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImportPdfIdRouteImport
       parentRoute: typeof ApiImportPdfRoute
     }
+    '/_app/admin/bands/': {
+      id: '/_app/admin/bands/'
+      path: '/bands'
+      fullPath: '/admin/bands/'
+      preLoaderRoute: typeof AppAdminBandsIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/bands/$id': {
+      id: '/_app/admin/bands/$id'
+      path: '/bands/$id'
+      fullPath: '/admin/bands/$id'
+      preLoaderRoute: typeof AppAdminBandsIdRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/library/': {
+      id: '/_app/admin/library/'
+      path: '/library'
+      fullPath: '/admin/library/'
+      preLoaderRoute: typeof AppAdminLibraryIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/library/$id': {
+      id: '/_app/admin/library/$id'
+      path: '/library/$id'
+      fullPath: '/admin/library/$id'
+      preLoaderRoute: typeof AppAdminLibraryIdRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/admin/users/': {
       id: '/_app/admin/users/'
       path: '/users'
@@ -649,14 +782,28 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppAdminRouteChildren {
+  AppAdminAuditRoute: typeof AppAdminAuditRoute
+  AppAdminClientsRoute: typeof AppAdminClientsRoute
+  AppAdminLinksRoute: typeof AppAdminLinksRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppAdminBandsIdRoute: typeof AppAdminBandsIdRoute
+  AppAdminLibraryIdRoute: typeof AppAdminLibraryIdRoute
   AppAdminUsersIdRoute: typeof AppAdminUsersIdRoute
+  AppAdminBandsIndexRoute: typeof AppAdminBandsIndexRoute
+  AppAdminLibraryIndexRoute: typeof AppAdminLibraryIndexRoute
   AppAdminUsersIndexRoute: typeof AppAdminUsersIndexRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminAuditRoute: AppAdminAuditRoute,
+  AppAdminClientsRoute: AppAdminClientsRoute,
+  AppAdminLinksRoute: AppAdminLinksRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
+  AppAdminBandsIdRoute: AppAdminBandsIdRoute,
+  AppAdminLibraryIdRoute: AppAdminLibraryIdRoute,
   AppAdminUsersIdRoute: AppAdminUsersIdRoute,
+  AppAdminBandsIndexRoute: AppAdminBandsIndexRoute,
+  AppAdminLibraryIndexRoute: AppAdminLibraryIndexRoute,
   AppAdminUsersIndexRoute: AppAdminUsersIndexRoute,
 }
 

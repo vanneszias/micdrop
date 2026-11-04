@@ -277,3 +277,183 @@ test.skipIf(!base)(
 	},
 	60_000,
 );
+
+test.skipIf(!base)(
+	"administrators browse everything, revoke links, disable clients and hard delete",
+	async () => {
+		const operator = await account("Cleanup operator");
+		const alice = await account("Spammy Alice");
+		const bob = await account("Bystander Bob");
+		if (!/^[a-zA-Z0-9_-]+$/.test(operator.id))
+			throw new Error("Unexpected fixture user id.");
+		await localSql(`UPDATE user SET role='admin' WHERE id='${operator.id}'`);
+		const json = async <T>(response: Response | Promise<Response>) => {
+			const resolved = await response;
+			expect(resolved.status).toBe(200);
+			return (await resolved.json()) as T;
+		};
+		const bandName = `Spam band ${crypto.randomUUID()}`;
+		const { band } = await json<{ band: { id: string } }>(
+			post("/api/bands", alice.cookie, { action: "create", name: bandName }),
+		);
+		const save = (record: ReturnType<typeof arrangement>) =>
+			json(
+				post("/api/sync", alice.cookie, {
+					id: crypto.randomUUID(),
+					baseVersion: 0,
+					record,
+				}),
+			);
+		const personal = arrangement(alice.id, `Spam ${crypto.randomUUID()}`);
+		const bandSong = arrangement(band.id, `Band spam ${crypto.randomUUID()}`);
+		await save(personal);
+		await save(bandSong);
+		const { link } = await json<{ link: { id: string } }>(
+			post("/api/shares", alice.cookie, {
+				action: "share",
+				recordId: personal.id,
+			}),
+		);
+		await json(
+			post("/api/publications", bob.cookie, {
+				action: "vote",
+				id: personal.id,
+				value: 1,
+			}),
+		);
+		await json(
+			post("/api/publications", bob.cookie, {
+				action: "report",
+				id: personal.id,
+				reason: "Looks like spam",
+			}),
+		);
+
+		const view = <T>(query: string) => json<T>(admin(query, operator.cookie));
+		const bands = await view<{ rows: { id: string }[] }>(
+			`view=bands&query=${encodeURIComponent(bandName)}`,
+		);
+		expect(bands.rows.map((row) => row.id)).toEqual([band.id]);
+		const bandView = await view<{ records: { id: string }[] }>(
+			`view=band&id=${band.id}`,
+		);
+		expect(bandView.records.map((row) => row.id)).toEqual([bandSong.id]);
+		const records = await view<{ rows: { id: string }[] }>(
+			`view=records&query=${encodeURIComponent(personal.data.title)}`,
+		);
+		expect(records.rows.map((row) => row.id)).toEqual([personal.id]);
+		const opened = await view<{
+			record: { data: { content: string } };
+			revisions: unknown[];
+		}>(`view=record&id=${personal.id}`);
+		expect(opened.record.data.content).toBe(personal.data.content);
+
+		// Share links are listed by rowid, never by the secret in their URL.
+		const linksResponse = await admin("view=links", operator.cookie);
+		const linksText = await linksResponse.text();
+		expect(linksText).not.toContain(link.id);
+		const shared = (
+			JSON.parse(linksText) as {
+				rows: { ref: number; target: string }[];
+			}
+		).rows.find((row) => row.target === personal.id);
+		expect(shared).toBeDefined();
+		expect(
+			(
+				await post("/api/admin", operator.cookie, {
+					action: "revoke_share",
+					ref: shared?.ref,
+				})
+			).status,
+		).toBe(200);
+		expect(
+			(await fetch(`${base}/api/shares?token=${encodeURIComponent(link.id)}`))
+				.status,
+		).toBe(404);
+
+		const registered = await post("/api/auth/oauth2/register", "", {
+			client_name: "Spam assistant",
+			redirect_uris: ["https://spam.chords.test/callback"],
+			token_endpoint_auth_method: "none",
+			grant_types: ["authorization_code"],
+			response_types: ["code"],
+		});
+		expect(registered.status).toBe(201);
+		const registration = (await registered.json()) as { client_id: string };
+		expect(
+			(
+				await post("/api/admin", operator.cookie, {
+					action: "disable_client",
+					clientId: registration.client_id,
+					disabled: true,
+				})
+			).status,
+		).toBe(200);
+		const clients = await view<{
+			rows: { clientId: string; disabled: number; userId: string | null }[];
+		}>("view=clients");
+		expect(
+			clients.rows.find((row) => row.clientId === registration.client_id),
+		).toMatchObject({ disabled: 1, userId: null });
+
+		const remove = (body: Record<string, unknown>) =>
+			post("/api/admin", operator.cookie, body).then((r) => r.status);
+		expect(
+			await remove({ action: "delete_user", userId: alice.id, confirm: "no" }),
+		).toBe(422);
+		// Alice is the only owner of her band, so the band has to go first.
+		expect(
+			await remove({
+				action: "delete_user",
+				userId: alice.id,
+				confirm: alice.email.toUpperCase(),
+			}),
+		).toBe(409);
+		expect(
+			await remove({ action: "delete_band", bandId: band.id, confirm: "x" }),
+		).toBe(422);
+		expect(
+			await remove({
+				action: "delete_band",
+				bandId: band.id,
+				confirm: bandName,
+			}),
+		).toBe(200);
+		expect(
+			(await admin(`view=band&id=${band.id}`, operator.cookie)).status,
+		).toBe(404);
+		expect(
+			(await admin(`view=record&id=${bandSong.id}`, operator.cookie)).status,
+		).toBe(404);
+		expect(
+			await remove({
+				action: "delete_user",
+				userId: alice.id,
+				confirm: alice.email,
+			}),
+		).toBe(200);
+		expect(
+			(await fetch(`${base}/api/bands`, { headers: { Cookie: alice.cookie } }))
+				.status,
+		).toBe(401);
+		expect(
+			(await admin(`view=record&id=${personal.id}`, operator.cookie)).status,
+		).toBe(404);
+		expect(
+			(await fetch(`${base}/api/publications?id=${personal.id}`)).status,
+		).toBe(404);
+		// Bob, who voted on and reported her song, is untouched.
+		expect(
+			(await fetch(`${base}/api/bands`, { headers: { Cookie: bob.cookie } }))
+				.status,
+		).toBe(200);
+		const audit = await view<{ rows: { action: string; targetId: string }[] }>(
+			"view=audit",
+		);
+		const recent = audit.rows.map((row) => `${row.action}:${row.targetId}`);
+		expect(recent).toContain(`delete_user:${alice.id}`);
+		expect(recent).toContain(`delete_band:${band.id}`);
+		expect(recent).toContain(`disable_client:${registration.client_id}`);
+	},
+	60_000,
+);

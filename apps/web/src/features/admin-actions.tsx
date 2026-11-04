@@ -30,15 +30,17 @@ import {
 import { Spinner } from "@chords/ui/components/spinner";
 import { Textarea } from "@chords/ui/components/textarea";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { api } from "#/lib/songs";
-import { isAdmin } from "./admin";
+import { isAdmin, TypedConfirm } from "./admin";
 import { useApp } from "./app-context";
 import { impersonate } from "./impersonation";
 
 type Target = {
 	id: string;
 	name: string;
+	email: string;
 	role: string | null;
 	banned: number | null;
 };
@@ -76,6 +78,7 @@ function Confirm({
 export function AccountActions({ target }: { target: Target }) {
 	const { user, run, busy } = useApp();
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	const [banning, setBanning] = useState(false);
 	const [days, setDays] = useState("7");
 	const self = target.id === user?.id;
@@ -194,6 +197,25 @@ export function AccountActions({ target }: { target: Target }) {
 						</form>
 					</DialogContent>
 				</Dialog>
+			)}
+			{protectedAccount ? null : (
+				<TypedConfirm
+					label="Delete account"
+					title={`Delete ${target.name}?`}
+					description="Permanently deletes the account with its sessions, personal songs and setlists, revisions, public arrangements, votes, reports, share links and assistant connections. Bands they solely own must be deleted first. This cannot be undone."
+					phrase={target.email}
+					onConfirm={() =>
+						run(async () => {
+							await api("/api/admin", {
+								action: "delete_user",
+								userId: target.id,
+								confirm: target.email,
+							});
+							await queryClient.invalidateQueries({ queryKey: ["admin"] });
+							await navigate({ to: "/admin/users" });
+						}, "Account deleted")
+					}
+				/>
 			)}
 		</div>
 	);

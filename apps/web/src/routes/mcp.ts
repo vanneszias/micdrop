@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyJwsAccessToken } from "better-auth/oauth2";
-import { activeBan } from "#/server/admin";
+import { blockedToken } from "#/server/admin";
 import { getAuth, MCP_SCOPES, mcpResource } from "#/server/auth";
 import { serveMcp } from "#/server/mcp";
 
@@ -25,12 +25,15 @@ async function handle({ request }: { request: Request }) {
 				},
 			}).catch(() => undefined)
 		: undefined;
-	// Access tokens are self-contained JWTs, so a ban has to be checked on every call.
-	if (claims?.sub && (await activeBan(claims.sub)))
+	// Access tokens are self-contained JWTs, so bans and disabled clients are checked on every call.
+	if (claims?.sub && (await blockedToken(claims.sub, String(claims.azp))))
 		return Response.json(
 			{
 				jsonrpc: "2.0",
-				error: { code: -32000, message: "This account is suspended." },
+				error: {
+					code: -32000,
+					message: "This account or assistant is suspended.",
+				},
 				id: null,
 			},
 			{ status: 403 },

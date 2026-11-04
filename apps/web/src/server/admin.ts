@@ -206,12 +206,20 @@ export async function userDetail(adminId: string, id: string) {
 	};
 }
 
-/** Whether a ban is in force. Better Auth lifts expired bans only at the next sign-in. */
-export async function activeBan(userId: string, now = Date.now()) {
+/**
+ * Whether a bearer token must be refused because its account is banned or its client disabled.
+ * Better Auth lifts expired bans only at the next sign-in, so the expiry is checked here.
+ */
+export async function blockedToken(
+	userId: string,
+	clientId: string,
+	now = Date.now(),
+) {
 	return !!(await env.DB.prepare(
-		`SELECT 1 FROM user WHERE id=? AND banned=1 AND (banExpires IS NULL OR ${ms("banExpires")}>?)`,
+		`SELECT 1 WHERE EXISTS(SELECT 1 FROM user WHERE id=?1 AND banned=1 AND (banExpires IS NULL OR ${ms("banExpires")}>?3))
+		OR EXISTS(SELECT 1 FROM oauthClient WHERE clientId=?2 AND disabled=1)`,
 	)
-		.bind(userId, now)
+		.bind(userId, clientId, now)
 		.first());
 }
 
@@ -230,3 +238,189 @@ export function revokeOAuthStatements(userId: string, now = Date.now()) {
 
 /** Publications hidden by a ban use moderated=2, so lifting the ban restores only those. */
 export const BAN_HIDDEN = 2;
+
+const escapeLike = (query: string) =>
+	`%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+const page = <T>(results: T[], offset: number) => ({
+	rows: results.slice(0, PAGE_SIZE),
+	next: results.length > PAGE_SIZE ? offset + PAGE_SIZE : null,
+});
+
+export async function listBands({ query = "", offset = 0 }) {
+	const like = escapeLike(query);
+	const { results } = await env.DB.prepare(`SELECT o.id,o.name,o.createdAt,
+		(SELECT COUNT(*) FROM member m WHERE m.organizationId=o.id) AS members,
+		(SELECT COUNT(*) FROM records r WHERE r.owner=o.id) AS records,
+		(SELECT group_concat(u.name,', ') FROM member m JOIN user u ON u.id=m.userId WHERE m.organizationId=o.id AND ','||m.role||',' LIKE '%,owner,%') AS owners
+		FROM organization o WHERE (?1='' OR o.name LIKE ?2 ESCAPE '\\' OR o.id=?1)
+		ORDER BY o.createdAt DESC,o.id LIMIT ?3 OFFSET ?4`)
+		.bind(query, like, PAGE_SIZE + 1, offset)
+		.all();
+	return page(results, offset);
+}
+
+export async function bandDetail(adminId: string, id: string) {
+	const [band, members, invitations, records, shareLinks, audit] =
+		await env.DB.batch([
+			env.DB.prepare(
+				"SELECT id,name,slug,createdAt FROM organization WHERE id=?",
+			).bind(id),
+			env.DB.prepare(
+				"SELECT m.role,m.createdAt,u.id,u.name,u.email FROM member m JOIN user u ON u.id=m.userId WHERE m.organizationId=? ORDER BY m.createdAt",
+			).bind(id),
+			env.DB.prepare(
+				"SELECT email,role,status,expiresAt FROM invitation WHERE organizationId=? ORDER BY expiresAt DESC LIMIT 50",
+			).bind(id),
+			env.DB.prepare(`SELECT id,kind,json_extract(data,'$.title') AS title,json_extract(data,'$.artist') AS artist,
+				json_extract(data,'$.visibility') AS visibility,archived,version,updated_at AS updatedAt,length(data) AS bytes
+				FROM records WHERE owner=? ORDER BY updated_at DESC LIMIT 200`).bind(
+				id,
+			),
+			env.DB.prepare(`SELECT s.rowid AS ref,s.kind,s.role,s.created_at AS createdAt,s.expires_at AS expiresAt,s.revoked,u.name AS creator
+				FROM share_links s JOIN user u ON u.id=s.created_by
+				WHERE s.target=?1 OR s.target IN (SELECT id FROM records WHERE owner=?1) ORDER BY s.created_at DESC LIMIT 100`).bind(
+				id,
+			),
+			env.DB.prepare(
+				"SELECT a.id,a.action,a.data,a.created_at AS createdAt,u.name AS adminName FROM admin_actions a LEFT JOIN user u ON u.id=a.admin_id WHERE a.target_kind='band' AND a.target_id=? ORDER BY a.created_at DESC LIMIT 50",
+			).bind(id),
+		]);
+	if (!band.results[0]) throw new HttpError(404, "This band does not exist.");
+	await auditStatement(adminId, "view_band", "band", id).run();
+	return {
+		band: band.results[0],
+		members: members.results,
+		invitations: invitations.results,
+		records: records.results,
+		shareLinks: shareLinks.results,
+		audit: audit.results,
+	};
+}
+
+export async function listRecords({
+	query = "",
+	kind = "all",
+	offset = 0,
+}: {
+	query?: string;
+	kind?: "all" | "arrangement" | "setlist";
+	offset?: number;
+}) {
+	const like = escapeLike(query);
+	const { results } =
+		await env.DB.prepare(`SELECT r.id,r.kind,json_extract(r.data,'$.title') AS title,json_extract(r.data,'$.artist') AS artist,
+		json_extract(r.data,'$.visibility') AS visibility,r.owner,COALESCE(u.name,o.name) AS ownerName,CASE WHEN o.id IS NULL THEN 'user' ELSE 'band' END AS ownerKind,
+		r.archived,r.version,r.updated_at AS updatedAt,length(r.data) AS bytes
+		FROM records r LEFT JOIN user u ON u.id=r.owner LEFT JOIN organization o ON o.id=r.owner
+		WHERE (?1='' OR json_extract(r.data,'$.title') LIKE ?2 ESCAPE '\\' OR json_extract(r.data,'$.artist') LIKE ?2 ESCAPE '\\' OR r.id=?1)
+		AND (?3='all' OR r.kind=?3)
+		ORDER BY r.updated_at DESC,r.id LIMIT ?4 OFFSET ?5`)
+			.bind(query, like, kind, PAGE_SIZE + 1, offset)
+			.all();
+	return page(results, offset);
+}
+
+/** Opens a private record, or one of its revisions, in full. Always audited. */
+export async function recordDetail(
+	adminId: string,
+	id: string,
+	version?: number,
+) {
+	const [record, revisions, publication] = await env.DB.batch([
+		env.DB.prepare(`SELECT r.id,r.kind,r.owner,COALESCE(u.name,o.name) AS ownerName,CASE WHEN o.id IS NULL THEN 'user' ELSE 'band' END AS ownerKind,
+			r.archived,r.version,r.updated_at AS updatedAt,r.data
+			FROM records r LEFT JOIN user u ON u.id=r.owner LEFT JOIN organization o ON o.id=r.owner WHERE r.id=?`).bind(
+			id,
+		),
+		env.DB.prepare(
+			"SELECT version,updated_at AS updatedAt,length(data) AS bytes FROM revisions WHERE record_id=? ORDER BY version DESC LIMIT 100",
+		).bind(id),
+		env.DB.prepare(
+			"SELECT id,hidden,moderated,(SELECT COUNT(*) FROM catalogue_reports c WHERE c.publication_id=p.id AND c.resolved=0) AS openReports FROM publications p WHERE record_id=?",
+		).bind(id),
+	]);
+	const row = record.results[0] as { data: string } | undefined;
+	if (!row) throw new HttpError(404, "This record does not exist.");
+	let data = row.data;
+	if (version !== undefined) {
+		const revision = await env.DB.prepare(
+			"SELECT data FROM revisions WHERE record_id=? AND version=?",
+		)
+			.bind(id, version)
+			.first<{ data: string }>();
+		if (!revision) throw new HttpError(404, "This revision does not exist.");
+		data = revision.data;
+	}
+	await auditStatement(adminId, "view_record", "record", id, {
+		version: version ?? null,
+	}).run();
+	return {
+		record: { ...row, data: JSON.parse(data) as Record<string, unknown> },
+		shownVersion: version ?? null,
+		revisions: revisions.results,
+		publication: publication.results[0] ?? null,
+	};
+}
+
+export async function listOAuthClients({ offset = 0 }) {
+	const { results } =
+		await env.DB.prepare(`SELECT c.clientId,c.name,c.uri,c.redirectUris,c.userId,u.name AS ownerName,c.disabled,c.createdAt,
+		(SELECT COUNT(DISTINCT t.userId) FROM oauthRefreshToken t WHERE t.clientId=c.clientId AND (t.revoked IS NULL OR t.revoked=0)) AS activeUsers,
+		(SELECT MAX(${ms("t.createdAt")}) FROM oauthAccessToken t WHERE t.clientId=c.clientId) AS lastUsed
+		FROM oauthClient c LEFT JOIN user u ON u.id=c.userId
+		ORDER BY c.createdAt DESC,c.clientId LIMIT ? OFFSET ?`)
+			.bind(PAGE_SIZE + 1, offset)
+			.all();
+	return page(results, offset);
+}
+
+/** Share links are listed by rowid: their id is the secret in the URL. */
+export async function listShareLinks({
+	active = true,
+	offset = 0,
+	now = Date.now(),
+}) {
+	const { results } =
+		await env.DB.prepare(`SELECT s.rowid AS ref,s.kind,s.target,s.role,s.created_at AS createdAt,s.expires_at AS expiresAt,s.revoked,
+		s.created_by AS creatorId,u.name AS creator,
+		COALESCE(o.name,json_extract(r.data,'$.title')) AS targetName
+		FROM share_links s JOIN user u ON u.id=s.created_by
+		LEFT JOIN organization o ON s.kind='invite' AND o.id=s.target
+		LEFT JOIN records r ON s.kind='record' AND r.id=s.target
+		WHERE (?1=0 OR (s.revoked=0 AND (s.expires_at IS NULL OR s.expires_at>?2)))
+		ORDER BY s.created_at DESC LIMIT ?3 OFFSET ?4`)
+			.bind(active ? 1 : 0, now, PAGE_SIZE + 1, offset)
+			.all();
+	return page(results, offset);
+}
+
+/** Platform and catalogue administration in one timeline. */
+export async function auditLog({ offset = 0 }) {
+	const { results } = await env.DB.prepare(`SELECT * FROM (
+			SELECT a.id,a.action,a.target_kind AS targetKind,a.target_id AS targetId,a.data,a.created_at AS createdAt,a.admin_id AS adminId,u.name AS adminName,'platform' AS source
+			FROM admin_actions a LEFT JOIN user u ON u.id=a.admin_id
+			UNION ALL
+			SELECT c.id,c.action,'catalogue',NULL,c.data,${ms("c.created_at")},c.user_id,u.name,'catalogue'
+			FROM catalogue_actions c LEFT JOIN user u ON u.id=c.user_id
+		) ORDER BY createdAt DESC,id LIMIT ? OFFSET ?`)
+		.bind(PAGE_SIZE + 1, offset)
+		.all();
+	return page(results, offset);
+}
+
+/** Removes every record of an owner with everything that points at it, as batch statements. */
+export function deleteRecordsStatements(owner: string) {
+	const owned = "SELECT id FROM records WHERE owner=?1";
+	const publications = `SELECT id FROM publications WHERE record_id IN (${owned})`;
+	return [
+		`DELETE FROM votes WHERE publication_id IN (${publications})`,
+		`DELETE FROM catalogue_reports WHERE publication_id IN (${publications})`,
+		`DELETE FROM publication_search WHERE publication_id IN (${publications})`,
+		`DELETE FROM catalogue_grams WHERE publication_id IN (${publications})`,
+		`DELETE FROM publications WHERE record_id IN (${owned})`,
+		`DELETE FROM revisions WHERE record_id IN (${owned})`,
+		`DELETE FROM operations WHERE record_id IN (${owned})`,
+		`DELETE FROM share_links WHERE kind='record' AND target IN (${owned})`,
+		"DELETE FROM records WHERE owner=?1",
+	].map((sql) => env.DB.prepare(sql).bind(owner));
+}

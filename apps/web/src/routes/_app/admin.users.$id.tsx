@@ -6,6 +6,8 @@ import { ChevronLeft } from "lucide-react";
 import {
 	bytes,
 	isAdmin,
+	OwnerLink,
+	RecordLink,
 	Rows,
 	Section,
 	useAdmin,
@@ -173,9 +175,11 @@ function UserDetail() {
 							[
 								"Title",
 								(row) => (
-									<span className={row.archived ? "line-through" : undefined}>
-										{row.title || "Untitled"}
-									</span>
+									<RecordLink id={row.id}>
+										<span className={row.archived ? "line-through" : undefined}>
+											{row.title || "Untitled"}
+										</span>
+									</RecordLink>
 								),
 							],
 							["Artist", (row) => row.artist ?? ""],
@@ -200,7 +204,10 @@ function UserDetail() {
 						rows={data.bands}
 						empty="Not in any band."
 						columns={[
-							["Band", (row) => row.name],
+							[
+								"Band",
+								(row) => <OwnerLink id={row.id} kind="band" name={row.name} />,
+							],
 							["Role", (row) => row.role],
 							["Members", (row) => row.members],
 							["Records", (row) => row.records],
