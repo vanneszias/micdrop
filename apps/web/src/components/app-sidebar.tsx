@@ -303,6 +303,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				: app.pending
 					? `${app.pending} pending`
 					: "Synced";
+	const playing = usePlayingSetlist();
+	// A song opened from a setlist belongs to Setlists, not Repertoire.
+	const section = playing ? "/setlists" : pathname;
 	if (isMobile) return <BottomNav />;
 	return (
 		<Sidebar
@@ -346,7 +349,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 									<SidebarMenuButton
 										asChild
 										tooltip={item.label}
-										isActive={pathname.startsWith(item.to)}
+										isActive={section.startsWith(item.to)}
 									>
 										<Link to={item.to} onClick={() => setOpenMobile(false)}>
 											<item.icon />

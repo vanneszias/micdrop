@@ -6,6 +6,7 @@ import {
 	normalizeSheet,
 	sheetChords,
 	sheetLines,
+	sheetMetadata,
 	transposeChord,
 } from "./index";
 
@@ -108,4 +109,19 @@ G  C  Em  D  x2`);
 			).content,
 		).toContain("Who am [G]I? That the [D/F#]Lord");
 	});
+});
+
+test("sheetMetadata reads directives and omits missing values", () => {
+	expect(
+		sheetMetadata(
+			"{title: Amazing Grace}\n{artist: John Newton}\n{key: G}\n{capo: 2}\n[G]A",
+		),
+	).toEqual({
+		title: "Amazing Grace",
+		artist: "John Newton",
+		key: "G",
+		sourceCapo: 2,
+	});
+	expect(sheetMetadata("{key: Am}\n[Am]Line")).not.toHaveProperty("key");
+	expect(sheetMetadata("[C]No directives")).not.toHaveProperty("title");
 });

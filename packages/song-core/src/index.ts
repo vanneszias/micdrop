@@ -91,6 +91,34 @@ export function normalizeSheet(raw: string): {
 	}
 }
 
+/** Title, artist, key and capo declared in ChordPro directives, when present and valid. */
+export function sheetMetadata(content: string): {
+	title?: string;
+	artist?: string;
+	key?: string;
+	sourceCapo?: number;
+} {
+	try {
+		const song = new ChordProParser().parse(content);
+		const artist = song.artist;
+		const capo = Number(song.capo);
+		const found = {
+			title: song.title?.trim() || undefined,
+			artist:
+				(Array.isArray(artist) ? artist.join(", ") : artist)?.trim() ||
+				undefined,
+			key: KEYS.find((key) => key === song.key),
+			sourceCapo: CAPO_FRETS.find((fret) => fret === capo),
+		};
+		// Omit absent values so callers can spread this over defaults.
+		return Object.fromEntries(
+			Object.entries(found).filter(([, value]) => value !== undefined),
+		);
+	} catch {
+		return {};
+	}
+}
+
 export function keyDistance(from: string, to: string): number {
 	const source = Chord.parse(from);
 	const target = Chord.parse(to);

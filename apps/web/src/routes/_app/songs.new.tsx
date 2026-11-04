@@ -1,4 +1,4 @@
-import { normalizeSheet } from "@chords/song-core";
+import { normalizeSheet, sheetMetadata } from "@chords/song-core";
 import { Button } from "@chords/ui/components/button";
 import {
 	Field,
@@ -39,6 +39,11 @@ import { useApp } from "#/features/app-context";
 import { api } from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/songs/new")({ component: NewSong });
+
+function fromSheet(raw: string) {
+	const content = normalizeSheet(raw).content;
+	return { ...sheetMetadata(content), content, rawSource: raw };
+}
 
 function NewSong() {
 	const { createSong, run, busy, online } = useApp();
@@ -92,8 +97,8 @@ function NewSong() {
 								<FieldLabel htmlFor="paste">Chord sheet</FieldLabel>
 								<Textarea
 									id="paste"
-									rows={12}
-									className="font-mono"
+									rows={14}
+									className="min-h-[45vh] font-mono"
 									placeholder={"Verse 1\nD         G\nLyrics go here…"}
 									value={text}
 									onChange={(event) => setText(event.target.value)}
@@ -103,17 +108,11 @@ function NewSong() {
 								</FieldDescription>
 							</Field>
 							<Button
+								className="self-end"
 								disabled={busy || !text.trim()}
-								onClick={() =>
-									void run(() =>
-										createSong({
-											content: normalizeSheet(text).content,
-											rawSource: text,
-										}),
-									)
-								}
+								onClick={() => void run(() => createSong(fromSheet(text)))}
 							>
-								{busy ? <Spinner /> : null} Convert
+								{busy ? <Spinner /> : null} Convert and review
 							</Button>
 						</FieldGroup>
 					</TabsContent>
@@ -237,12 +236,7 @@ function NewSong() {
 											return void toast.error("Choose a file under 200 KB.");
 										void file
 											.text()
-											.then((content) =>
-												createSong({
-													content: normalizeSheet(content).content,
-													rawSource: content,
-												}),
-											)
+											.then((content) => createSong(fromSheet(content)))
 											.catch(() => toast.error("Could not read this file."));
 									}}
 								/>

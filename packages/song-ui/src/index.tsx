@@ -48,18 +48,29 @@ export function SongSheet({
 					) : null
 				) : (
 					<div key={`line-${index}`} className="sheet-line">
-						{line.tokens.map((token, i) => (
-							<span key={`${index}-${i}`} className="sheet-pair">
-								<span
-									className={
-										token.chord
-											? "sheet-chord"
-											: "sheet-chord sheet-chord-empty"
-									}
-								>
-									{token.chord || "\u00a0"}
-								</span>
-								<span className="sheet-lyric">{token.text || "\u00a0"}</span>
+						{sheetWords(line.tokens).map((word, w) => (
+							<span key={`${index}-${w}`} className="sheet-word">
+								{word.map((pair, i) => (
+									<span
+										key={i}
+										className={
+											pair.joined
+												? "sheet-pair sheet-pair-joined"
+												: "sheet-pair"
+										}
+									>
+										<span
+											className={
+												pair.chord
+													? "sheet-chord"
+													: "sheet-chord sheet-chord-empty"
+											}
+										>
+											{pair.chord || "\u200b"}
+										</span>
+										<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
+									</span>
+								))}
 							</span>
 						))}
 					</div>
@@ -67,6 +78,41 @@ export function SongSheet({
 			)}
 		</div>
 	);
+}
+
+type SheetPair = { chord?: string; text: string; joined?: boolean };
+
+/**
+ * Splits chord/lyric tokens into unbreakable words so a line wraps between words, never
+ * between a chord and the syllable it sits on. Pairs that continue a word are marked
+ * `joined` so the renderer can bridge the gap a wide chord leaves inside that word.
+ */
+function sheetWords(tokens: { chord?: string | null; text: string }[]) {
+	const words: SheetPair[][] = [];
+	let word: SheetPair[] = [];
+	for (const token of tokens) {
+		const parts = token.text.match(/\S*\s*/g)?.filter(Boolean) ?? [];
+		(parts.length ? parts : [""]).forEach((text, i) => {
+			const previous = word[word.length - 1]?.text;
+			if (
+				word.length &&
+				(i > 0 || !text || !previous || /\s$/.test(previous))
+			) {
+				words.push(word);
+				word = [];
+			}
+			word.push({
+				chord: i === 0 ? token.chord || undefined : undefined,
+				text,
+			});
+		});
+	}
+	if (word.length) words.push(word);
+	for (const pairs of words)
+		pairs.forEach((pair, i) => {
+			pair.joined = i < pairs.length - 1 && /\S$/.test(pair.text);
+		});
+	return words;
 }
 
 type Fingering = {

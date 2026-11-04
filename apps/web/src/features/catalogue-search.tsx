@@ -9,9 +9,17 @@ import {
 } from "@chords/data";
 import { SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@chords/ui/components/empty";
 import { Input } from "@chords/ui/components/input";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { Globe, Plus, SearchX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
@@ -137,11 +145,30 @@ export function CatalogueSearch({
 				</p>
 			) : null}
 			{!groups.length && !catalogue.isFetching ? (
-				<p className="py-6 text-sm text-muted-foreground">
-					No songs found. Try a title, performing artist or lyric.
-				</p>
+				<Empty className="border border-dashed py-10">
+					<EmptyHeader>
+						<EmptyMedia variant="icon">
+							{debounced.trim() ? <SearchX /> : <Globe />}
+						</EmptyMedia>
+						<EmptyTitle className="text-base">
+							{debounced.trim()
+								? `No songs match “${debounced.trim()}”`
+								: publicOnly
+									? "Browse the public catalogue"
+									: "Nothing to add yet"}
+						</EmptyTitle>
+						<EmptyDescription>
+							{debounced.trim()
+								? "Check the spelling, or try the artist or a line of the lyrics."
+								: publicOnly
+									? "Search by title, artist or a line of the lyrics to find arrangements shared by other players."
+									: "Search by title, artist or a line of the lyrics."}
+						</EmptyDescription>
+					</EmptyHeader>
+				</Empty>
 			) : null}
 			<ul
+				hidden={!groups.length}
 				className={`divide-y rounded-lg border ${chooseGroup ? "max-h-80 overflow-y-auto" : ""}`}
 			>
 				{groups.map((group) => (
@@ -157,17 +184,24 @@ export function CatalogueSearch({
 							>
 								<span className="block font-medium">{group.title}</span>
 								<span className="block text-xs text-muted-foreground">
-									{group.artists || "Artist not specified"}
-									{group.local.some((song) => song.owner === owner)
-										? " · In repertoire"
-										: ""}{" "}
-									· {group.count} public · {group.local.length} saved
+									{[
+										group.artists || "Unknown artist",
+										group.local.some((song) => song.owner === owner)
+											? "In your repertoire"
+											: null,
+										group.count
+											? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
+											: null,
+									]
+										.filter(Boolean)
+										.join(" · ")}
 								</span>
 							</button>
 							{onSelect && group.local.some((song) => song.owner === owner) ? (
 								<Button
 									type="button"
 									size="sm"
+									variant="outline"
 									disabled={busy || !editable}
 									onClick={() => {
 										const preferred = [...group.local]
@@ -180,7 +214,7 @@ export function CatalogueSearch({
 										void run(() => select(preferred), "Arrangement selected");
 									}}
 								>
-									Add preferred
+									<Plus /> Add
 								</Button>
 							) : null}
 							{chooseGroup ? (

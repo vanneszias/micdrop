@@ -15,6 +15,7 @@ import {
 	ToggleGroup,
 	ToggleGroupItem,
 } from "@chords/ui/components/toggle-group";
+import { cn } from "@chords/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import {
 	ChevronLeft,
@@ -30,7 +31,7 @@ import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
-import { SetlistSheet } from "#/features/setlist-overview";
+import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
@@ -75,6 +76,9 @@ export function Player({
 	actions?: React.ReactNode;
 }) {
 	const [shown, setShown] = useState(arrangement);
+	const playing = usePlayingSetlist();
+	const nextTitle = playing?.entries[playing.current + 1]?.title;
+	const previousTitle = playing?.entries[playing.current - 1]?.title;
 	const preferenceKey = `chords:player:${account}`;
 	const songPreferenceKey = `${preferenceKey}:${arrangement.id}`;
 	const [saved] = useState(() => load(preferences, preferenceKey));
@@ -203,17 +207,7 @@ export function Player({
 	}, [next, previous]);
 	return (
 		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
-			<PageHeader
-				title={
-					<>
-						<span className="hidden md:inline">{shown.data.title}</span>
-						<span className="md:hidden">
-							<SetlistSheet title={shown.data.title} />
-						</span>
-					</>
-				}
-				back
-			>
+			<PageHeader title={<SetlistSheet title={shown.data.title} />} back>
 				{actions}
 				{readOnly ? null : (
 					<Button variant="ghost" size="icon-sm" asChild>
@@ -365,9 +359,16 @@ export function Player({
 					size="sm"
 					onClick={previous}
 					disabled={!previous}
-					className={previous || next ? "" : "invisible"}
+					className={cn(
+						"max-w-[30%] min-w-0",
+						previous || next ? "" : "invisible",
+					)}
+					aria-label={
+						previousTitle ? `Previous: ${previousTitle}` : "Previous song"
+					}
 				>
-					<ChevronLeft /> Prev
+					<ChevronLeft />
+					<span className="truncate">{previousTitle || "Previous"}</span>
 				</Button>
 				<div className="mx-auto flex items-center gap-3">
 					<Button
@@ -393,9 +394,25 @@ export function Player({
 					size="sm"
 					onClick={next}
 					disabled={!next}
-					className={previous || next ? "" : "invisible"}
+					className={cn(
+						"max-w-[30%] min-w-0",
+						previous || next ? "" : "invisible",
+					)}
+					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
-					Next <ChevronRight />
+					<span className="truncate">
+						{nextTitle ? (
+							<>
+								<span className="text-muted-foreground max-sm:hidden">
+									Next:{" "}
+								</span>
+								{nextTitle}
+							</>
+						) : (
+							"Next"
+						)}
+					</span>
+					<ChevronRight />
 				</Button>
 			</footer>
 		</div>

@@ -33,7 +33,7 @@ export function usePlayingSetlist() {
 	};
 }
 
-// Mobile has no sidebar while playing, so the header title opens the setlist.
+// The header title shows the setlist position and opens the full setlist.
 export function SetlistSheet({ title }: { title: string }) {
 	const playing = usePlayingSetlist();
 	const [open, setOpen] = useState(false);

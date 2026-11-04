@@ -18,8 +18,21 @@ import {
 	AlertDialogTrigger,
 } from "@chords/ui/components/alert-dialog";
 import { Button } from "@chords/ui/components/button";
+import { Calendar } from "@chords/ui/components/calendar";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@chords/ui/components/dropdown-menu";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@chords/ui/components/popover";
 import { cn } from "@chords/ui/lib/utils";
 import {
 	closestCenter,
@@ -43,8 +56,10 @@ import { useNavigate } from "@tanstack/react-router";
 import {
 	ArrowDown,
 	ArrowUp,
+	CalendarDays,
 	Download,
 	GripVertical,
+	MoreHorizontal,
 	Play,
 	Printer,
 	Trash2,
@@ -249,13 +264,9 @@ export function SetlistEditor({
 					</Field>
 					<Field>
 						<FieldLabel htmlFor="date">Date</FieldLabel>
-						<Input
-							id="date"
-							type="date"
+						<SetlistDate
 							value={list.data.date}
-							onChange={(event) =>
-								update({ ...list.data, date: event.target.value })
-							}
+							onChange={(date) => update({ ...list.data, date })}
 						/>
 					</Field>
 				</div>
@@ -302,55 +313,62 @@ export function SetlistEditor({
 												}
 											/>
 										</div>
-										<KeySelect
-											className="w-20"
-											value={entry.key}
-											onChange={(key) => patch(entry.id, { key })}
-										/>
-										<CapoSelect
-											value={
-												entry.capo ??
-												song?.data.performanceCapo ??
-												song?.data.sourceCapo ??
-												0
-											}
-											onChange={(capo) => patch(entry.id, { capo })}
-											className="w-28"
-										/>
-										<div className="flex">
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Move up"
-												disabled={index === 0}
-												onClick={() => move(index, index - 1)}
-											>
-												<ArrowUp />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Move down"
-												disabled={index === list.data.entries.length - 1}
-												onClick={() => move(index, index + 1)}
-											>
-												<ArrowDown />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Remove song"
-												onClick={() =>
-													update({
-														...list.data,
-														entries: list.data.entries.filter(
-															(value) => value.id !== entry.id,
-														),
-													})
+										<div className="flex items-center gap-2 max-sm:w-full max-sm:pl-12">
+											<KeySelect
+												className="w-20"
+												value={entry.key}
+												onChange={(key) => patch(entry.id, { key })}
+											/>
+											<CapoSelect
+												value={
+													entry.capo ??
+													song?.data.performanceCapo ??
+													song?.data.sourceCapo ??
+													0
 												}
-											>
-												<X />
-											</Button>
+												onChange={(capo) => patch(entry.id, { capo })}
+												className="w-28"
+											/>
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														className="max-sm:ml-auto"
+														aria-label={`More actions for ${song?.data.title || `song ${index + 1}`}`}
+													>
+														<MoreHorizontal />
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuItem
+														disabled={index === 0}
+														onSelect={() => move(index, index - 1)}
+													>
+														<ArrowUp /> Move up
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														disabled={index === list.data.entries.length - 1}
+														onSelect={() => move(index, index + 1)}
+													>
+														<ArrowDown /> Move down
+													</DropdownMenuItem>
+													<DropdownMenuSeparator />
+													<DropdownMenuItem
+														variant="destructive"
+														onSelect={() =>
+															update({
+																...list.data,
+																entries: list.data.entries.filter(
+																	(value) => value.id !== entry.id,
+																),
+															})
+														}
+													>
+														<X /> Remove from setlist
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
 										</div>
 									</SortableEntry>
 								);
@@ -369,6 +387,56 @@ export function SetlistEditor({
 				</div>
 			</div>
 		</>
+	);
+}
+
+function SetlistDate({
+	value,
+	onChange,
+}: {
+	value: string;
+	onChange: (date: string) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const date = value ? new Date(`${value}T00:00:00`) : undefined;
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<Button
+					id="date"
+					variant="outline"
+					className={cn(
+						"w-full justify-start font-normal",
+						!date && "text-muted-foreground",
+					)}
+				>
+					<CalendarDays />
+					{date
+						? date.toLocaleDateString(undefined, {
+								weekday: "short",
+								day: "numeric",
+								month: "short",
+								year: "numeric",
+							})
+						: "Pick a date"}
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent className="w-auto p-0" align="end">
+				<Calendar
+					mode="single"
+					selected={date}
+					defaultMonth={date}
+					onSelect={(day) => {
+						onChange(
+							day
+								? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
+								: "",
+						);
+						setOpen(false);
+					}}
+				/>
+			</PopoverContent>
+		</Popover>
 	);
 }
 
@@ -395,7 +463,7 @@ function SortableEntry({
 			ref={setNodeRef}
 			style={{ transform: CSS.Translate.toString(transform), transition }}
 			className={cn(
-				"relative flex flex-wrap items-center gap-2 bg-background p-3 animate-in fade-in-0 slide-in-from-top-1",
+				"relative flex flex-wrap items-center gap-2 bg-background p-3 animate-in fade-in-0 slide-in-from-top-1 first:rounded-t-lg last:rounded-b-lg",
 				isDragging && "z-10 rounded-lg shadow-lg ring-1 ring-border",
 			)}
 		>

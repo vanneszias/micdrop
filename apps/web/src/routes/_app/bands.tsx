@@ -1,9 +1,11 @@
+import { Avatar, AvatarFallback } from "@chords/ui/components/avatar";
 import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
 	Card,
 	CardAction,
 	CardContent,
+	CardDescription,
 	CardFooter,
 	CardHeader,
 	CardTitle,
@@ -27,6 +29,7 @@ import {
 } from "@chords/ui/components/empty";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import { Label } from "@chords/ui/components/label";
 import {
 	Select,
 	SelectContent,
@@ -146,6 +149,11 @@ function BandCard({
 		<Card className="animate-in fade-in-0">
 			<CardHeader>
 				<CardTitle>{band.name}</CardTitle>
+				<CardDescription>
+					{band.members.length}{" "}
+					{band.members.length === 1 ? "member" : "members"} · you are{" "}
+					{band.role === "owner" ? "the owner" : `a ${band.role}`}
+				</CardDescription>
 				<CardAction className="flex items-center gap-2">
 					{owner ? (
 						<Button
@@ -156,19 +164,25 @@ function BandCard({
 							<Link2 /> Invite link
 						</Button>
 					) : null}
-					<Badge variant="secondary">{band.role}</Badge>
 				</CardAction>
 			</CardHeader>
 			<CardContent className="divide-y">
 				{band.members.map((member) => (
-					<div key={member.id} className="flex items-center gap-3 py-2">
+					<div key={member.id} className="flex items-center gap-3 py-2.5">
+						<Avatar className="size-8">
+							<AvatarFallback className="text-xs">
+								{member.name[0]?.toUpperCase()}
+							</AvatarFallback>
+						</Avatar>
 						<div className="min-w-0 flex-1">
 							<div className="truncate text-sm font-medium">{member.name}</div>
 							<div className="truncate text-xs text-muted-foreground">
 								{member.email}
 							</div>
 						</div>
-						<span className="text-xs text-muted-foreground">{member.role}</span>
+						<Badge variant="secondary" className="capitalize">
+							{member.role}
+						</Badge>
 						{owner && member.role !== "owner" ? (
 							<Button
 								variant="ghost"
@@ -192,7 +206,8 @@ function BandCard({
 				))}
 			</CardContent>
 			{owner ? (
-				<CardFooter>
+				<CardFooter className="flex-col items-stretch gap-2 border-t">
+					<Label htmlFor={`add-member-${band.id}`}>Add a member</Label>
 					<form
 						className="flex w-full flex-wrap gap-2"
 						onSubmit={(event) => {
@@ -212,10 +227,10 @@ function BandCard({
 						}}
 					>
 						<Input
-							aria-label="Member email"
+							id={`add-member-${band.id}`}
 							name="email"
 							type="email"
-							placeholder="Member email"
+							placeholder="Their account email"
 							required
 							className="min-w-48 flex-1"
 						/>

@@ -123,13 +123,24 @@ function Songs() {
 											>
 												{song.data.title}
 											</Link>
-											<div className="text-xs text-muted-foreground">
-												{song.data.artist || "Unknown artist"} ·{" "}
-												{song.data.arrangementName || "Standard"} ·{" "}
-												{song.data.draft
-													? "Draft"
-													: song.data.visibility || "private"}
-												{song.data.preferred ? " · Preferred" : ""}
+											<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+												<span className="truncate">
+													{[
+														song.data.artist || "Unknown artist",
+														song.data.arrangementName,
+													]
+														.filter(Boolean)
+														.join(" · ")}
+												</span>
+												{song.data.draft ||
+												song.data.visibility === "public" ? (
+													<Badge
+														variant="outline"
+														className="h-4 px-1.5 text-[10px] font-normal text-muted-foreground"
+													>
+														{song.data.draft ? "Draft" : "Public"}
+													</Badge>
+												) : null}
 											</div>
 										</TableCell>
 										<TableCell>

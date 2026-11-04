@@ -24,6 +24,11 @@ function SetlistPage() {
 			<SheetContent
 				showCloseButton={false}
 				className="w-full gap-0 overflow-y-auto sm:max-w-2xl"
+				// Focus the panel itself so the first toolbar button doesn't open with a focus ring.
+				onOpenAutoFocus={(event) => {
+					event.preventDefault();
+					(event.currentTarget as HTMLElement).focus();
+				}}
 			>
 				<SheetTitle className="sr-only">
 					{list?.data.title ?? "Setlist"}
