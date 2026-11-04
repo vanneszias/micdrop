@@ -152,6 +152,15 @@ export function endpoint(
 			}
 			return await handler(request);
 		} catch (error) {
+			// Local workerd drops the next request when an error leaves this body unread, so read
+			// small bodies to the end and cancel the rest.
+			if (request.body && !request.bodyUsed) {
+				const length = Number(request.headers.get("Content-Length") || 0);
+				await (length && length <= options.maxBytes
+					? request.arrayBuffer()
+					: request.body.cancel()
+				).catch(() => {});
+			}
 			if (error instanceof HttpError)
 				return Response.json(
 					{ error: error.message },
