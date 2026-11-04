@@ -139,8 +139,7 @@
   .sheet-chord { font-size: .84em; }
   .sheet-section { margin: 1.4em 0 .7em; }
   /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
-  .diagram, .diagram-missing { width: 80px; font-size: 12px; padding: .125rem; }
-  .chord-diagrams { mask-image: linear-gradient(to right, black 85%, transparent); padding-right: 2.5rem; }
+  .diagram, .diagram-missing { width: 66px; font-size: 12px; padding: .125rem; }
   .chord-diagrams { gap: .25rem; }
 }
 

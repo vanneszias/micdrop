@@ -81,14 +81,18 @@ export function CapoSelect({
 				).map((fret) => {
 					const shapes = soundingKey ? shiftKey(soundingKey, -fret) : "";
 					return (
-						<SelectItem key={fret} value={String(fret)}>
+						<SelectItem
+							key={fret}
+							value={String(fret)}
+							className="*:[span]:last:w-full"
+						>
 							{fret === 0 ? "No capo" : `Capo ${fret}`}
 							{shapes ? (
 								<span
 									className={
 										OPEN_SHAPES.has(shapes)
-											? "text-xs font-medium text-foreground"
-											: "text-xs text-muted-foreground"
+											? "ml-auto pl-6 text-xs font-medium text-foreground"
+											: "ml-auto pl-6 text-xs text-muted-foreground"
 									}
 								>
 									{shapes} shapes

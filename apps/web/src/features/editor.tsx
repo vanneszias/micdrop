@@ -243,7 +243,14 @@ export function Editor({
 		<>
 			<PageHeader
 				back
-				title="Edit"
+				title={
+					<>
+						<span className="md:hidden">
+							Edit · {draft.data.title || "Untitled song"}
+						</span>
+						<span className="max-md:hidden">Edit</span>
+					</>
+				}
 				crumbs={[
 					{ label: "Repertoire", to: "/songs" },
 					{
@@ -588,8 +595,10 @@ export function Editor({
 									update("content", normalizeSheet(draft.data.content).content)
 								}
 							>
-								<Wand2 /> Clean up
-								<span className="max-sm:hidden"> pasted chords</span>
+								<Wand2 />
+								<span className="max-sm:sr-only">
+									Clean up<span className="max-sm:hidden"> pasted chords</span>
+								</span>
 							</Button>
 							<Popover>
 								<PopoverTrigger asChild>

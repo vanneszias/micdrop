@@ -332,7 +332,8 @@ export function SetlistEditor({
 										</div>
 										<div className="flex items-center gap-1.5 max-sm:w-full max-sm:pl-11 sm:gap-2">
 											<KeySelect
-												className="w-16 data-[size=default]:h-8 sm:w-20"
+												prefix="Key"
+												className="w-24 justify-between data-[size=default]:h-8"
 												value={entry.key}
 												onChange={(key) => patch(entry.id, { key })}
 											/>

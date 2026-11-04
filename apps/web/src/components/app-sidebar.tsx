@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback } from "@chords/ui/components/avatar";
+import { Button } from "@chords/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -230,6 +231,50 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 	);
 }
 
+/** Compact library picker for phones, shown beside list headings. */
+export function LibraryChip() {
+	const app = useApp();
+	const navigate = useNavigate();
+	if (!app.bands.length) return null;
+	const workspace =
+		app.owner === app.account
+			? "Personal"
+			: app.bands.find((band) => band.id === app.owner)?.name || "Band";
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					variant="outline"
+					size="sm"
+					className="md:hidden"
+					aria-label={`Switch library, current: ${workspace}`}
+				>
+					{app.owner === app.account ? <User /> : <Users />}
+					<span className="max-w-32 truncate">{workspace}</span>
+					<ChevronsUpDown className="text-muted-foreground" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="start" className="min-w-56">
+				{[
+					{ id: app.account, name: "Personal", icon: User },
+					...app.bands.map((band) => ({ ...band, icon: Users })),
+				].map(({ id, name, icon: Icon }) => (
+					<DropdownMenuItem
+						key={id}
+						onSelect={() => {
+							app.setOwner(id);
+							void navigate({ to: "/songs" });
+						}}
+					>
+						<Icon /> {name}
+						{app.owner === id ? <Check className="ml-auto" /> : null}
+					</DropdownMenuItem>
+				))}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
 function LibrarySwitcher() {
 	const app = useApp();
 	const navigate = useNavigate();
@@ -397,7 +442,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 										tooltip={item.label}
 										isActive={section.startsWith(item.to)}
 									>
-										<Link to={item.to} onClick={() => setOpenMobile(false)}>
+										<Link
+											to={item.to}
+											aria-label={item.label}
+											onClick={() => setOpenMobile(false)}
+										>
 											<item.icon />
 											<span className="group-data-[collapsible=icon]:hidden">
 												{item.label}

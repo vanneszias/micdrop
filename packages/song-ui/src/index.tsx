@@ -234,7 +234,7 @@ function GuitarDiagram({
 					/>
 				))}
 				{shape.baseFret > 1 ? (
-					<text x="1" y="36" fontSize="9">
+					<text x="0" y="36" fontSize="10" fontWeight="600">
 						{shape.baseFret}fr
 					</text>
 				) : null}
@@ -242,21 +242,39 @@ function GuitarDiagram({
 					const strings = shape.frets.flatMap((value, i) =>
 						value === fret ? [i] : [],
 					);
+					const from = 15 + Math.min(...strings) * 14;
+					const to = 15 + Math.max(...strings) * 14;
+					const finger = shape.fingers[strings[0]];
+					// One bar with one finger number reads better than a row of identical dots.
 					return (
-						<line
-							key={`barre-${fret}`}
-							x1={15 + Math.min(...strings) * 14}
-							x2={15 + Math.max(...strings) * 14}
-							y1={13.5 + fret * 19}
-							y2={13.5 + fret * 19}
-							className="diagram-barre"
-							strokeWidth="9"
-							strokeLinecap="round"
-						/>
+						<g key={`barre-${fret}`}>
+							<line
+								x1={from}
+								x2={to}
+								y1={13.5 + fret * 19}
+								y2={13.5 + fret * 19}
+								className="diagram-barre"
+								strokeWidth="14"
+								strokeLinecap="round"
+							/>
+							<text
+								x={(from + to) / 2}
+								y={16.5 + fret * 19}
+								textAnchor="middle"
+								fontSize="9.5"
+								fontWeight="600"
+								fill="white"
+							>
+								{finger || ""}
+							</text>
+						</g>
 					);
 				})}
 				{shape.frets.map((fret, i) =>
-					fret > 0 ? (
+					fret > 0 &&
+					shape.barres.includes(fret) &&
+					shape.fingers[i] ===
+						shape.fingers[shape.frets.indexOf(fret)] ? null : fret > 0 ? (
 						<g key={`dot-${i}`}>
 							<circle
 								className="diagram-dot"

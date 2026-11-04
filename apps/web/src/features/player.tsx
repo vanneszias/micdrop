@@ -15,6 +15,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@chords/ui/components/popover";
+import { useSidebar } from "@chords/ui/components/sidebar";
 import { Slider } from "@chords/ui/components/slider";
 import { Switch } from "@chords/ui/components/switch";
 import { Toggle } from "@chords/ui/components/toggle";
@@ -30,6 +31,8 @@ import {
 	ChevronRight,
 	Gauge,
 	Guitar,
+	Maximize2,
+	Minimize2,
 	Minus,
 	Pause,
 	Pencil,
@@ -158,6 +161,16 @@ export function Player({
 		speed,
 	]);
 	const sheet = useRef<HTMLElement>(null);
+	const { setOpen } = useSidebar();
+	const [stage, setStage] = useState(false);
+	useEffect(() => {
+		const change = () => {
+			setStage(!!document.fullscreenElement);
+			if (!document.fullscreenElement) setOpen(true);
+		};
+		document.addEventListener("fullscreenchange", change);
+		return () => document.removeEventListener("fullscreenchange", change);
+	}, [setOpen]);
 	const step = (semitones: number) => {
 		const index = KEYS.indexOf(key as (typeof KEYS)[number]);
 		if (index >= 0) setKey(KEYS[(index + semitones + 12) % 12]);
@@ -238,6 +251,7 @@ export function Player({
 		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
 			<PageHeader
 				back
+				headingInBody
 				crumbs={[
 					playing
 						? { label: "Setlists", to: "/setlists" }
@@ -261,6 +275,27 @@ export function Player({
 						</Button>
 					</IconTip>
 				)}
+				<IconTip label={stage ? "Leave stage mode" : "Stage mode"}>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						className="max-sm:hidden"
+						aria-label={stage ? "Leave stage mode" : "Stage mode"}
+						aria-pressed={stage}
+						onClick={() => {
+							// Stage mode hides the app around the sheet: full screen, no sidebar.
+							if (document.fullscreenElement) {
+								void document.exitFullscreen();
+								setOpen(true);
+							} else {
+								setOpen(false);
+								void document.documentElement.requestFullscreen?.();
+							}
+						}}
+					>
+						{stage ? <Minimize2 /> : <Maximize2 />}
+					</Button>
+				</IconTip>
 				<IconTip label="Print">
 					<Button
 						variant="ghost"
@@ -274,7 +309,7 @@ export function Player({
 			</PageHeader>
 			<div
 				data-print="hide"
-				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:gap-2 [&>*]:shrink-0"
+				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0"
 			>
 				<div className="flex items-center gap-2 max-sm:hidden">
 					<ButtonGroup aria-label="Key">
@@ -316,7 +351,7 @@ export function Player({
 				<Popover>
 					<PopoverTrigger asChild>
 						<Button variant="outline" className="sm:hidden">
-							<span className="text-xs text-muted-foreground">Key</span>
+							<span className="sr-only">Key</span>
 							{key}
 							{lyricsOnly ? null : (
 								<>
@@ -405,6 +440,7 @@ export function Player({
 							<ToggleGroup
 								type="single"
 								variant="outline"
+								aria-label="Columns"
 								value={String(columns)}
 								onValueChange={(value) => value && setColumns(Number(value))}
 							>
@@ -421,6 +457,7 @@ export function Player({
 								min={14}
 								max={40}
 								step={2}
+								aria-label="Text size"
 								value={[fontSize]}
 								onValueChange={([value]) => setFontSize(value)}
 							/>
@@ -474,9 +511,9 @@ export function Player({
 						}}
 					>
 						<header className="mb-5 sm:mb-7">
-							<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+							<h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
 								{shown.data.title}
-							</h2>
+							</h1>
 							<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
 								{[
 									shown.data.artist,
@@ -625,7 +662,7 @@ export function Player({
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
-					<span className="truncate max-sm:hidden">
+					<span className={cn("truncate", !diagrams && "max-sm:hidden")}>
 						{nextTitle ? (
 							<>
 								<span className="text-muted-foreground max-sm:hidden">

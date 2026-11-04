@@ -49,6 +49,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { LibraryChip } from "#/components/app-sidebar";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import { useApp } from "#/features/app-context";
@@ -112,7 +113,12 @@ function Songs() {
 						? `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: undefined
 				}
-				actions={songs.length ? add : null}
+				actions={
+					<>
+						<LibraryChip />
+						{songs.length ? add : null}
+					</>
+				}
 			>
 				{songs.length ? (
 					<SearchInput
@@ -142,23 +148,15 @@ function Songs() {
 												{song.data.key}
 											</Badge>
 										</TableCell>
-										<TableCell>
+										<TableCell className="w-full max-w-0">
 											<Link
 												to="/songs/$id"
 												params={{ id: song.id }}
-												className="block font-medium after:absolute after:inset-0 hover:underline"
+												className="block truncate font-medium after:absolute after:inset-0 hover:underline"
 											>
 												{song.data.title}
 											</Link>
 											<div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-												{/* Phones hide the visibility column, so a small icon keeps the context. */}
-												{song.data.visibility === "public" &&
-												!song.data.draft ? (
-													<Globe
-														className="size-3 shrink-0 sm:hidden"
-														aria-label="Public"
-													/>
-												) : null}
 												<span className="truncate">
 													{[
 														song.data.artist || "Unknown artist",
@@ -169,7 +167,7 @@ function Songs() {
 												</span>
 											</div>
 										</TableCell>
-										<TableCell className="w-px text-right max-sm:hidden">
+										<TableCell className="w-px text-right">
 											<Badge
 												variant="outline"
 												className="font-normal text-muted-foreground"

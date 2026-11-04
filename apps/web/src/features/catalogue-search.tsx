@@ -30,6 +30,7 @@ import { Link } from "@tanstack/react-router";
 import {
 	Check,
 	ChevronDown,
+	ChevronRight,
 	Eye,
 	Flag,
 	Globe,
@@ -103,11 +104,16 @@ export function CatalogueSearch({
 				? arrangements
 						.filter(
 							(song) =>
-								song.owner === owner && searchRelevance(song.data, debounced),
+								song.owner === owner &&
+								searchRelevance(song.data, debounced) &&
+								// Songs that also appear in the public results are marked there already.
+								!catalogue.data?.pages.some((page) =>
+									page.groups.some((group) => group.id === songGroup(song)),
+								),
 						)
 						.slice(0, 3)
 				: [],
-		[publicOnly, debounced, arrangements, owner],
+		[publicOnly, debounced, arrangements, owner, catalogue.data],
 	);
 	const groups = useMemo(() => {
 		const map = new Map<string, Group>();
@@ -175,7 +181,10 @@ export function CatalogueSearch({
 			/>
 			<p
 				className="text-xs text-muted-foreground"
-				hidden={!groups.length && !catalogue.isFetching}
+				hidden={
+					(!groups.length && !catalogue.isFetching) ||
+					(publicOnly && !!debounced.trim())
+				}
 			>
 				{online
 					? publicOnly
@@ -184,19 +193,44 @@ export function CatalogueSearch({
 					: "Offline · searching saved songs only"}
 			</p>
 			{ownMatches.length ? (
-				<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-					<span className="text-muted-foreground">In your repertoire:</span>
-					{ownMatches.map((song) => (
-						<Link
-							key={song.id}
-							to="/songs/$id"
-							params={{ id: song.id }}
-							className="font-medium underline-offset-4 hover:underline"
-						>
-							{song.data.title}
-						</Link>
-					))}
-				</p>
+				<section aria-labelledby="own-matches" className="space-y-2">
+					<h2
+						id="own-matches"
+						className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+					>
+						Already in your repertoire
+					</h2>
+					<ul className="divide-y rounded-lg border">
+						{ownMatches.map((song) => (
+							<li key={song.id}>
+								<Link
+									to="/songs/$id"
+									params={{ id: song.id }}
+									className="flex items-center gap-3 p-3 hover:bg-accent/40"
+								>
+									<Badge
+										variant="secondary"
+										className="min-w-7 justify-center font-mono text-xs"
+									>
+										{song.data.key}
+									</Badge>
+									<span className="min-w-0 flex-1">
+										<span className="block truncate text-sm font-medium">
+											{song.data.title}
+										</span>
+										<span className="block truncate text-xs text-muted-foreground">
+											{song.data.artist || "Unknown artist"}
+										</span>
+									</span>
+									<ChevronRight className="size-4 text-muted-foreground" />
+								</Link>
+							</li>
+						))}
+					</ul>
+					<h2 className="pt-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+						Public catalogue
+					</h2>
+				</section>
 			) : null}
 			{catalogue.isFetching && online ? (
 				<output className="text-sm">Searching…</output>

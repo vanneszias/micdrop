@@ -51,6 +51,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { LibraryChip } from "#/components/app-sidebar";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
@@ -131,7 +132,12 @@ function Setlists() {
 			<PageBody
 				title="Setlists"
 				description="Put songs in order, set a key for each, then play straight through."
-				actions={setlists.length ? actions : null}
+				actions={
+					<>
+						<LibraryChip />
+						{setlists.length ? actions : null}
+					</>
+				}
 			>
 				{setlists.length ? (
 					<>

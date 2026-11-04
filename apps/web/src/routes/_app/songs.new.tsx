@@ -148,6 +148,11 @@ function NewSong() {
 							>
 								{busy ? <Spinner /> : null} Convert and review
 							</Button>
+							{text.trim() ? null : (
+								<p className="-mt-4 self-end text-xs text-muted-foreground">
+									Paste a chord sheet to continue
+								</p>
+							)}
 						</FieldGroup>
 					</TabsContent>
 					<TabsContent value="link" className="mt-4">

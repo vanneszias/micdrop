@@ -12,6 +12,7 @@ export function PageHeader({
 	embedded,
 	pageTitle,
 	crumbs,
+	headingInBody,
 	children,
 }: {
 	title: React.ReactNode;
@@ -21,6 +22,8 @@ export function PageHeader({
 	pageTitle?: boolean;
 	/** Parent locations shown before the title, e.g. Repertoire › Amazing Grace. */
 	crumbs?: { label: React.ReactNode; to: string }[];
+	/** The page renders its own h1, so the bar's title is plain text. */
+	headingInBody?: boolean;
 	children?: React.ReactNode;
 }) {
 	const router = useRouter();
@@ -69,14 +72,18 @@ export function PageHeader({
 							<ChevronRight className="size-3.5 shrink-0 max-md:hidden" />
 						</Fragment>
 					))}
-					{pageTitle ? (
-						<span className="truncate text-foreground">{title}</span>
+					{pageTitle || headingInBody ? (
+						<span className="min-w-0 truncate font-medium text-foreground">
+							{title}
+						</span>
 					) : (
 						<h1 className="min-w-0 truncate font-medium text-foreground">
 							{title}
 						</h1>
 					)}
 				</nav>
+			) : embedded ? (
+				<p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
 			) : (
 				<h1 className="min-w-0 flex-1 truncate text-sm font-medium">{title}</h1>
 			)}
