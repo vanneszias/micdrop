@@ -15,9 +15,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppBandsRouteImport } from './routes/_app/bands'
 import { Route as AppCommunityRouteImport } from './routes/_app/community'
 import { Route as AppSetlistsRouteImport } from './routes/_app/setlists'
+import { Route as ApiAdminRouteImport } from './routes/api/admin'
 import { Route as ApiBandsRouteImport } from './routes/api/bands'
 import { Route as ApiImportRouteImport } from './routes/api/import'
 import { Route as ApiImportPdfRouteImport } from './routes/api/import-pdf'
@@ -25,6 +27,7 @@ import { Route as ApiPublicationsRouteImport } from './routes/api/publications'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSharesRouteImport } from './routes/api/shares'
 import { Route as ApiSyncRouteImport } from './routes/api/sync'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin.index'
 import { Route as AppInviteTokenRouteImport } from './routes/_app/invite.$token'
 import { Route as AppSetlistsIndexRouteImport } from './routes/_app/setlists.index'
 import { Route as AppSetlistsIdRouteImport } from './routes/_app/setlists.$id'
@@ -34,6 +37,8 @@ import { Route as AppSongsIndexRouteImport } from './routes/_app/songs.index'
 import { Route as AppSongsNewRouteImport } from './routes/_app/songs.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiImportPdfIdRouteImport } from './routes/api/import-pdf.$id'
+import { Route as AppAdminUsersIndexRouteImport } from './routes/_app/admin.users.index'
+import { Route as AppAdminUsersIdRouteImport } from './routes/_app/admin.users.$id'
 import { Route as AppSongsIdIndexRouteImport } from './routes/_app/songs.$id.index'
 import { Route as AppSongsIdEditRouteImport } from './routes/_app/songs.$id.edit'
 
@@ -66,6 +71,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBandsRoute = AppBandsRouteImport.update({
   id: '/bands',
   path: '/bands',
@@ -80,6 +90,11 @@ const AppSetlistsRoute = AppSetlistsRouteImport.update({
   id: '/setlists',
   path: '/setlists',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiAdminRoute = ApiAdminRouteImport.update({
+  id: '/api/admin',
+  path: '/api/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBandsRoute = ApiBandsRouteImport.update({
   id: '/api/bands',
@@ -115,6 +130,11 @@ const ApiSyncRoute = ApiSyncRouteImport.update({
   id: '/api/sync',
   path: '/api/sync',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminRoute,
 } as any)
 const AppInviteTokenRoute = AppInviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -161,6 +181,16 @@ const ApiImportPdfIdRoute = ApiImportPdfIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ApiImportPdfRoute,
 } as any)
+const AppAdminUsersIndexRoute = AppAdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminUsersIdRoute = AppAdminUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppSongsIdIndexRoute = AppSongsIdIndexRouteImport.update({
   id: '/songs/$id/',
   path: '/songs/$id/',
@@ -178,9 +208,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
+  '/admin': typeof AppAdminRouteWithChildren
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/setlists': typeof AppSetlistsRouteWithChildren
+  '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
@@ -195,9 +227,12 @@ export interface FileRoutesByFullPath {
   '/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/setlists/': typeof AppSetlistsIndexRoute
   '/songs/': typeof AppSongsIndexRoute
+  '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/admin/users/': typeof AppAdminUsersIndexRoute
   '/songs/$id/': typeof AppSongsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -207,6 +242,7 @@ export interface FileRoutesByTo {
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
+  '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
@@ -222,9 +258,12 @@ export interface FileRoutesByTo {
   '/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
+  '/admin': typeof AppAdminIndexRoute
   '/setlists': typeof AppSetlistsIndexRoute
   '/songs': typeof AppSongsIndexRoute
+  '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/admin/users': typeof AppAdminUsersIndexRoute
   '/songs/$id': typeof AppSongsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -234,9 +273,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
+  '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/bands': typeof AppBandsRoute
   '/_app/community': typeof AppCommunityRoute
   '/_app/setlists': typeof AppSetlistsRouteWithChildren
+  '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
@@ -252,9 +293,12 @@ export interface FileRoutesById {
   '/_app/songs/new': typeof AppSongsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/import-pdf/$id': typeof ApiImportPdfIdRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/setlists/': typeof AppSetlistsIndexRoute
   '/_app/songs/': typeof AppSongsIndexRoute
+  '/_app/admin/users/$id': typeof AppAdminUsersIdRoute
   '/_app/songs/$id/edit': typeof AppSongsIdEditRoute
+  '/_app/admin/users/': typeof AppAdminUsersIndexRoute
   '/_app/songs/$id/': typeof AppSongsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -265,9 +309,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/mcp'
     | '/.well-known/$'
+    | '/admin'
     | '/bands'
     | '/community'
     | '/setlists'
+    | '/api/admin'
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
@@ -282,9 +328,12 @@ export interface FileRouteTypes {
     | '/songs/new'
     | '/api/auth/$'
     | '/api/import-pdf/$id'
+    | '/admin/'
     | '/setlists/'
     | '/songs/'
+    | '/admin/users/$id'
     | '/songs/$id/edit'
+    | '/admin/users/'
     | '/songs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -294,6 +343,7 @@ export interface FileRouteTypes {
     | '/.well-known/$'
     | '/bands'
     | '/community'
+    | '/api/admin'
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
@@ -309,9 +359,12 @@ export interface FileRouteTypes {
     | '/songs/new'
     | '/api/auth/$'
     | '/api/import-pdf/$id'
+    | '/admin'
     | '/setlists'
     | '/songs'
+    | '/admin/users/$id'
     | '/songs/$id/edit'
+    | '/admin/users'
     | '/songs/$id'
   id:
     | '__root__'
@@ -320,9 +373,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/mcp'
     | '/.well-known/$'
+    | '/_app/admin'
     | '/_app/bands'
     | '/_app/community'
     | '/_app/setlists'
+    | '/api/admin'
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
@@ -338,9 +393,12 @@ export interface FileRouteTypes {
     | '/_app/songs/new'
     | '/api/auth/$'
     | '/api/import-pdf/$id'
+    | '/_app/admin/'
     | '/_app/setlists/'
     | '/_app/songs/'
+    | '/_app/admin/users/$id'
     | '/_app/songs/$id/edit'
+    | '/_app/admin/users/'
     | '/_app/songs/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -350,6 +408,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
+  ApiAdminRoute: typeof ApiAdminRoute
   ApiBandsRoute: typeof ApiBandsRoute
   ApiImportRoute: typeof ApiImportRoute
   ApiImportPdfRoute: typeof ApiImportPdfRouteWithChildren
@@ -404,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/bands': {
       id: '/_app/bands'
       path: '/bands'
@@ -424,6 +490,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/setlists'
       preLoaderRoute: typeof AppSetlistsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/admin': {
+      id: '/api/admin'
+      path: '/api/admin'
+      fullPath: '/api/admin'
+      preLoaderRoute: typeof ApiAdminRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/bands': {
       id: '/api/bands'
@@ -473,6 +546,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/sync'
       preLoaderRoute: typeof ApiSyncRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppAdminRoute
     }
     '/_app/invite/$token': {
       id: '/_app/invite/$token'
@@ -537,6 +617,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImportPdfIdRouteImport
       parentRoute: typeof ApiImportPdfRoute
     }
+    '/_app/admin/users/': {
+      id: '/_app/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AppAdminUsersIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/users/$id': {
+      id: '/_app/admin/users/$id'
+      path: '/users/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AppAdminUsersIdRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/songs/$id/': {
       id: '/_app/songs/$id/'
       path: '/songs/$id'
@@ -554,6 +648,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAdminRouteChildren {
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppAdminUsersIdRoute: typeof AppAdminUsersIdRoute
+  AppAdminUsersIndexRoute: typeof AppAdminUsersIndexRoute
+}
+
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminIndexRoute: AppAdminIndexRoute,
+  AppAdminUsersIdRoute: AppAdminUsersIdRoute,
+  AppAdminUsersIndexRoute: AppAdminUsersIndexRoute,
+}
+
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
+)
+
 interface AppSetlistsRouteChildren {
   AppSetlistsIdRoute: typeof AppSetlistsIdRoute
   AppSetlistsIndexRoute: typeof AppSetlistsIndexRoute
@@ -569,6 +679,7 @@ const AppSetlistsRouteWithChildren = AppSetlistsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRouteWithChildren
   AppBandsRoute: typeof AppBandsRoute
   AppCommunityRoute: typeof AppCommunityRoute
   AppSetlistsRoute: typeof AppSetlistsRouteWithChildren
@@ -583,6 +694,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRouteWithChildren,
   AppBandsRoute: AppBandsRoute,
   AppCommunityRoute: AppCommunityRoute,
   AppSetlistsRoute: AppSetlistsRouteWithChildren,
@@ -616,6 +728,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
+  ApiAdminRoute: ApiAdminRoute,
   ApiBandsRoute: ApiBandsRoute,
   ApiImportRoute: ApiImportRoute,
   ApiImportPdfRoute: ApiImportPdfRouteWithChildren,

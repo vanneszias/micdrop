@@ -5,7 +5,7 @@ import { validateSourceUrl } from "@chords/imports";
 import { captureException, logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { isAPIError } from "better-auth/api";
-import { jwt, organization } from "better-auth/plugins";
+import { admin, jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
 import { HttpError } from "./http-error";
@@ -59,6 +59,8 @@ export function getAuth() {
 				: {},
 		plugins: [
 			organization({ requireEmailVerificationOnInvitation: true }),
+			// Roles are granted by hand in SQL; there is no self-promotion endpoint.
+			admin(),
 			jwt(),
 			mcp({
 				resource: mcpResource(),
@@ -86,6 +88,15 @@ export async function requireUser(request: Request) {
 	const session = await getAuth().api.getSession({ headers: request.headers });
 	if (!session) throw new HttpError(401, "Sign in to use your cloud songbook.");
 	return session.user;
+}
+export function isAdminRole(role: string | null | undefined) {
+	return !!role?.split(",").includes("admin");
+}
+export async function requireAdmin(request: Request) {
+	const user = await requireUser(request);
+	if (!isAdminRole(user.role))
+		throw new HttpError(403, "Administrator access required.");
+	return user;
 }
 export function endpoint(
 	handler: (request: Request) => Promise<Response>,

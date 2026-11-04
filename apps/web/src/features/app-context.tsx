@@ -13,7 +13,12 @@ import {
 import { toast } from "sonner";
 import { api, type Band, freshArrangement } from "#/lib/songs";
 
-type User = { name: string; email: string; id: string };
+type User = {
+	name: string;
+	email: string;
+	id: string;
+	role?: string | null;
+};
 type App = ReturnType<typeof useSongbook> & {
 	account: string;
 	online: boolean;

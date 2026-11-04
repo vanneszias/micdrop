@@ -112,7 +112,9 @@ No Cloudflare resources are created or deployed by the local setup commands.
 
 Migration `0005_catalogue.sql` preserves existing private libraries and published snapshots; it does not publish old private records. Legacy song groups remain separate until explicitly merged. Public result pages contain summaries; full sheets are loaded only for previewing or saving. The public catalogue is not synchronized wholesale to devices.
 
-Administrator access is explicitly granted through the `catalogue_admins` table. Band ownership does not grant catalogue-wide privileges. An authorised operator can grant access with `INSERT INTO catalogue_admins(user_id) VALUES ('<account-id>');` in the intended database; there is no self-promotion endpoint. The Catalogue page then displays reporting and maintenance tools. Actions are recorded in `catalogue_actions`. Merges and regrouping preserve revision history and saved copies; merging also preserves old group IDs as aliases.
+Platform administrators are granted by hand with `UPDATE user SET role='admin' WHERE email='<email>';` in the intended database. They get the **Administration** entry in the account menu (`/admin`): an overview of misuse signals, every account with its library, bands, sessions, imports and assistant connections. Opening an account is recorded in `admin_actions`. Platform administrators also moderate the catalogue.
+
+Catalogue-only moderator access is explicitly granted through the `catalogue_admins` table. Band ownership does not grant catalogue-wide privileges. An authorised operator can grant access with `INSERT INTO catalogue_admins(user_id) VALUES ('<account-id>');` in the intended database; there is no self-promotion endpoint. The Catalogue page then displays reporting and maintenance tools. Actions are recorded in `catalogue_actions`. Merges and regrouping preserve revision history and saved copies; merging also preserves old group IDs as aliases.
 
 Local integration tests provision their own temporary admin account using the local Wrangler binary. Set `CHORDS_TEST_D1_STATE` when using a nondefault local persistence directory. Never point integration tests at production.
 

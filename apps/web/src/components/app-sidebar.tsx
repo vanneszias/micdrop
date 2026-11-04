@@ -63,7 +63,7 @@ function AccountMenu({
 	children: React.ReactNode;
 	side: "top" | "right";
 }) {
-	const { user, store, run, busy } = useApp();
+	const { user, store, run, busy, online } = useApp();
 	const [connecting, setConnecting] = useState(false);
 	return (
 		<>
@@ -91,6 +91,11 @@ function AccountMenu({
 					<DropdownMenuItem onSelect={() => setConnecting(true)}>
 						Add to Claude or ChatGPT
 					</DropdownMenuItem>
+					{online && user?.role?.split(",").includes("admin") ? (
+						<DropdownMenuItem asChild>
+							<Link to="/admin">Administration</Link>
+						</DropdownMenuItem>
+					) : null}
 					<DropdownMenuItem
 						disabled={busy}
 						onSelect={() =>
