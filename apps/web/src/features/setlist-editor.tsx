@@ -4,7 +4,7 @@ import {
 	type Setlist,
 	type SongRecord,
 } from "@chords/data";
-import { keyDistance } from "@chords/song-core";
+import { keyAccidental, keyDistance } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
 import {
 	AlertDialog,
@@ -161,6 +161,7 @@ export function SetlistEditor({
 							<SongSheet
 								content={song.data.content}
 								semitones={keyDistance(song.data.key, entry.key)}
+								accidental={keyAccidental(entry.key)}
 							/>
 						</article>
 					) : (
@@ -315,8 +316,8 @@ export function SetlistEditor({
 											</Button>
 											<Input
 												aria-label={`Notes for song ${index + 1}`}
-												placeholder="Notes"
-												className="mt-1 h-7 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+												placeholder="Add a note…"
+												className="mt-1 -ml-2 h-7 w-full max-w-sm rounded-md border-transparent bg-transparent px-2 text-xs shadow-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:ring-0 dark:bg-transparent"
 												value={entry.notes}
 												onChange={(event) =>
 													patch(entry.id, { notes: event.target.value })
@@ -325,7 +326,7 @@ export function SetlistEditor({
 										</div>
 										<div className="flex items-center gap-2 max-sm:w-full max-sm:pl-12">
 											<KeySelect
-												className="w-20"
+												className="w-20 data-[size=default]:h-8"
 												value={entry.key}
 												onChange={(key) => patch(entry.id, { key })}
 											/>
@@ -337,7 +338,7 @@ export function SetlistEditor({
 													0
 												}
 												onChange={(capo) => patch(entry.id, { capo })}
-												className="w-28"
+												className="w-28 data-[size=default]:h-8"
 											/>
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
@@ -474,7 +475,7 @@ function SortableEntry({
 			ref={setNodeRef}
 			style={{ transform: CSS.Translate.toString(transform), transition }}
 			className={cn(
-				"relative flex flex-wrap items-center gap-2 bg-background p-3 animate-in fade-in-0 slide-in-from-top-1 first:rounded-t-lg last:rounded-b-lg",
+				"relative flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-3 py-2.5 animate-in fade-in-0 slide-in-from-top-1 first:rounded-t-lg last:rounded-b-lg",
 				isDragging && "z-10 rounded-lg shadow-lg ring-1 ring-border",
 			)}
 		>

@@ -1,4 +1,8 @@
-import { normalizeSheet, sheetMetadata } from "@chords/song-core";
+import {
+	normalizeSheet,
+	sheetMetadata,
+	stripMetadata,
+} from "@chords/song-core";
 import { Button } from "@chords/ui/components/button";
 import {
 	Field,
@@ -42,7 +46,12 @@ export const Route = createFileRoute("/_app/songs/new")({ component: NewSong });
 
 function fromSheet(raw: string) {
 	const content = normalizeSheet(raw).content;
-	return { ...sheetMetadata(content), content, rawSource: raw };
+	// The form fields own title, artist, key and capo; the raw import keeps the directives.
+	return {
+		...sheetMetadata(content),
+		content: stripMetadata(content),
+		rawSource: raw,
+	};
 }
 
 function NewSong() {
@@ -101,8 +110,10 @@ function NewSong() {
 								<Textarea
 									id="paste"
 									rows={14}
-									className="min-h-[45vh] font-mono"
-									placeholder={"Verse 1\nD         G\nLyrics go here…"}
+									className="min-h-56 font-mono sm:min-h-[45vh]"
+									placeholder={
+										"[Verse 1]\nG              C          G\nAmazing grace, how sweet the sound\n          Em      D\nThat saved a wretch like me"
+									}
 									value={text}
 									onChange={(event) => setText(event.target.value)}
 								/>

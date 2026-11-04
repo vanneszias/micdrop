@@ -17,7 +17,7 @@
   --secondary: oklch(0.955 0.004 85);
   --secondary-foreground: oklch(0.24 0.012 60);
   --muted: oklch(0.955 0.004 85);
-  --muted-foreground: oklch(0.5 0.012 60);
+  --muted-foreground: oklch(0.46 0.012 60);
   --accent: oklch(0.945 0.006 85);
   --accent-foreground: oklch(0.24 0.012 60);
   --destructive: oklch(0.577 0.245 27.325);
@@ -131,6 +131,8 @@
 .muted { color: var(--muted-foreground); }
 
 @media (max-width: 640px) {
+  .sheet-line { margin-bottom: .45em; }
+  .sheet-section { margin: 1.4em 0 .7em; }
   .diagram, .diagram-missing { width: 84px; font-size: 12px; }
   .chord-diagrams { gap: .25rem; }
 }
@@ -144,4 +146,5 @@
   .song-sheet { font-size: 16px !important; }
   .print-song { break-after: page; } .print-song:last-child { break-after: auto; }
 }
-.song-sheet > .sheet-section:first-child, .song-sheet > .sheet-space:first-child + .sheet-section { margin-top: 0; }
+.sheet-block { break-inside: avoid; }
+.sheet-block:first-child > .sheet-section:first-child, .sheet-block:first-child > .sheet-space:first-child + .sheet-section, .sheet-block:first-child:has(> .sheet-space:only-child) + .sheet-block > .sheet-section:first-child { margin-top: 0; }

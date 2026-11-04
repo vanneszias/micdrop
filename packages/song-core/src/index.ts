@@ -91,6 +91,17 @@ export function normalizeSheet(raw: string): {
 	}
 }
 
+const METADATA_DIRECTIVE = /^\s*\{(?:title|t|artist|a|key|capo):[^}]*\}\s*$/i;
+
+/** Removes title/artist/key/capo directives; the song record owns those fields. */
+export function stripMetadata(content: string): string {
+	return content
+		.split("\n")
+		.filter((line) => !METADATA_DIRECTIVE.test(line))
+		.join("\n")
+		.replace(/^\n+/, "");
+}
+
 /** Title, artist, key and capo declared in ChordPro directives, when present and valid. */
 export function sheetMetadata(content: string): {
 	title?: string;
@@ -139,9 +150,33 @@ export function isChord(value: string): boolean {
 	return !!Chord.parse(value);
 }
 
-export function transposeChord(value: string, semitones: number): string {
+export type Accidental = "#" | "b";
+
+/** Flat keys spell their chords with flats (Ab, Db, Eb), the rest with sharps. */
+export function keyAccidental(key: string): Accidental {
+	const root =
+		Chord.parse(key)?.normalize().useAccidental("b").toString() ?? key;
+	return ["F", "Bb", "Eb", "Ab", "Db"].some((flat) => root.startsWith(flat))
+		? "b"
+		: "#";
+}
+
+/** The key the displayed chords are in, `semitones` away from `key`. */
+export function shiftKey(key: string, semitones: number): string {
+	return KEYS[(((keyDistance("C", key) + semitones) % 12) + 12) % 12];
+}
+
+export function transposeChord(
+	value: string,
+	semitones: number,
+	accidental?: Accidental,
+): string {
 	const chord = Chord.parse(value);
-	return chord ? chord.transpose(semitones).normalize().toString() : value;
+	if (!chord) return value;
+	const moved = chord.transpose(semitones).normalize();
+	return (
+		accidental && semitones ? moved.useAccidental(accidental) : moved
+	).toString();
 }
 
 export function displayTranspose(
@@ -178,7 +213,11 @@ export function transposeChordPro(content: string, semitones: number): string {
 }
 
 /** Project ChordSheetJS's AST into renderer rows. Incomplete edits stay visible as text. */
-export function sheetLines(content: string, semitones = 0): SheetLine[] {
+export function sheetLines(
+	content: string,
+	semitones = 0,
+	accidental?: Accidental,
+): SheetLine[] {
 	try {
 		return new ChordProParser()
 			.parse(content)
@@ -193,7 +232,9 @@ export function sheetLines(content: string, semitones = 0): SheetLine[] {
 				for (const item of line.items) {
 					if (item instanceof ChordLyricsPair)
 						tokens.push({
-							chord: item.annotation || transposeChord(item.chords, semitones),
+							chord:
+								item.annotation ||
+								transposeChord(item.chords, semitones, accidental),
 							text: item.lyrics || "",
 						});
 					else if (item instanceof Tag) {
@@ -231,10 +272,14 @@ export function sheetLines(content: string, semitones = 0): SheetLine[] {
 	}
 }
 
-export function sheetChords(content: string, semitones = 0): string[] {
+export function sheetChords(
+	content: string,
+	semitones = 0,
+	accidental?: Accidental,
+): string[] {
 	return [
 		...new Set(
-			sheetLines(content, semitones)
+			sheetLines(content, semitones, accidental)
 				.flatMap((line) => line.tokens.map((token) => token.chord))
 				.filter((chord) => chord && Chord.parse(chord)),
 		),

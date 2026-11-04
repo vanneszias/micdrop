@@ -33,6 +33,7 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
+import { ChordProTextarea } from "#/components/chordpro-textarea";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
 import { useApp } from "./app-context";
@@ -215,6 +216,7 @@ export function Editor({
 					aria-label="Toggle preview"
 				>
 					<Columns2 />
+					<span className="max-sm:sr-only">Preview</span>
 				</Toggle>
 				<Button
 					size="sm"
@@ -414,14 +416,14 @@ export function Editor({
 							</h3>
 							<div className="grid gap-3 sm:grid-cols-2">
 								<Field>
-									<FieldLabel>I play it in</FieldLabel>
+									<FieldLabel>My key</FieldLabel>
 									<KeySelect
 										value={draft.data.performanceKey || draft.data.key}
 										onChange={(key) => update("performanceKey", key)}
 									/>
 								</Field>
 								<Field>
-									<FieldLabel>With capo</FieldLabel>
+									<FieldLabel>My capo</FieldLabel>
 									<CapoSelect
 										value={draft.data.performanceCapo ?? draft.data.sourceCapo}
 										onChange={(capo) => update("performanceCapo", capo)}
@@ -481,9 +483,9 @@ export function Editor({
 								<Wand2 /> Convert pasted text
 							</Button>
 						</div>
-						<Textarea
+						<ChordProTextarea
 							ref={text}
-							className="min-h-[60vh] font-mono leading-relaxed"
+							className="min-h-[60vh]"
 							value={draft.data.content}
 							onChange={(event) => update("content", event.target.value)}
 							spellCheck={false}

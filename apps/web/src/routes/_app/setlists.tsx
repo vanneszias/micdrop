@@ -45,9 +45,9 @@ import {
 import {
 	ArrowRightLeft,
 	Copy,
-	EllipsisVertical,
 	FileUp,
 	ListMusic,
+	MoreHorizontal,
 	Plus,
 	Share2,
 	Trash2,
@@ -129,7 +129,7 @@ function Setlists() {
 	);
 	return (
 		<>
-			<PageHeader title="Setlists">
+			<PageHeader pageTitle title="Setlists">
 				{setlists.length ? actions : null}
 			</PageHeader>
 			<PageBody
@@ -182,7 +182,7 @@ function Setlists() {
 															size="icon-sm"
 															aria-label={`Actions for ${list.data.title}`}
 														>
-															<EllipsisVertical />
+															<MoreHorizontal />
 														</Button>
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">

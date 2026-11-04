@@ -39,8 +39,8 @@ import {
 	SelectValue,
 } from "@chords/ui/components/select";
 import { Spinner } from "@chords/ui/components/spinner";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Link2, Plus, Users, X } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Library, Link2, Plus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
@@ -59,7 +59,7 @@ function Bands() {
 	};
 	return (
 		<>
-			<PageHeader title="Bands">
+			<PageHeader pageTitle title="Bands">
 				{!signedOut ? (
 					<Dialog open={open} onOpenChange={setOpen}>
 						<DialogTrigger asChild>
@@ -154,6 +154,8 @@ function BandCard({
 	const [role, setRole] = useState("editor");
 	const [inviting, setInviting] = useState(false);
 	const owner = band.role === "owner";
+	const { setOwner } = useApp();
+	const navigate = useNavigate();
 	return (
 		<Card className="animate-in fade-in-0">
 			<CardHeader>
@@ -164,13 +166,22 @@ function BandCard({
 					{band.role === "owner" ? "the owner" : `a ${band.role}`}
 				</CardDescription>
 				<CardAction className="flex items-center gap-2">
+					<Button
+						size="sm"
+						onClick={() => {
+							setOwner(band.id);
+							void navigate({ to: "/songs" });
+						}}
+					>
+						<Library /> Open
+					</Button>
 					{owner ? (
 						<Button
 							variant="outline"
 							size="sm"
 							onClick={() => setInviting(true)}
 						>
-							<Link2 /> <span className="max-sm:sr-only">Invite link</span>
+							<Link2 /> Invite
 						</Button>
 					) : null}
 				</CardAction>
@@ -254,6 +265,10 @@ function BandCard({
 						</Select>
 						<Button variant="outline">Add</Button>
 					</form>
+					<p className="text-xs text-muted-foreground">
+						Editors can change the band's songs and setlists. Viewers can open
+						and play them.
+					</p>
 				</CardFooter>
 			) : null}
 			{inviting ? (

@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Sheet tokens and SVG strings are stateless ordered positions.
-import { sheetChords, sheetLines } from "@chords/song-core";
+import { type Accidental, sheetChords, sheetLines } from "@chords/song-core";
 import { useEffect, useMemo, useState } from "react";
 
 export function SongSheet({
@@ -8,17 +8,67 @@ export function SongSheet({
 	fontSize = 20,
 	columns = 1,
 	chords = true,
+	accidental,
 }: {
 	content: string;
 	semitones?: number;
 	fontSize?: number;
 	columns?: number;
 	chords?: boolean;
+	accidental?: Accidental;
 }) {
 	const lines = useMemo(
-		() => sheetLines(content, semitones),
-		[content, semitones],
+		() => sheetLines(content, semitones, accidental),
+		[content, semitones, accidental],
 	);
+	const renderLine = (line: (typeof lines)[number], index: number) =>
+		line.type === "blank" ? (
+			<div key={`blank-${index}`} className="sheet-space" />
+		) : line.type !== "lyrics" ? (
+			<p
+				key={`label-${index}`}
+				className={line.type === "section" ? "sheet-section" : "sheet-note"}
+			>
+				{line.label}
+			</p>
+		) : !chords ? (
+			// Lyrics-only view drops chord-only rows such as intros and riffs.
+			line.tokens.some((token) => token.text.trim()) ? (
+				<p key={`line-${index}`} className="sheet-text">
+					{line.tokens.map((token) => token.text).join("")}
+				</p>
+			) : null
+		) : (
+			<div key={`line-${index}`} className="sheet-line">
+				{sheetWords(line.tokens).map((word, w) => (
+					<span key={`${index}-${w}`} className="sheet-word">
+						{word.map((pair, i) => (
+							<span
+								key={i}
+								className={
+									pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
+								}
+							>
+								<span
+									className={
+										pair.chord ? "sheet-chord" : "sheet-chord sheet-chord-empty"
+									}
+								>
+									{pair.chord || "\u200b"}
+								</span>
+								<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
+							</span>
+						))}
+					</span>
+				))}
+			</div>
+		);
+	// Each section is one block so multi-column layouts never split it from its heading.
+	const blocks: { line: (typeof lines)[number]; index: number }[][] = [];
+	lines.forEach((line, index) => {
+		if (line.type === "section" || !blocks.length) blocks.push([]);
+		blocks[blocks.length - 1].push({ line, index });
+	});
 	return (
 		<div
 			className="song-sheet"
@@ -29,53 +79,11 @@ export function SongSheet({
 				columnGap: "2em",
 			}}
 		>
-			{lines.map((line, index) =>
-				line.type === "blank" ? (
-					<div key={`blank-${index}`} className="sheet-space" />
-				) : line.type !== "lyrics" ? (
-					<p
-						key={`label-${index}`}
-						className={line.type === "section" ? "sheet-section" : "sheet-note"}
-					>
-						{line.label}
-					</p>
-				) : !chords ? (
-					// Lyrics-only view drops chord-only rows such as intros and riffs.
-					line.tokens.some((token) => token.text.trim()) ? (
-						<p key={`line-${index}`} className="sheet-text">
-							{line.tokens.map((token) => token.text).join("")}
-						</p>
-					) : null
-				) : (
-					<div key={`line-${index}`} className="sheet-line">
-						{sheetWords(line.tokens).map((word, w) => (
-							<span key={`${index}-${w}`} className="sheet-word">
-								{word.map((pair, i) => (
-									<span
-										key={i}
-										className={
-											pair.joined
-												? "sheet-pair sheet-pair-joined"
-												: "sheet-pair"
-										}
-									>
-										<span
-											className={
-												pair.chord
-													? "sheet-chord"
-													: "sheet-chord sheet-chord-empty"
-											}
-										>
-											{pair.chord || "\u200b"}
-										</span>
-										<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
-									</span>
-								))}
-							</span>
-						))}
-					</div>
-				),
-			)}
+			{blocks.map((block) => (
+				<div key={`block-${block[0].index}`} className="sheet-block">
+					{block.map(({ line, index }) => renderLine(line, index))}
+				</div>
+			))}
 		</div>
 	);
 }
@@ -130,14 +138,16 @@ type GuitarData = {
 export function ChordDiagrams({
 	content,
 	semitones = 0,
+	accidental,
 }: {
 	content: string;
 	semitones?: number;
+	accidental?: Accidental;
 }) {
 	const [database, setDatabase] = useState<GuitarData | null>(null);
 	const chords = useMemo(
-		() => sheetChords(content, semitones),
-		[content, semitones],
+		() => sheetChords(content, semitones, accidental),
+		[content, semitones, accidental],
 	);
 	useEffect(() => {
 		void import("@tombatossals/chords-db/lib/guitar.json").then((module) =>
@@ -171,7 +181,10 @@ function GuitarDiagram({
 		Cb: "B",
 		Fb: "E",
 	};
-	const key = match ? aliases[match[1]] || match[1] : "";
+	const key = (match ? aliases[match[1]] || match[1] : "").replace(
+		"#",
+		"sharp",
+	);
 	const suffix =
 		match?.[2] === "" ? "major" : match?.[2] === "m" ? "minor" : match?.[2];
 	const shapes =
@@ -221,8 +234,8 @@ function GuitarDiagram({
 					/>
 				))}
 				{shape.baseFret > 1 ? (
-					<text x="3" y="38" fontSize="10">
-						{shape.baseFret}
+					<text x="1" y="36" fontSize="9">
+						{shape.baseFret}fr
 					</text>
 				) : null}
 				{shape.barres.map((fret) => {

@@ -1,3 +1,4 @@
+import { SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
 	Field,
@@ -286,8 +287,31 @@ function Login() {
 					</form>
 				</div>
 			</div>
-			<div className="relative hidden overflow-hidden lg:block">
+			<div className="relative hidden items-center justify-center overflow-hidden bg-muted/40 p-10 lg:flex">
 				<NotesBackground />
+				<figure className="relative w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl shadow-black/5">
+					<figcaption className="mb-5">
+						<p className="text-xl font-semibold tracking-tight">
+							Amazing Grace
+						</p>
+						<p className="text-sm text-muted-foreground">
+							John Newton · Key G · Capo 2
+						</p>
+					</figcaption>
+					<SongSheet
+						fontSize={17}
+						content={
+							"{start_of_verse: Verse 1}\nA[G]mazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me\nI [G]once was [G7]lost, but [C]now am [G]found\nWas [Em]blind but [D]now I [G]see\n{end_of_verse}"
+						}
+					/>
+				</figure>
+				<ul className="absolute right-10 bottom-10 left-10 flex justify-center gap-6 text-sm text-muted-foreground">
+					<li>Any key, any capo</li>
+					<li aria-hidden>·</li>
+					<li>Setlists for the gig</li>
+					<li aria-hidden>·</li>
+					<li>Works offline</li>
+				</ul>
 			</div>
 		</div>
 	);

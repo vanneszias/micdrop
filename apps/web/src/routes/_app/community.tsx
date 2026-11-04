@@ -12,7 +12,7 @@ function Community() {
 	const { q = "" } = Route.useSearch();
 	return (
 		<>
-			<PageHeader title="Catalogue" />
+			<PageHeader pageTitle title="Catalogue" />
 			<PageBody
 				title="Catalogue"
 				description="Arrangements shared by other players. Save one to get your own private copy."

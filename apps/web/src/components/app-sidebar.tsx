@@ -40,6 +40,7 @@ import {
 	Monitor,
 	Moon,
 	Music,
+	Plus,
 	Shield,
 	Sun,
 	User,
@@ -259,6 +260,12 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 						</DropdownMenuRadioItem>
 					))}
 				</DropdownMenuRadioGroup>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem asChild>
+					<Link to="/bands">
+						<Plus /> Manage bands
+					</Link>
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

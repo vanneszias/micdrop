@@ -1,4 +1,4 @@
-import { CAPO_FRETS, KEYS } from "@chords/song-core";
+import { CAPO_FRETS, KEYS, shiftKey } from "@chords/song-core";
 import {
 	Select,
 	SelectContent,
@@ -13,11 +13,14 @@ export function KeySelect({
 	className,
 	label = "Key",
 	prefix,
+	original,
 }: {
 	value: string;
 	onChange: (key: string) => void;
 	className?: string;
 	label?: string;
+	/** Marks the song's own key in the menu. */
+	original?: string;
 	/** Visible label inside the trigger, for toolbars without a field label. */
 	prefix?: string;
 }) {
@@ -25,16 +28,17 @@ export function KeySelect({
 		<Select value={value} onValueChange={onChange}>
 			<SelectTrigger className={className} aria-label={label}>
 				{prefix ? (
-					<span className="text-xs text-muted-foreground max-sm:hidden">
-						{prefix}
-					</span>
+					<span className="text-xs text-muted-foreground">{prefix}</span>
 				) : null}
-				<SelectValue />
+				<SelectValue>{value}</SelectValue>
 			</SelectTrigger>
 			<SelectContent>
 				{KEYS.map((key) => (
 					<SelectItem key={key} value={key}>
 						{key}
+						{key === original ? (
+							<span className="text-xs text-muted-foreground">Original</span>
+						) : null}
 					</SelectItem>
 				))}
 			</SelectContent>
@@ -47,11 +51,14 @@ export function CapoSelect({
 	onChange,
 	className,
 	prefix,
+	soundingKey,
 }: {
 	value: number;
 	onChange: (capo: number) => void;
 	className?: string;
 	prefix?: string;
+	/** When set, each fret shows the chord shapes you would play for this key. */
+	soundingKey?: string;
 }) {
 	return (
 		<Select
@@ -60,16 +67,19 @@ export function CapoSelect({
 		>
 			<SelectTrigger className={className} aria-label="Capo">
 				{prefix ? (
-					<span className="text-xs text-muted-foreground max-sm:hidden">
-						{prefix}
-					</span>
+					<span className="text-xs text-muted-foreground">{prefix}</span>
 				) : null}
-				<SelectValue />
+				<SelectValue>{value === 0 ? "No capo" : `Capo ${value}`}</SelectValue>
 			</SelectTrigger>
 			<SelectContent>
 				{CAPO_FRETS.map((fret) => (
 					<SelectItem key={fret} value={String(fret)}>
 						{fret === 0 ? "No capo" : `Capo ${fret}`}
+						{soundingKey ? (
+							<span className="text-xs text-muted-foreground">
+								{shiftKey(soundingKey, -fret)} shapes
+							</span>
+						) : null}
 					</SelectItem>
 				))}
 			</SelectContent>

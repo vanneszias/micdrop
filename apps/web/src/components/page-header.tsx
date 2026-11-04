@@ -9,11 +9,14 @@ export function PageHeader({
 	title,
 	back,
 	embedded,
+	pageTitle,
 	children,
 }: {
 	title: React.ReactNode;
 	back?: boolean;
 	embedded?: boolean;
+	/** The page body repeats the title as a heading, so small screens hide this one. */
+	pageTitle?: boolean;
 	children?: React.ReactNode;
 }) {
 	const router = useRouter();
@@ -42,7 +45,15 @@ export function PageHeader({
 					/>
 				</>
 			)}
-			<h1 className="min-w-0 flex-1 truncate text-sm font-medium">{title}</h1>
+			<h1
+				className={cn(
+					"min-w-0 flex-1 truncate text-sm font-medium",
+					pageTitle && "max-md:sr-only",
+				)}
+			>
+				{title}
+			</h1>
+			{pageTitle ? <div className="flex-1 md:hidden" /> : null}
 			<div className="flex items-center gap-2">{children}</div>
 		</header>
 	);

@@ -2,11 +2,14 @@ import { describe, expect, test } from "bun:test";
 import {
 	displayTranspose,
 	exportChordPro,
+	keyAccidental,
 	keyDistance,
 	normalizeSheet,
 	sheetChords,
 	sheetLines,
 	sheetMetadata,
+	shiftKey,
+	stripMetadata,
 	transposeChord,
 } from "./index";
 
@@ -124,4 +127,23 @@ test("sheetMetadata reads directives and omits missing values", () => {
 	});
 	expect(sheetMetadata("{key: Am}\n[Am]Line")).not.toHaveProperty("key");
 	expect(sheetMetadata("[C]No directives")).not.toHaveProperty("title");
+});
+
+test("transposed chords use the target key's accidentals", () => {
+	const flat = keyAccidental(shiftKey("G", 1));
+	expect(["G", "C", "D", "G7"].map((c) => transposeChord(c, 1, flat))).toEqual([
+		"Ab",
+		"Db",
+		"Eb",
+		"Ab7",
+	]);
+	expect(transposeChord("G", 2, keyAccidental(shiftKey("G", 2)))).toBe("A");
+	expect(transposeChord("D", 4, keyAccidental(shiftKey("D", 4)))).toBe("F#");
+	expect(keyAccidental("F")).toBe("b");
+});
+
+test("stripMetadata keeps everything but record-owned directives", () => {
+	expect(
+		stripMetadata("{title: A}\n{artist: B}\n{key: G}\n{tempo: 72}\n\n[G]Line"),
+	).toBe("{tempo: 72}\n\n[G]Line");
 });

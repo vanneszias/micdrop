@@ -38,8 +38,8 @@ import {
 	Copy,
 	CopyPlus,
 	Download,
-	EllipsisVertical,
 	Globe,
+	MoreHorizontal,
 	Music,
 	Pencil,
 	Plus,
@@ -100,7 +100,9 @@ function Songs() {
 	);
 	return (
 		<>
-			<PageHeader title="Repertoire">{songs.length ? add : null}</PageHeader>
+			<PageHeader pageTitle title="Repertoire">
+				{songs.length ? add : null}
+			</PageHeader>
 			<PageBody
 				title={
 					owner === account
@@ -116,7 +118,7 @@ function Songs() {
 				{songs.length ? (
 					<SearchInput
 						aria-label="Search songs"
-						placeholder="Search title, artist or lyrics"
+						placeholder="Search title, artist or lyrics…"
 						value={q}
 						onChange={(event) =>
 							void navigate({
@@ -131,14 +133,22 @@ function Songs() {
 						<Table>
 							<TableHeader>
 								<TableRow>
+									<TableHead className="w-16 pl-4">Key</TableHead>
 									<TableHead>Song</TableHead>
-									<TableHead className="w-16">Key</TableHead>
 									<TableHead className="w-12" />
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{shown.map((song) => (
 									<TableRow key={song.id} className="relative">
+										<TableCell className="pl-4">
+											<Badge
+												variant="secondary"
+												className="min-w-8 justify-center font-mono text-xs"
+											>
+												{song.data.key}
+											</Badge>
+										</TableCell>
 										<TableCell>
 											<Link
 												to="/songs/$id"
@@ -160,17 +170,12 @@ function Songs() {
 												song.data.visibility === "public" ? (
 													<Badge
 														variant="outline"
-														className="h-4 px-1.5 text-[10px] font-normal text-muted-foreground"
+														className="h-4.5 px-1.5 text-[11px] font-normal text-muted-foreground"
 													>
 														{song.data.draft ? "Draft" : "Public"}
 													</Badge>
 												) : null}
 											</div>
-										</TableCell>
-										<TableCell>
-											<Badge variant="secondary" className="font-mono">
-												{song.data.key}
-											</Badge>
 										</TableCell>
 										<TableCell className="relative z-[1] text-right">
 											<DropdownMenu>
@@ -180,7 +185,7 @@ function Songs() {
 														size="icon-sm"
 														aria-label={`Actions for ${song.data.title}`}
 													>
-														<EllipsisVertical />
+														<MoreHorizontal />
 													</Button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">

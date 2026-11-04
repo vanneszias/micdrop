@@ -29,6 +29,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
 	Check,
+	ChevronDown,
 	Eye,
 	Flag,
 	Globe,
@@ -180,18 +181,22 @@ export function CatalogueSearch({
 							</EmptyMedia>
 						)}
 						<EmptyTitle className={chooseGroup ? "text-sm" : "text-base"}>
-							{debounced.trim()
-								? `No songs match “${debounced.trim()}”`
-								: publicOnly
-									? "Browse the public catalogue"
-									: "Nothing to add yet"}
+							{chooseGroup
+								? "No other versions found"
+								: debounced.trim()
+									? `No songs match “${debounced.trim()}”`
+									: publicOnly
+										? "Browse the public catalogue"
+										: "Nothing to add yet"}
 						</EmptyTitle>
 						<EmptyDescription>
-							{debounced.trim()
-								? "Check the spelling, or try the artist or a line of the lyrics."
-								: publicOnly
-									? "Search by title, artist or a line of the lyrics to find arrangements shared by other players."
-									: "Search by title, artist or a line of the lyrics."}
+							{chooseGroup
+								? "Search for another title if this song is known by a different name."
+								: debounced.trim()
+									? "Check the spelling, or try the artist or a line of the lyrics."
+									: publicOnly
+										? "Search by title, artist or a line of the lyrics to find arrangements shared by other players."
+										: "Search by title, artist or a line of the lyrics."}
 						</EmptyDescription>
 					</EmptyHeader>
 				</Empty>
@@ -205,40 +210,47 @@ export function CatalogueSearch({
 						<div className="flex items-center gap-2">
 							<button
 								type="button"
-								className="min-w-0 flex-1 text-left focus-visible:outline-2"
+								className="group/row flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 								aria-expanded={selected === group.id}
 								onClick={() =>
 									setSelected(selected === group.id ? undefined : group.id)
 								}
 							>
-								<span className="flex items-center gap-2 text-sm font-medium">
-									{group.title}
-									{inSet &&
-									group.local.some((song) => inSet.includes(song.id)) ? (
-										<Badge variant="secondary" className="font-normal">
-											<Check /> In set
-										</Badge>
-									) : null}
+								<span className="min-w-0 flex-1">
+									<span className="flex items-center gap-2 text-sm font-medium">
+										{group.title}
+										{inSet &&
+										group.local.some((song) => inSet.includes(song.id)) ? (
+											<Badge variant="secondary" className="font-normal">
+												<Check /> In set
+											</Badge>
+										) : null}
+									</span>
+									<span className="block text-xs text-muted-foreground">
+										{[
+											group.artists || "Unknown artist",
+											group.local.some((song) => song.owner === owner)
+												? "In your repertoire"
+												: null,
+											group.count
+												? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
+												: null,
+										]
+											.filter(Boolean)
+											.join(" · ")}
+									</span>
 								</span>
-								<span className="block text-xs text-muted-foreground">
-									{[
-										group.artists || "Unknown artist",
-										group.local.some((song) => song.owner === owner)
-											? "In your repertoire"
-											: null,
-										group.count
-											? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
-											: null,
-									]
-										.filter(Boolean)
-										.join(" · ")}
-								</span>
+								<ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-aria-expanded/row:rotate-180" />
 							</button>
 							{onSelect && group.local.some((song) => song.owner === owner) ? (
 								<Button
 									type="button"
 									size="sm"
-									variant="outline"
+									variant={
+										inSet && group.local.some((song) => inSet.includes(song.id))
+											? "ghost"
+											: "outline"
+									}
 									disabled={busy || !editable}
 									onClick={() => {
 										const preferred = [...group.local]
@@ -251,7 +263,10 @@ export function CatalogueSearch({
 										void run(() => select(preferred), "Arrangement selected");
 									}}
 								>
-									<Plus /> Add
+									<Plus />{" "}
+									{inSet && group.local.some((song) => inSet.includes(song.id))
+										? "Add again"
+										: "Add"}
 								</Button>
 							) : null}
 							{chooseGroup ? (

@@ -1,5 +1,11 @@
 import type { Arrangement } from "@chords/data";
-import { displayTranspose, KEYS, keyDistance } from "@chords/song-core";
+import {
+	displayTranspose,
+	KEYS,
+	keyAccidental,
+	keyDistance,
+	shiftKey,
+} from "@chords/song-core";
 import { ChordDiagrams, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import { ButtonGroup } from "@chords/ui/components/button-group";
@@ -32,6 +38,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { IconTip } from "#/components/icon-tip";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
 import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
@@ -150,6 +157,8 @@ export function Player({
 		if (index >= 0) setKey(KEYS[(index + semitones + 12) % 12]);
 	};
 	const delta = displayTranspose(shown.data.key, key, shapes ? capo : 0);
+	// Spell chords for the key they are shown in, so Ab shows Db rather than C#.
+	const accidental = keyAccidental(shiftKey(shown.data.key, delta));
 	useEffect(() => {
 		if (!scrolling) return;
 		let frame: number;
@@ -224,24 +233,28 @@ export function Player({
 			<PageHeader title={<SetlistSheet title={shown.data.title} />} back>
 				{actions}
 				{readOnly ? null : (
-					<Button variant="ghost" size="icon-sm" asChild>
-						<Link
-							to="/songs/$id/edit"
-							params={{ id: arrangement.id }}
-							aria-label="Edit song"
-						>
-							<Pencil />
-						</Link>
-					</Button>
+					<IconTip label="Edit song">
+						<Button variant="ghost" size="icon-sm" asChild>
+							<Link
+								to="/songs/$id/edit"
+								params={{ id: arrangement.id }}
+								aria-label="Edit song"
+							>
+								<Pencil />
+							</Link>
+						</Button>
+					</IconTip>
 				)}
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					aria-label="Print"
-					onClick={() => window.print()}
-				>
-					<Printer />
-				</Button>
+				<IconTip label="Print">
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label="Print"
+						onClick={() => window.print()}
+					>
+						<Printer />
+					</Button>
+				</IconTip>
 			</PageHeader>
 			<div
 				data-print="hide"
@@ -252,6 +265,7 @@ export function Player({
 						variant="outline"
 						size="icon"
 						aria-label="Transpose down a semitone"
+						className="max-sm:hidden"
 						onClick={() => step(-1)}
 					>
 						<Minus />
@@ -261,12 +275,14 @@ export function Player({
 						onChange={setKey}
 						label="Key"
 						prefix="Key"
-						className="w-20 justify-between sm:w-24"
+						original={shiftKey(shown.data.key, shown.data.sourceCapo)}
+						className="w-24 justify-between max-sm:rounded-md! max-sm:border-l!"
 					/>
 					<Button
 						variant="outline"
 						size="icon"
 						aria-label="Transpose up a semitone"
+						className="max-sm:hidden"
 						onClick={() => step(1)}
 					>
 						<Plus />
@@ -277,15 +293,18 @@ export function Player({
 						value={capo}
 						onChange={setCapo}
 						prefix="Capo"
-						className="w-28 justify-between sm:w-36"
+						soundingKey={key}
+						className="w-32 justify-between sm:w-36"
 					/>
 				)}
 				<Popover>
-					<PopoverTrigger asChild>
-						<Button variant="outline" size="icon" aria-label="View options">
-							<SlidersHorizontal />
-						</Button>
-					</PopoverTrigger>
+					<IconTip label="View options">
+						<PopoverTrigger asChild>
+							<Button variant="outline" size="icon" aria-label="View options">
+								<SlidersHorizontal />
+							</Button>
+						</PopoverTrigger>
+					</IconTip>
 					<PopoverContent align="start" className="w-64 space-y-4">
 						<div className="flex items-center justify-between">
 							<Label htmlFor="lyrics-only">Lyrics only</Label>
@@ -333,14 +352,18 @@ export function Player({
 					</PopoverContent>
 				</Popover>
 				{lyricsOnly ? null : (
-					<Toggle
-						variant="outline"
-						pressed={diagrams}
-						onPressedChange={setDiagrams}
-						aria-label="Chord diagrams"
+					<IconTip
+						label={diagrams ? "Hide chord diagrams" : "Show chord diagrams"}
 					>
-						<Guitar />
-					</Toggle>
+						<Toggle
+							variant="outline"
+							pressed={diagrams}
+							onPressedChange={setDiagrams}
+							aria-label="Chord diagrams"
+						>
+							<Guitar />
+						</Toggle>
+					</IconTip>
 				)}
 				{arrangement.updatedAt !== shown.updatedAt ? (
 					<Button
@@ -361,19 +384,29 @@ export function Player({
 				aria-label="Chord sheet"
 			>
 				<article
-					className="mx-auto px-5 py-6 pb-24 sm:px-6 sm:py-8"
+					className={cn(
+						"mx-auto px-5 py-6 pb-24 sm:px-6 sm:py-8",
+						// One column hugs its content so the sheet sits centred, not left-aligned.
+						columns === 1 && "sm:w-fit sm:min-w-[min(100%,36rem)]",
+					)}
 					style={{
 						maxWidth: columns === 1 ? 800 : columns === 2 ? 1480 : 2100,
 					}}
 				>
-					<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-						{shown.data.title}
-					</h2>
-					<p className="text-muted-foreground">{shown.data.artist}</p>
-					<p className="mt-2 mb-6 font-mono text-xs text-muted-foreground sm:mt-3 sm:mb-8">
-						Key {key}
-						{lyricsOnly ? null : ` · Capo ${capo && shapes ? capo : "none"}`}
-					</p>
+					<header className="mb-5 sm:mb-7">
+						<h2 className="text-xl font-semibold tracking-tight sm:text-3xl">
+							{shown.data.title}
+						</h2>
+						<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
+							{[
+								shown.data.artist,
+								`Key ${key}`,
+								lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
+							]
+								.filter(Boolean)
+								.join(" · ")}
+						</p>
+					</header>
 					{notes ? (
 						<p className="mb-6 rounded-md border bg-muted/30 p-3 text-sm">
 							{notes}
@@ -382,6 +415,7 @@ export function Player({
 					<SongSheet
 						content={shown.data.content}
 						semitones={delta}
+						accidental={accidental}
 						fontSize={fontSize}
 						columns={columns}
 						chords={!lyricsOnly}
@@ -391,7 +425,14 @@ export function Player({
 			{diagrams && !lyricsOnly ? (
 				<div data-print="hide" className="shrink-0 border-t bg-card/50 py-3">
 					<div className="mx-auto max-w-[800px] px-6">
-						<ChordDiagrams content={shown.data.content} semitones={delta} />
+						<ChordDiagrams
+							content={shown.data.content}
+							semitones={delta}
+							accidental={accidental}
+						/>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Tap a diagram to see another way to play it.
+						</p>
 					</div>
 				</div>
 			) : null}
