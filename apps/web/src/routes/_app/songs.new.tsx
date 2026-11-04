@@ -1,4 +1,8 @@
-import { normalizeSheet } from "@chords/song-core";
+import {
+	normalizeSheet,
+	sheetMetadata,
+	stripMetadata,
+} from "@chords/song-core";
 import { Button } from "@chords/ui/components/button";
 import {
 	Field,
@@ -31,14 +35,24 @@ import {
 import { Textarea } from "@chords/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Link2, PenLine, Search } from "lucide-react";
+import { ClipboardPaste, FileText, Link2, PenLine, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 import { api } from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/songs/new")({ component: NewSong });
+
+function fromSheet(raw: string) {
+	const content = normalizeSheet(raw).content;
+	// The form fields own title, artist, key and capo; the raw import keeps the directives.
+	return {
+		...sheetMetadata(content),
+		content: stripMetadata(content),
+		rawSource: raw,
+	};
+}
 
 function NewSong() {
 	const { createSong, run, busy, online } = useApp();
@@ -55,36 +69,59 @@ function NewSong() {
 		enabled: !!submitted && online,
 		retry: false,
 	});
+	const [failed, setFailed] = useState(false);
 	const importPage = (target: string, rendered = false) =>
 		run(async () => {
+			setFailed(false);
 			const imported = await api<{
 				title: string;
 				content: string;
 				rawSource: string;
 				sourceUrl: string;
 				warnings: string[];
-			}>("/api/import", { url: target, rendered });
+			}>("/api/import", { url: target, rendered }).catch((reason) => {
+				setFailed(true);
+				throw reason;
+			});
+			if (!imported.content.trim()) {
+				setFailed(true);
+				throw new Error("No chord sheet was found on that page.");
+			}
 			await createSong(imported);
 			if (imported.warnings.length) toast.warning(imported.warnings.join(" "));
 		});
 	return (
 		<>
-			<PageHeader title="Add song">
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={busy}
-					onClick={() => void run(() => createSong())}
-				>
-					<PenLine /> Blank song
-				</Button>
-			</PageHeader>
-			<div className="w-full max-w-3xl p-4">
+			<PageHeader
+				pageTitle
+				title="Add song"
+				crumbs={[{ label: "Repertoire", to: "/songs" }]}
+			/>
+			<PageBody
+				title="Add a song"
+				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
+				actions={
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={busy}
+						onClick={() => void run(() => createSong())}
+					>
+						<PenLine /> Blank song
+					</Button>
+				}
+			>
 				<Tabs defaultValue="paste">
-					<TabsList>
-						<TabsTrigger value="paste">Paste</TabsTrigger>
-						<TabsTrigger value="link">Link</TabsTrigger>
-						<TabsTrigger value="file">File</TabsTrigger>
+					<TabsList className="h-10 w-full sm:w-auto">
+						<TabsTrigger value="paste" className="px-4">
+							<ClipboardPaste /> Paste
+						</TabsTrigger>
+						<TabsTrigger value="link" className="px-4">
+							<Link2 /> Link
+						</TabsTrigger>
+						<TabsTrigger value="file" className="px-4">
+							<FileText /> File
+						</TabsTrigger>
 					</TabsList>
 					<TabsContent value="paste" className="mt-4">
 						<FieldGroup>
@@ -92,9 +129,11 @@ function NewSong() {
 								<FieldLabel htmlFor="paste">Chord sheet</FieldLabel>
 								<Textarea
 									id="paste"
-									rows={12}
-									className="font-mono"
-									placeholder={"Verse 1\nD         G\nLyrics go here…"}
+									rows={14}
+									className="min-h-56 font-mono placeholder:text-muted-foreground/60 sm:min-h-72"
+									placeholder={
+										"Example:\n\n[Verse 1]\nG              C          G\nAmazing grace, how sweet the sound\n          Em      D\nThat saved a wretch like me"
+									}
 									value={text}
 									onChange={(event) => setText(event.target.value)}
 								/>
@@ -103,18 +142,17 @@ function NewSong() {
 								</FieldDescription>
 							</Field>
 							<Button
+								className="self-end"
 								disabled={busy || !text.trim()}
-								onClick={() =>
-									void run(() =>
-										createSong({
-											content: normalizeSheet(text).content,
-											rawSource: text,
-										}),
-									)
-								}
+								onClick={() => void run(() => createSong(fromSheet(text)))}
 							>
-								{busy ? <Spinner /> : null} Convert
+								{busy ? <Spinner /> : null} Convert and review
 							</Button>
+							{text.trim() ? null : (
+								<p className="-mt-4 self-end text-xs text-muted-foreground">
+									Paste a chord sheet to continue
+								</p>
+							)}
 						</FieldGroup>
 					</TabsContent>
 					<TabsContent value="link" className="mt-4">
@@ -143,20 +181,22 @@ function NewSong() {
 									</InputGroupAddon>
 								</InputGroup>
 								<FieldDescription>
-									{online ? (
+									{!online ? (
+										"Importing needs a connection."
+									) : failed ? (
 										<>
-											Page empty?{" "}
+											Some sites draw their chords with scripts.{" "}
 											<button
 												type="button"
 												className="underline underline-offset-4"
 												disabled={busy || !url}
 												onClick={() => void importPage(url, true)}
 											>
-												Try the rendered page
+												Load the page fully and try again
 											</button>
 										</>
 									) : (
-										"Importing needs a connection."
+										"Paste a link to a page with a chord sheet, such as a song on a chords site."
 									)}
 								</FieldDescription>
 							</Field>
@@ -237,12 +277,7 @@ function NewSong() {
 											return void toast.error("Choose a file under 200 KB.");
 										void file
 											.text()
-											.then((content) =>
-												createSong({
-													content: normalizeSheet(content).content,
-													rawSource: content,
-												}),
-											)
+											.then((content) => createSong(fromSheet(content)))
 											.catch(() => toast.error("Could not read this file."));
 									}}
 								/>
@@ -250,7 +285,7 @@ function NewSong() {
 						</FieldGroup>
 					</TabsContent>
 				</Tabs>
-			</div>
+			</PageBody>
 		</>
 	);
 }

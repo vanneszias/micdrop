@@ -4,7 +4,7 @@ import {
 	type Setlist,
 	type SongRecord,
 } from "@chords/data";
-import { keyDistance } from "@chords/song-core";
+import { keyAccidental, keyDistance } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
 import {
 	AlertDialog,
@@ -15,11 +15,23 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	AlertDialogTrigger,
 } from "@chords/ui/components/alert-dialog";
 import { Button } from "@chords/ui/components/button";
+import { Calendar } from "@chords/ui/components/calendar";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@chords/ui/components/dropdown-menu";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@chords/ui/components/popover";
 import { cn } from "@chords/ui/lib/utils";
 import {
 	closestCenter,
@@ -43,10 +55,13 @@ import { useNavigate } from "@tanstack/react-router";
 import {
 	ArrowDown,
 	ArrowUp,
+	CalendarDays,
 	Download,
 	GripVertical,
+	MoreHorizontal,
 	Play,
 	Printer,
+	StickyNote,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -147,6 +162,7 @@ export function SetlistEditor({
 							<SongSheet
 								content={song.data.content}
 								semitones={keyDistance(song.data.key, entry.key)}
+								accidental={keyAccidental(entry.key)}
 							/>
 						</article>
 					) : (
@@ -159,6 +175,8 @@ export function SetlistEditor({
 			popup.requestAnimationFrame(() => popup.print()),
 		);
 	}
+	const [deleting, setDeleting] = useState(false);
+	const [noting, setNoting] = useState<string>();
 	return (
 		<>
 			<PageHeader embedded title={list.data.title}>
@@ -187,12 +205,22 @@ export function SetlistEditor({
 				>
 					<Printer />
 				</Button>
-				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<Button variant="ghost" size="icon-sm" aria-label="Delete setlist">
-							<Trash2 />
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="ghost" size="icon-sm" aria-label="Setlist actions">
+							<MoreHorizontal />
 						</Button>
-					</AlertDialogTrigger>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem
+							variant="destructive"
+							onSelect={() => setDeleting(true)}
+						>
+							<Trash2 /> Delete setlist
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+				<AlertDialog open={deleting} onOpenChange={setDeleting}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete this setlist?</AlertDialogTitle>
@@ -249,13 +277,9 @@ export function SetlistEditor({
 					</Field>
 					<Field>
 						<FieldLabel htmlFor="date">Date</FieldLabel>
-						<Input
-							id="date"
-							type="date"
+						<SetlistDate
 							value={list.data.date}
-							onChange={(event) =>
-								update({ ...list.data, date: event.target.value })
-							}
+							onChange={(date) => update({ ...list.data, date })}
 						/>
 					</Field>
 				</div>
@@ -283,74 +307,106 @@ export function SetlistEditor({
 										<span className="w-5 font-mono text-xs text-muted-foreground">
 											{index + 1}
 										</span>
-										<div className="min-w-40 flex-1">
+										<div className="min-w-0 flex-1 max-sm:basis-[calc(100%-3.5rem)]">
 											<Button
 												variant="link"
-												className="h-auto p-0"
+												className="block h-auto max-w-full truncate p-0 text-left"
 												disabled={!song}
 												onClick={() => play(index)}
 											>
 												{song?.data.title || "Song unavailable"}
 											</Button>
-											<Input
-												aria-label={`Notes for song ${index + 1}`}
-												placeholder="Notes"
-												className="mt-1 h-7 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
-												value={entry.notes}
-												onChange={(event) =>
-													patch(entry.id, { notes: event.target.value })
-												}
-											/>
+											{entry.notes || noting === entry.id ? (
+												<Input
+													aria-label={`Notes for song ${index + 1}`}
+													placeholder="Add a note…"
+													id={`note-${entry.id}`}
+													onBlur={() => setNoting(undefined)}
+													className="mt-1 -ml-2 h-7 w-full max-w-sm rounded-md border-transparent bg-transparent px-2 text-xs text-muted-foreground shadow-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:text-foreground focus-visible:ring-0 dark:bg-transparent"
+													value={entry.notes}
+													onChange={(event) =>
+														patch(entry.id, { notes: event.target.value })
+													}
+												/>
+											) : null}
 										</div>
-										<KeySelect
-											className="w-20"
-											value={entry.key}
-											onChange={(key) => patch(entry.id, { key })}
-										/>
-										<CapoSelect
-											value={
-												entry.capo ??
-												song?.data.performanceCapo ??
-												song?.data.sourceCapo ??
-												0
-											}
-											onChange={(capo) => patch(entry.id, { capo })}
-											className="w-28"
-										/>
-										<div className="flex">
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Move up"
-												disabled={index === 0}
-												onClick={() => move(index, index - 1)}
-											>
-												<ArrowUp />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Move down"
-												disabled={index === list.data.entries.length - 1}
-												onClick={() => move(index, index + 1)}
-											>
-												<ArrowDown />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Remove song"
-												onClick={() =>
-													update({
-														...list.data,
-														entries: list.data.entries.filter(
-															(value) => value.id !== entry.id,
-														),
-													})
+										<div className="flex items-center gap-1.5 max-sm:w-full max-sm:pl-11 sm:gap-2">
+											<KeySelect
+												prefix="Key"
+												className="w-24 justify-between data-[size=default]:h-8"
+												value={entry.key}
+												onChange={(key) => patch(entry.id, { key })}
+											/>
+											<CapoSelect
+												value={
+													entry.capo ??
+													song?.data.performanceCapo ??
+													song?.data.sourceCapo ??
+													0
 												}
-											>
-												<X />
-											</Button>
+												onChange={(capo) => patch(entry.id, { capo })}
+												prefix="Capo"
+												className="w-36 justify-between data-[size=default]:h-8"
+											/>
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														className="max-sm:ml-auto"
+														aria-label={`More actions for ${song?.data.title || `song ${index + 1}`}`}
+													>
+														<MoreHorizontal />
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent
+													align="end"
+													onCloseAutoFocus={(event) => {
+														// Send focus to the note field that "Add note" just revealed.
+														const field = document.getElementById(
+															`note-${entry.id}`,
+														);
+														if (noting === entry.id && field) {
+															event.preventDefault();
+															field.focus();
+														}
+													}}
+												>
+													<DropdownMenuItem
+														onSelect={() => setNoting(entry.id)}
+													>
+														<StickyNote />{" "}
+														{entry.notes ? "Edit note" : "Add note"}
+													</DropdownMenuItem>
+													<DropdownMenuSeparator />
+													<DropdownMenuItem
+														disabled={index === 0}
+														onSelect={() => move(index, index - 1)}
+													>
+														<ArrowUp /> Move up
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														disabled={index === list.data.entries.length - 1}
+														onSelect={() => move(index, index + 1)}
+													>
+														<ArrowDown /> Move down
+													</DropdownMenuItem>
+													<DropdownMenuSeparator />
+													<DropdownMenuItem
+														variant="destructive"
+														onSelect={() =>
+															update({
+																...list.data,
+																entries: list.data.entries.filter(
+																	(value) => value.id !== entry.id,
+																),
+															})
+														}
+													>
+														<X /> Remove from setlist
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
 										</div>
 									</SortableEntry>
 								);
@@ -361,6 +417,7 @@ export function SetlistEditor({
 				<div className="space-y-3">
 					<h2 className="font-medium">Add songs</h2>
 					<CatalogueSearch
+						inSet={list.data.entries.map((entry) => entry.arrangementId)}
 						onSelect={async (source) => {
 							const { rows } = addToSetlist(list, source, songs);
 							await saveMany(rows);
@@ -369,6 +426,56 @@ export function SetlistEditor({
 				</div>
 			</div>
 		</>
+	);
+}
+
+function SetlistDate({
+	value,
+	onChange,
+}: {
+	value: string;
+	onChange: (date: string) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const date = value ? new Date(`${value}T00:00:00`) : undefined;
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<Button
+					id="date"
+					variant="outline"
+					className={cn(
+						"w-full justify-start font-normal",
+						!date && "text-muted-foreground",
+					)}
+				>
+					<CalendarDays />
+					{date
+						? date.toLocaleDateString(undefined, {
+								weekday: "short",
+								day: "numeric",
+								month: "short",
+								year: "numeric",
+							})
+						: "Pick a date"}
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent className="w-auto p-0" align="end">
+				<Calendar
+					mode="single"
+					selected={date}
+					defaultMonth={date}
+					onSelect={(day) => {
+						onChange(
+							day
+								? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
+								: "",
+						);
+						setOpen(false);
+					}}
+				/>
+			</PopoverContent>
+		</Popover>
 	);
 }
 
@@ -395,7 +502,7 @@ function SortableEntry({
 			ref={setNodeRef}
 			style={{ transform: CSS.Translate.toString(transform), transition }}
 			className={cn(
-				"relative flex flex-wrap items-center gap-2 bg-background p-3 animate-in fade-in-0 slide-in-from-top-1",
+				"group/entry relative flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-3 py-2.5 animate-in fade-in-0 slide-in-from-top-1 first:rounded-t-lg last:rounded-b-lg",
 				isDragging && "z-10 rounded-lg shadow-lg ring-1 ring-border",
 			)}
 		>

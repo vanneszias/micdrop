@@ -5,34 +5,72 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
+  --background: oklch(0.985 0.002 85);
+  --foreground: oklch(0.2 0.01 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.01 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.01 60);
+  /* Amber is the brand: primary actions, active states and chords share it. */
+  --primary: oklch(0.74 0.15 70);
+  --primary-foreground: oklch(0.2 0.04 60);
+  --secondary: oklch(0.955 0.004 85);
+  --secondary-foreground: oklch(0.24 0.012 60);
+  --muted: oklch(0.955 0.004 85);
+  --muted-foreground: oklch(0.46 0.012 60);
+  --accent: oklch(0.945 0.006 85);
+  --accent-foreground: oklch(0.24 0.012 60);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.006 85);
+  --input: oklch(0.88 0.006 85);
+  --ring: oklch(0.7 0.1 75);
+  --radius: 0.625rem;
+  --brand: oklch(0.72 0.15 70);
+  --brand-foreground: oklch(0.22 0.04 60);
+  --chord: oklch(0.95 0.045 85);
+  --chord-foreground: oklch(0.45 0.13 60);
+  --sidebar: oklch(0.965 0.004 85);
+  --sidebar-foreground: oklch(0.24 0.012 60);
+  --sidebar-primary: oklch(0.72 0.15 70);
+  --sidebar-primary-foreground: oklch(0.22 0.04 60);
+  --sidebar-accent: oklch(0.92 0.008 85);
+  --sidebar-accent-foreground: oklch(0.2 0.01 60);
+  --sidebar-border: oklch(0.9 0.006 85);
+  --sidebar-ring: oklch(0.7 0.1 75);
+}
+.dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.16 0.004 60);
+  --foreground: oklch(0.97 0.004 85);
+  --card: oklch(0.2 0.005 60);
+  --card-foreground: oklch(0.97 0.004 85);
+  --popover: oklch(0.22 0.005 60);
+  --popover-foreground: oklch(0.97 0.004 85);
+  --primary: oklch(0.82 0.14 78);
+  --primary-foreground: oklch(0.2 0.04 60);
+  --secondary: oklch(0.27 0.006 60);
+  --secondary-foreground: oklch(0.97 0.004 85);
+  --muted: oklch(0.27 0.006 60);
+  --muted-foreground: oklch(0.72 0.008 70);
+  --accent: oklch(0.28 0.006 60);
+  --accent-foreground: oklch(0.97 0.004 85);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.922 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.75 0.12 75);
+  --brand: oklch(0.82 0.14 78);
+  --brand-foreground: oklch(0.22 0.04 60);
+  --chord: oklch(0.82 0.14 78 / 0.14);
+  --chord-foreground: oklch(0.86 0.13 82);
+  --sidebar: oklch(0.2 0.005 60);
+  --sidebar-foreground: oklch(0.97 0.004 85);
+  --sidebar-primary: oklch(0.82 0.14 78);
+  --sidebar-primary-foreground: oklch(0.22 0.04 60);
+  --sidebar-accent: oklch(0.28 0.006 60);
+  --sidebar-accent-foreground: oklch(0.97 0.004 85);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.75 0.12 75);
 }
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, sans-serif;
@@ -45,6 +83,8 @@
   --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive); --color-border: var(--border);
+  --color-brand: var(--brand); --color-brand-foreground: var(--brand-foreground);
+  --color-chord: var(--chord); --color-chord-foreground: var(--chord-foreground);
   --color-input: var(--input); --color-ring: var(--ring);
   --color-sidebar: var(--sidebar); --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary); --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
@@ -61,30 +101,50 @@
 
 /* Chord sheet */
 .song-sheet { font-family: var(--font-sans); line-height: 1.7; }
-.sheet-space { height: .7em; }
-.sheet-section { font-size: .55em; letter-spacing: .05em; color: var(--muted-foreground); font-weight: 600; text-transform: uppercase; margin: 1.9em 0 1em; }
+.sheet-space { height: .4em; }
+.sheet-section { font-size: .55em; letter-spacing: .05em; color: var(--muted-foreground); font-weight: 600; text-transform: uppercase; margin: 1.4em 0 .8em; }
 .sheet-note { color: var(--muted-foreground); font-size: .65em; margin: 1.3em 0; }
-.sheet-line { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: .7em; }
+.sheet-line { display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: .35em; margin-bottom: .85em; }
+.sheet-word { display: inline-flex; align-items: flex-end; }
 .sheet-pair { display: inline-flex; flex-direction: column; white-space: pre; min-width: 0; }
-.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: oklch(0.25 0.04 85); background: oklch(0.93 0.09 95); font-size: .65em; font-weight: 800; line-height: 1.5; padding: .05em .45em; margin: 0 .4em .2em 0; border-radius: .35em; }
-.sheet-chord-empty { background: none; }
-.sheet-lyric { min-height: 1.6em; }
+/* A chord wider than its syllable leaves a gap inside the word; bridge it with a hairline. */
+.sheet-pair-joined .sheet-lyric { display: flex; }
+.sheet-pair-joined .sheet-lyric::after { content: ''; flex: 1; align-self: center; height: 1px; margin-top: .15em; background: linear-gradient(currentColor, currentColor) center / calc(100% - .5em) 100% no-repeat; opacity: .35; }
+.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: .78em; font-weight: 700; line-height: 1.45; padding: .05em .35em; margin: 0 .5em .05em -.35em; border-radius: .3em; }
+
+.sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
+.sheet-lyric { min-height: 1.3em; line-height: 1.3; }
 .sheet-text { margin: 0 0 .15em; white-space: pre-wrap; }
 .sheet-line, .sheet-text, .sheet-note { break-inside: avoid; } .sheet-section { break-after: avoid; }
 
 /* Chord diagrams */
-.chord-diagrams { display: flex; flex-wrap: nowrap; gap: 1rem; overflow-x: auto; }
-.diagram, .diagram-missing { width: 85px; flex-shrink: 0; text-align: center; font-size: 12px; }
+.chord-diagrams { display: flex; flex-wrap: nowrap; gap: .75rem; overflow-x: auto; padding-bottom: .25rem; }
+.diagram, .diagram-missing { width: 112px; flex-shrink: 0; text-align: center; font-size: 13px; }
+.diagram { border-radius: var(--radius-md); padding: .375rem .25rem; }
+.diagram:hover { background: var(--accent); }
+.diagram:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 .diagram { background: none; border: 0; color: var(--foreground); transition: transform .15s; }
 .diagram:active { transform: scale(.95); }
-.diagram strong { font-family: var(--font-mono); }
-.diagram small, .diagram-missing small { display: block; font-size: 10px; color: var(--muted-foreground); }
+.diagram strong { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+.diagram small, .diagram-missing small { display: block; font-size: 11px; color: var(--muted-foreground); }
+.diagram svg { display: block; width: 100%; height: auto; margin-top: .125rem; }
 .diagram svg text:not([fill]) { fill: currentColor; }
-.diagram svg text[fill='white'] { fill: var(--background); }
+.diagram svg text[fill='white'] { fill: var(--brand-foreground); font-weight: 600; }
+.diagram-dot { fill: var(--brand); }
+.diagram-barre { fill: var(--brand); }
 .muted { color: var(--muted-foreground); }
 
+@media (max-width: 640px) {
+  .sheet-line { margin-bottom: .6em; }
+  .sheet-chord { font-size: .84em; }
+  .sheet-section { margin: 1.4em 0 .7em; }
+  /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
+  .diagram, .diagram-missing { width: 66px; font-size: 12px; padding: .125rem; }
+  .chord-diagrams { gap: .25rem; }
+}
+
 @media print {
-  :root { --foreground: #000; --background: #fff; --primary: #000; --muted-foreground: #444; }
+  :root, .dark { --foreground: #000; --background: #fff; --primary: #000; --muted-foreground: #444; --chord: #f1f1f1; --chord-foreground: #000; }
   body { background: #fff; color: #000; }
   [data-slot='sidebar'], [data-slot='sidebar-gap'], [data-print='hide'] { display: none !important; }
   [data-slot='sidebar-inset'] { margin: 0 !important; }
@@ -92,3 +152,7 @@
   .song-sheet { font-size: 16px !important; }
   .print-song { break-after: page; } .print-song:last-child { break-after: auto; }
 }
+.sheet-block { break-inside: avoid; }
+.sheet-block:first-child > .sheet-section:first-child, .sheet-block:first-child > .sheet-space:first-child + .sheet-section, .sheet-block:first-child:has(> .sheet-space:only-child) + .sheet-block > .sheet-section:first-child { margin-top: 0; }
+.diagram-rail .chord-diagrams { flex-wrap: wrap; overflow: visible; gap: .5rem; }
+.diagram-rail .diagram, .diagram-rail .diagram-missing { width: 112px; }

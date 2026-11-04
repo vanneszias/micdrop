@@ -1,11 +1,10 @@
 import { Avatar, AvatarFallback } from "@chords/ui/components/avatar";
+import { Button } from "@chords/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@chords/ui/components/dropdown-menu";
@@ -27,14 +26,23 @@ import {
 import { cn } from "@chords/ui/lib/utils";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+	Bot,
+	Check,
 	ChevronsUpDown,
 	Cloud,
 	CloudOff,
 	Globe,
+	HardDriveUpload,
 	Heart,
 	ListMusic,
 	LogIn,
+	LogOut,
+	Monitor,
+	Moon,
 	Music,
+	Settings2,
+	Shield,
+	Sun,
 	User,
 	Users,
 } from "lucide-react";
@@ -44,6 +52,7 @@ import { ConnectAssistantDialog } from "#/features/connect-assistant";
 import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
+import { useTheme } from "#/lib/theme";
 
 const items = [
 	{ to: "/songs", label: "Repertoire", icon: Music },
@@ -54,19 +63,26 @@ const items = [
 
 // Playing a song is full screen on mobile, like a native performance mode.
 export function showsBottomNav(pathname: string) {
-	return !/^\/(songs\/(?!new$)|shared\/)[^/]+$/.test(pathname);
+	// Songs, the song editor and shared links get the full screen.
+	return !/^\/(songs\/(?!new$)[^/]+(\/edit)?|shared\/[^/]+)$/.test(pathname);
 }
 
 function AccountMenu({
 	children,
 	side,
+	showLibraries = false,
 }: {
 	children: React.ReactNode;
 	side: "top" | "right";
+	/** Phones have no sidebar switcher, so the menu lists the libraries. */
+	showLibraries?: boolean;
 }) {
 	const { user, store, run, busy, online } = useApp();
 	const [connecting, setConnecting] = useState(false);
 	const impersonating = !!useImpersonator();
+	const { theme, setTheme } = useTheme();
+	const app = useApp();
+	const navigate = useNavigate();
 	return (
 		<>
 			<DropdownMenu>
@@ -79,6 +95,51 @@ function AccountMenu({
 						</div>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
+					{showLibraries && app.bands.length ? (
+						<>
+							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+								Library
+							</DropdownMenuLabel>
+							{[
+								{ id: app.account, name: "Personal", icon: User },
+								...app.bands.map((band) => ({ ...band, icon: Users })),
+							].map(({ id, name, icon: Icon }) => (
+								<DropdownMenuItem
+									key={id}
+									onSelect={() => {
+										app.setOwner(id);
+										void navigate({ to: "/songs" });
+									}}
+								>
+									<Icon /> {name}
+									{app.owner === id ? <Check className="ml-auto" /> : null}
+								</DropdownMenuItem>
+							))}
+							<DropdownMenuSeparator />
+						</>
+					) : null}
+					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+						Appearance
+					</DropdownMenuLabel>
+					{(
+						[
+							["system", Monitor, "System"],
+							["light", Sun, "Light"],
+							["dark", Moon, "Dark"],
+						] as const
+					).map(([value, Icon, label]) => (
+						<DropdownMenuItem
+							key={value}
+							onSelect={(event) => {
+								event.preventDefault();
+								setTheme(value);
+							}}
+						>
+							<Icon /> {label}
+							{theme === value ? <Check className="ml-auto" /> : null}
+						</DropdownMenuItem>
+					))}
+					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						// While impersonating, this would copy the administrator's own songs.
 						disabled={busy || impersonating}
@@ -89,14 +150,16 @@ function AccountMenu({
 							)
 						}
 					>
-						Import this device’s songs
+						<HardDriveUpload /> Import this device’s songs
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => setConnecting(true)}>
-						Add to Claude or ChatGPT
+						<Bot /> Add to Claude or ChatGPT
 					</DropdownMenuItem>
 					{online && user?.role?.split(",").includes("admin") ? (
 						<DropdownMenuItem asChild>
-							<Link to="/admin">Administration</Link>
+							<Link to="/admin">
+								<Shield /> Administration
+							</Link>
 						</DropdownMenuItem>
 					) : null}
 					<DropdownMenuItem
@@ -110,7 +173,7 @@ function AccountMenu({
 							})
 						}
 					>
-						Sign out
+						<LogOut /> Sign out
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -171,7 +234,51 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 	);
 }
 
-function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
+/** Compact library picker for phones, shown beside list headings. */
+export function LibraryChip() {
+	const app = useApp();
+	const navigate = useNavigate();
+	if (!app.bands.length) return null;
+	const workspace =
+		app.owner === app.account
+			? "Personal"
+			: app.bands.find((band) => band.id === app.owner)?.name || "Band";
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					variant="outline"
+					size="sm"
+					className="md:hidden"
+					aria-label={`Switch library, current: ${workspace}`}
+				>
+					{app.owner === app.account ? <User /> : <Users />}
+					<span className="max-w-32 truncate">{workspace}</span>
+					<ChevronsUpDown className="text-muted-foreground" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="start" className="min-w-56">
+				{[
+					{ id: app.account, name: "Personal", icon: User },
+					...app.bands.map((band) => ({ ...band, icon: Users })),
+				].map(({ id, name, icon: Icon }) => (
+					<DropdownMenuItem
+						key={id}
+						onSelect={() => {
+							app.setOwner(id);
+							void navigate({ to: "/songs" });
+						}}
+					>
+						<Icon /> {name}
+						{app.owner === id ? <Check className="ml-auto" /> : null}
+					</DropdownMenuItem>
+				))}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
+function LibrarySwitcher() {
 	const app = useApp();
 	const navigate = useNavigate();
 	const workspace =
@@ -181,61 +288,49 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				{mobile ? (
-					<button
-						type="button"
-						aria-label={`Switch library, current: ${workspace}`}
-						className="flex h-11 w-full min-w-0 items-center gap-2 border-b px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-					>
-						<Users className="size-4 shrink-0" />
-						<span className="shrink-0 text-muted-foreground">Library</span>
-						<span className="truncate font-medium">{workspace}</span>
-						<ChevronsUpDown className="ml-auto size-4 shrink-0" />
-					</button>
-				) : (
-					<SidebarMenuButton
-						tooltip={workspace}
-						aria-label={`Switch library, current: ${workspace}`}
-					>
-						<Users />
-						<span className="truncate group-data-[collapsible=icon]:hidden">
-							{workspace}
-						</span>
-						<ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-					</SidebarMenuButton>
-				)}
+				<SidebarMenuButton
+					tooltip={workspace}
+					aria-label={`Switch library, current: ${workspace}`}
+				>
+					{app.owner === app.account ? <User /> : <Users />}
+					<span className="truncate group-data-[collapsible=icon]:hidden">
+						{workspace}
+					</span>
+					<ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
+				</SidebarMenuButton>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent
-				className="min-w-56"
-				align="start"
-				side={mobile ? "top" : "right"}
-			>
+			<DropdownMenuContent className="min-w-56" align="start" side="right">
 				<DropdownMenuLabel className="text-xs text-muted-foreground">
 					Library
 				</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={app.owner}
-					onValueChange={(value) => {
-						app.setOwner(value);
-						void navigate({ to: "/songs" });
-					}}
-				>
-					<DropdownMenuRadioItem value={app.account}>
-						Personal
-					</DropdownMenuRadioItem>
-					{app.bands.map((band) => (
-						<DropdownMenuRadioItem key={band.id} value={band.id}>
-							{band.name}
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
+				{[
+					{ id: app.account, name: "Personal", icon: User },
+					...app.bands.map((band) => ({ ...band, icon: Users })),
+				].map(({ id, name, icon: Icon }) => (
+					<DropdownMenuItem
+						key={id}
+						onSelect={() => {
+							app.setOwner(id);
+							void navigate({ to: "/songs" });
+						}}
+					>
+						<Icon /> {name}
+						{app.owner === id ? <Check className="ml-auto" /> : null}
+					</DropdownMenuItem>
+				))}
+				<DropdownMenuSeparator />
+				<DropdownMenuItem asChild>
+					<Link to="/bands">
+						<Settings2 /> Manage bands
+					</Link>
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
 }
 
 export function BottomNav() {
-	const { user, bands } = useApp();
+	const { user } = useApp();
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
@@ -251,7 +346,6 @@ export function BottomNav() {
 			aria-label="Main"
 			className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
 		>
-			{bands.length ? <LibrarySwitcher mobile /> : null}
 			<div className="grid grid-cols-5">
 				{tabs.map((item) => {
 					const active = pathname.startsWith(item.to);
@@ -276,7 +370,7 @@ export function BottomNav() {
 					);
 				})}
 				{user ? (
-					<AccountMenu side="top">
+					<AccountMenu side="top" showLibraries>
 						<button type="button" className={tabClass}>
 							<User className="size-5" />
 							Account
@@ -303,6 +397,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				: app.pending
 					? `${app.pending} pending`
 					: "Synced";
+	const playing = usePlayingSetlist();
+	// A song opened from a setlist belongs to Setlists, not Repertoire.
+	const section = playing ? "/setlists" : pathname;
 	if (isMobile) return <BottomNav />;
 	return (
 		<Sidebar
@@ -320,7 +417,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 							tooltip="Mic Drop"
 							isActive={pathname === "/"}
 						>
-							<Link to="/" onClick={() => setOpenMobile(false)}>
+							<Link
+								to="/"
+								aria-label="Mic Drop home"
+								onClick={() => setOpenMobile(false)}
+							>
 								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 									<Music className="size-4" />
 								</div>
@@ -346,17 +447,25 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 									<SidebarMenuButton
 										asChild
 										tooltip={item.label}
-										isActive={pathname.startsWith(item.to)}
+										isActive={section.startsWith(item.to)}
 									>
-										<Link to={item.to} onClick={() => setOpenMobile(false)}>
+										<Link
+											to={item.to}
+											aria-label={item.label}
+											onClick={() => setOpenMobile(false)}
+										>
 											<item.icon />
 											<span className="group-data-[collapsible=icon]:hidden">
 												{item.label}
 											</span>
 										</Link>
 									</SidebarMenuButton>
-									{item.to === "/songs" ? (
-										<SidebarMenuBadge>{app.songs.length}</SidebarMenuBadge>
+									{item.to === "/songs" || item.to === "/setlists" ? (
+										<SidebarMenuBadge>
+											{item.to === "/songs"
+												? app.songs.length
+												: app.setlists.length}
+										</SidebarMenuBadge>
 									) : null}
 								</SidebarMenuItem>
 							))}
@@ -371,6 +480,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						<SidebarMenuButton
 							size="sm"
 							tooltip={status}
+							aria-label={`Sync status: ${status}`}
 							className="text-muted-foreground"
 							disabled={!app.online || app.account === "local"}
 							onClick={() => void app.store.sync()}
@@ -383,8 +493,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						{app.user ? (
-							<AccountMenu side="right">
-								<SidebarMenuButton size="lg" tooltip={app.user.name}>
+							<AccountMenu side="top">
+								<SidebarMenuButton
+									size="lg"
+									tooltip={app.user.name}
+									aria-label={`Account: ${app.user.name}`}
+								>
 									<Avatar className="size-8 rounded-lg">
 										<AvatarFallback className="rounded-lg">
 											{app.user.name[0]?.toUpperCase()}

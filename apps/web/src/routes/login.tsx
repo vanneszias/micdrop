@@ -1,3 +1,4 @@
+import { SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
 	Field,
@@ -9,6 +10,7 @@ import {
 import { Input } from "@chords/ui/components/input";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Music } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
@@ -140,10 +142,11 @@ function Login() {
 	};
 	return (
 		<div className="relative grid min-h-svh overflow-hidden lg:grid-cols-2">
-			<NotesBackground className="lg:hidden" />
 			<div className="relative flex flex-col gap-4 p-6 md:p-10">
-				<Link to="/songs" className="flex items-center gap-2 font-medium">
-					<img src="/icon.svg" alt="" className="size-6 rounded-md" />
+				<Link to="/songs" className="flex items-center gap-2 font-semibold">
+					<span className="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-foreground">
+						<Music className="size-4" />
+					</span>
 					Mic Drop
 				</Link>
 				<div className="flex flex-1 items-center justify-center">
@@ -179,6 +182,15 @@ function Login() {
 						}}
 					>
 						<FieldGroup>
+							{/* Phones get a small taste of the chord sheet the desktop panel shows. */}
+							<div className="order-last rounded-xl border bg-card px-4 py-3 lg:hidden">
+								<SongSheet
+									fontSize={15}
+									content={
+										"A[G]mazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me"
+									}
+								/>
+							</div>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">
 									{mode === "signin"
@@ -286,8 +298,29 @@ function Login() {
 					</form>
 				</div>
 			</div>
-			<div className="relative hidden overflow-hidden lg:block">
+			<div className="relative hidden items-center justify-center overflow-hidden bg-muted/40 p-10 lg:flex">
 				<NotesBackground />
+				<figure className="relative w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl shadow-black/5">
+					<figcaption className="mb-5">
+						<p className="text-xl font-semibold tracking-tight">
+							Amazing Grace
+						</p>
+						<p className="text-sm text-muted-foreground">John Newton · Key G</p>
+					</figcaption>
+					<SongSheet
+						fontSize={17}
+						content={
+							"{start_of_verse: Verse 1}\nA[G]mazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me\nI [G]once was [G7]lost, but [C]now am [G]found\nWas [Em]blind but [D]now I [G]see\n{end_of_verse}"
+						}
+					/>
+				</figure>
+				<ul className="absolute right-10 bottom-10 left-10 flex justify-center gap-6 text-sm text-muted-foreground">
+					<li>Any key, any capo</li>
+					<li aria-hidden>·</li>
+					<li>Setlists for the gig</li>
+					<li aria-hidden>·</li>
+					<li>Works offline</li>
+				</ul>
 			</div>
 		</div>
 	);

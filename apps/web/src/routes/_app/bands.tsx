@@ -1,15 +1,18 @@
+import { Avatar, AvatarFallback } from "@chords/ui/components/avatar";
 import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
 	Card,
 	CardAction,
 	CardContent,
+	CardDescription,
 	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@chords/ui/components/card";
 import {
 	Dialog,
+	DialogClose,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,
@@ -27,6 +30,7 @@ import {
 } from "@chords/ui/components/empty";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import { Label } from "@chords/ui/components/label";
 import {
 	Select,
 	SelectContent,
@@ -35,10 +39,10 @@ import {
 	SelectValue,
 } from "@chords/ui/components/select";
 import { Spinner } from "@chords/ui/components/spinner";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Link2, Plus, Users, X } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowRight, Link2, Plus, Users, X } from "lucide-react";
 import { useState } from "react";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
 import { api, type Band } from "#/lib/songs";
@@ -55,53 +59,67 @@ function Bands() {
 	};
 	return (
 		<>
-			<PageHeader title="Bands">
-				{!signedOut ? (
-					<Dialog open={open} onOpenChange={setOpen}>
-						<DialogTrigger asChild>
-							<Button size="sm">
-								<Plus /> New band
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<form
-								className="space-y-4"
-								onSubmit={(event) => {
-									event.preventDefault();
-									const form = new FormData(event.currentTarget);
-									void run(async () => {
-										await api("/api/bands", {
-											action: "create",
-											name: form.get("name"),
-										});
-										await refetchBands();
-										setOpen(false);
-									}, "Band created");
-								}}
-							>
-								<DialogHeader>
-									<DialogTitle>New band</DialogTitle>
-									<DialogDescription>
-										A shared library of songs and setlists.
-									</DialogDescription>
-								</DialogHeader>
-								<Field>
-									<FieldLabel htmlFor="band-name">Name</FieldLabel>
-									<Input id="band-name" name="name" required maxLength={100} />
-								</Field>
-								<DialogFooter>
-									<Button disabled={busy}>
-										{busy ? <Spinner /> : null} Create
-									</Button>
-								</DialogFooter>
-							</form>
-						</DialogContent>
-					</Dialog>
-				) : null}
-			</PageHeader>
-			<div className="w-full space-y-4 p-4">
+			<PageHeader pageTitle title="Bands" />
+			<PageBody
+				title="Bands"
+				description="Share a repertoire and setlists with the people you play with."
+				actions={
+					!signedOut ? (
+						<Dialog open={open} onOpenChange={setOpen}>
+							<DialogTrigger asChild>
+								<Button size="sm">
+									<Plus /> New band
+								</Button>
+							</DialogTrigger>
+							<DialogContent>
+								<form
+									className="space-y-4"
+									onSubmit={(event) => {
+										event.preventDefault();
+										const form = new FormData(event.currentTarget);
+										void run(async () => {
+											await api("/api/bands", {
+												action: "create",
+												name: form.get("name"),
+											});
+											await refetchBands();
+											setOpen(false);
+										}, "Band created");
+									}}
+								>
+									<DialogHeader>
+										<DialogTitle>New band</DialogTitle>
+										<DialogDescription>
+											A shared library of songs and setlists.
+										</DialogDescription>
+									</DialogHeader>
+									<Field>
+										<FieldLabel htmlFor="band-name">Name</FieldLabel>
+										<Input
+											id="band-name"
+											name="name"
+											required
+											maxLength={100}
+										/>
+									</Field>
+									<DialogFooter>
+										<DialogClose asChild>
+											<Button type="button" variant="outline">
+												Cancel
+											</Button>
+										</DialogClose>
+										<Button disabled={busy}>
+											{busy ? <Spinner /> : null} Create band
+										</Button>
+									</DialogFooter>
+								</form>
+							</DialogContent>
+						</Dialog>
+					) : null
+				}
+			>
 				{signedOut || !bands.length ? (
-					<Empty className="border">
+					<Empty className="border border-dashed">
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
 								<Users />
@@ -125,7 +143,7 @@ function Bands() {
 				{bands.map((band) => (
 					<BandCard key={band.id} band={band} changed={changed} run={run} />
 				))}
-			</div>
+			</PageBody>
 		</>
 	);
 }
@@ -142,33 +160,57 @@ function BandCard({
 	const [role, setRole] = useState("editor");
 	const [inviting, setInviting] = useState(false);
 	const owner = band.role === "owner";
+	const { setOwner } = useApp();
+	const navigate = useNavigate();
 	return (
 		<Card className="animate-in fade-in-0">
-			<CardHeader>
+			<CardHeader className="max-sm:grid-cols-1! max-sm:px-4">
 				<CardTitle>{band.name}</CardTitle>
-				<CardAction className="flex items-center gap-2">
+				<CardDescription>
+					{band.members.length}{" "}
+					{band.members.length === 1 ? "member" : "members"}
+				</CardDescription>
+				<CardAction className="flex items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={() => {
+							setOwner(band.id);
+							void navigate({ to: "/songs" });
+						}}
+					>
+						Open library <ArrowRight />
+					</Button>
 					{owner ? (
 						<Button
 							variant="outline"
 							size="sm"
 							onClick={() => setInviting(true)}
 						>
-							<Link2 /> Invite link
+							<Link2 /> Invite
 						</Button>
 					) : null}
-					<Badge variant="secondary">{band.role}</Badge>
 				</CardAction>
 			</CardHeader>
-			<CardContent className="divide-y">
+			<CardContent className="divide-y max-sm:px-4">
 				{band.members.map((member) => (
-					<div key={member.id} className="flex items-center gap-3 py-2">
+					<div key={member.id} className="flex items-center gap-3 py-2.5">
+						<Avatar className="size-8">
+							<AvatarFallback className="text-xs">
+								{member.name[0]?.toUpperCase()}
+							</AvatarFallback>
+						</Avatar>
 						<div className="min-w-0 flex-1">
-							<div className="truncate text-sm font-medium">{member.name}</div>
+							<div className="flex items-center gap-2 text-sm font-medium">
+								<span className="truncate">{member.name}</span>
+								<Badge variant="secondary" className="capitalize">
+									{member.role}
+								</Badge>
+							</div>
 							<div className="truncate text-xs text-muted-foreground">
 								{member.email}
 							</div>
 						</div>
-						<span className="text-xs text-muted-foreground">{member.role}</span>
 						{owner && member.role !== "owner" ? (
 							<Button
 								variant="ghost"
@@ -192,7 +234,8 @@ function BandCard({
 				))}
 			</CardContent>
 			{owner ? (
-				<CardFooter>
+				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
+					<Label htmlFor={`add-member-${band.id}`}>Add a member</Label>
 					<form
 						className="flex w-full flex-wrap gap-2"
 						onSubmit={(event) => {
@@ -212,15 +255,15 @@ function BandCard({
 						}}
 					>
 						<Input
-							aria-label="Member email"
+							id={`add-member-${band.id}`}
 							name="email"
 							type="email"
-							placeholder="Member email"
+							placeholder="Their account email"
 							required
-							className="min-w-48 flex-1"
+							className="min-w-0 flex-1 max-sm:basis-full"
 						/>
 						<Select value={role} onValueChange={setRole}>
-							<SelectTrigger className="w-28" aria-label="Role">
+							<SelectTrigger className="w-24 sm:w-28" aria-label="Role">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -230,6 +273,10 @@ function BandCard({
 						</Select>
 						<Button variant="outline">Add</Button>
 					</form>
+					<p className="text-xs text-muted-foreground">
+						Editors can change the band's songs and setlists. Viewers can open
+						and play them.
+					</p>
 				</CardFooter>
 			) : null}
 			{inviting ? (

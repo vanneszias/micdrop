@@ -2,10 +2,14 @@ import { describe, expect, test } from "bun:test";
 import {
 	displayTranspose,
 	exportChordPro,
+	keyAccidental,
 	keyDistance,
 	normalizeSheet,
 	sheetChords,
 	sheetLines,
+	sheetMetadata,
+	shiftKey,
+	stripMetadata,
 	transposeChord,
 } from "./index";
 
@@ -108,4 +112,43 @@ G  C  Em  D  x2`);
 			).content,
 		).toContain("Who am [G]I? That the [D/F#]Lord");
 	});
+});
+
+test("sheetMetadata reads directives and omits missing values", () => {
+	expect(
+		sheetMetadata(
+			"{title: Amazing Grace}\n{artist: John Newton}\n{key: G}\n{capo: 2}\n[G]A",
+		),
+	).toEqual({
+		title: "Amazing Grace",
+		artist: "John Newton",
+		key: "G",
+		sourceCapo: 2,
+	});
+	expect(sheetMetadata("{key: Am}\n[Am]Line")).not.toHaveProperty("key");
+	expect(sheetMetadata("[C]No directives")).not.toHaveProperty("title");
+});
+
+test("transposed chords use the target key's accidentals", () => {
+	const flat = keyAccidental(shiftKey("G", 1));
+	expect(["G", "C", "D", "G7"].map((c) => transposeChord(c, 1, flat))).toEqual([
+		"Ab",
+		"Db",
+		"Eb",
+		"Ab7",
+	]);
+	expect(transposeChord("G", 2, keyAccidental(shiftKey("G", 2)))).toBe("A");
+	expect(transposeChord("D", 4, keyAccidental(shiftKey("D", 4)))).toBe("F#");
+	expect(keyAccidental("F")).toBe("b");
+	// Capo 2 on a D song shows C shapes, never B# or E#.
+	const shapes = keyAccidental(shiftKey("D", -2));
+	expect(
+		["D", "D7", "G", "A"].map((c) => transposeChord(c, -2, shapes)),
+	).toEqual(["C", "C7", "F", "G"]);
+});
+
+test("stripMetadata keeps everything but record-owned directives", () => {
+	expect(
+		stripMetadata("{title: A}\n{artist: B}\n{key: G}\n{tempo: 72}\n\n[G]Line"),
+	).toBe("{tempo: 72}\n\n[G]Line");
 });

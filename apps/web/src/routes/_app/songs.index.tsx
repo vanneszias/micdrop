@@ -27,16 +27,30 @@ import {
 	Table,
 	TableBody,
 	TableCell,
-	TableHead,
-	TableHeader,
 	TableRow,
 } from "@chords/ui/components/table";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { EllipsisVertical, Music, Plus } from "lucide-react";
+import {
+	Archive,
+	ArrowRightLeft,
+	CopyPlus,
+	Download,
+	FolderInput,
+	Globe,
+	Lock,
+	MoreHorizontal,
+	Music,
+	Pencil,
+	PencilLine,
+	Plus,
+	SearchX,
+	Share2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { PageHeader } from "#/components/page-header";
+import { LibraryChip } from "#/components/app-sidebar";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
@@ -87,12 +101,29 @@ function Songs() {
 	);
 	return (
 		<>
-			<PageHeader title="Repertoire">{songs.length ? add : null}</PageHeader>
-			<div className="w-full space-y-4 p-4">
+			<PageHeader pageTitle title="Repertoire" />
+			<PageBody
+				title={
+					owner === account
+						? "Repertoire"
+						: `${bands.find((band) => band.id === owner)?.name ?? "Band"} repertoire`
+				}
+				description={
+					songs.length
+						? `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
+						: undefined
+				}
+				actions={
+					<>
+						<LibraryChip />
+						{songs.length ? add : null}
+					</>
+				}
+			>
 				{songs.length ? (
 					<SearchInput
 						aria-label="Search songs"
-						placeholder="Search title, artist or lyrics"
+						placeholder="Search title, artist or lyrics…"
 						value={q}
 						onChange={(event) =>
 							void navigate({
@@ -100,58 +131,79 @@ function Songs() {
 								replace: true,
 							})
 						}
+						onClear={() => void navigate({ search: {}, replace: true })}
 					/>
 				) : null}
 				{shown.length ? (
 					<div className="rounded-lg border">
 						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Song</TableHead>
-									<TableHead className="w-16">Key</TableHead>
-									<TableHead className="w-12" />
-								</TableRow>
-							</TableHeader>
 							<TableBody>
 								{shown.map((song) => (
-									<TableRow key={song.id} className="relative">
-										<TableCell>
-											<Link
-												to="/songs/$id"
-												params={{ id: song.id }}
-												className="block font-medium after:absolute after:inset-0 hover:underline"
+									<TableRow key={song.id} className="relative h-15">
+										<TableCell className="w-px pl-4">
+											<Badge
+												variant="secondary"
+												className="min-w-8 justify-center font-mono text-xs"
 											>
-												{song.data.title}
-											</Link>
-											<div className="text-xs text-muted-foreground">
-												{song.data.artist || "Unknown artist"} ·{" "}
-												{song.data.arrangementName || "Standard"} ·{" "}
-												{song.data.draft
-													? "Draft"
-													: song.data.visibility || "private"}
-												{song.data.preferred ? " · Preferred" : ""}
-											</div>
-										</TableCell>
-										<TableCell>
-											<Badge variant="secondary" className="font-mono">
 												{song.data.key}
 											</Badge>
 										</TableCell>
-										<TableCell className="relative z-[1] text-right">
+										<TableCell className="w-full max-w-0">
+											<Link
+												to="/songs/$id"
+												params={{ id: song.id }}
+												className="block truncate font-medium after:absolute after:inset-0 hover:underline"
+											>
+												{song.data.title}
+											</Link>
+											<div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+												<span className="truncate">
+													{[
+														song.data.artist || "Unknown artist",
+														song.data.arrangementName,
+													]
+														.filter(Boolean)
+														.join(" · ")}
+												</span>
+											</div>
+										</TableCell>
+										<TableCell className="w-px text-right">
+											<Badge
+												variant="outline"
+												className="font-normal text-muted-foreground max-sm:border-transparent max-sm:px-1"
+											>
+												{song.data.draft ? (
+													<PencilLine />
+												) : song.data.visibility === "public" ? (
+													<Globe />
+												) : (
+													<Lock />
+												)}
+												<span className="max-sm:sr-only">
+													{song.data.draft
+														? "Draft"
+														: song.data.visibility === "public"
+															? "Public"
+															: "Private"}
+												</span>
+											</Badge>
+										</TableCell>
+										<TableCell className="relative z-[1] w-px pr-2 text-right">
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
 													<Button
 														variant="ghost"
-														size="icon-sm"
+														size="icon"
+														className="size-10"
 														aria-label={`Actions for ${song.data.title}`}
 													>
-														<EllipsisVertical />
+														<MoreHorizontal />
 													</Button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">
 													<DropdownMenuItem asChild>
 														<Link to="/songs/$id/edit" params={{ id: song.id }}>
-															Edit
+															<Pencil /> Edit
 														</Link>
 													</DropdownMenuItem>
 													<DropdownMenuItem
@@ -171,10 +223,10 @@ function Songs() {
 															)
 														}
 													>
-														Duplicate
+														<CopyPlus /> Duplicate
 													</DropdownMenuItem>
 													<DropdownMenuItem onClick={() => exportSheet(song)}>
-														Export ChordPro
+														<Download /> Export ChordPro
 													</DropdownMenuItem>
 													<DropdownMenuItem
 														disabled={
@@ -208,18 +260,18 @@ function Songs() {
 															})
 														}
 													>
-														Publish
+														<Globe /> Publish
 													</DropdownMenuItem>
 													<DropdownMenuItem
 														disabled={account === "local"}
 														onClick={() => setSharing(song)}
 													>
-														Share link
+														<Share2 /> Share link
 													</DropdownMenuItem>
 													{targets.length ? (
 														<DropdownMenuSub>
 															<DropdownMenuSubTrigger>
-																Copy to
+																<FolderInput /> Copy to
 															</DropdownMenuSubTrigger>
 															<DropdownMenuSubContent>
 																{targets.map((target) => (
@@ -244,7 +296,7 @@ function Songs() {
 													{targets.length && movable ? (
 														<DropdownMenuSub>
 															<DropdownMenuSubTrigger>
-																Move to
+																<ArrowRightLeft /> Move to
 															</DropdownMenuSubTrigger>
 															<DropdownMenuSubContent>
 																{targets.map((target) => (
@@ -273,7 +325,7 @@ function Songs() {
 															)
 														}
 													>
-														Archive
+														<Archive /> Archive
 													</DropdownMenuItem>
 												</DropdownMenuContent>
 											</DropdownMenu>
@@ -284,16 +336,22 @@ function Songs() {
 						</Table>
 					</div>
 				) : (
-					<Empty className="border">
+					<Empty className="border border-dashed">
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
-								<Music />
+								{q ? <SearchX /> : <Music />}
 							</EmptyMedia>
-							<EmptyTitle>{q ? "No matches" : "No songs yet"}</EmptyTitle>
+							<EmptyTitle>
+								{q ? `No songs match “${q}”` : "No songs yet"}
+							</EmptyTitle>
 							<EmptyDescription>
 								{q
-									? "Try another title, artist or lyric."
-									: "Add a song to get started. No account needed."}
+									? "Check the spelling, or try the artist or a line of the lyrics."
+									: owner !== account
+										? `Songs added here are shared with everyone in ${bands.find((band) => band.id === owner)?.name ?? "this band"}.`
+										: account === "local"
+											? "Paste a chord sheet or import one from a link. No account needed."
+											: "Paste a chord sheet, import one from a link, or save one from the catalogue."}
 							</EmptyDescription>
 						</EmptyHeader>
 						<EmptyContent>
@@ -310,7 +368,7 @@ function Songs() {
 						</EmptyContent>
 					</Empty>
 				)}
-			</div>
+			</PageBody>
 			{sharing ? (
 				<ShareDialog
 					key={sharing.id}
