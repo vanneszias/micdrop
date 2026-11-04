@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
@@ -66,6 +67,11 @@ const LoginRoute = LoginRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/privacy': typeof PrivacyRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/admin': typeof AppAdminRouteWithChildren
   '/bands': typeof AppBandsRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/privacy': typeof PrivacyRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/privacy': typeof PrivacyRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/bands': typeof AppBandsRoute
@@ -371,6 +380,7 @@ export interface FileRouteTypes {
     | '/consent'
     | '/login'
     | '/mcp'
+    | '/privacy'
     | '/.well-known/$'
     | '/admin'
     | '/bands'
@@ -410,6 +420,7 @@ export interface FileRouteTypes {
     | '/consent'
     | '/login'
     | '/mcp'
+    | '/privacy'
     | '/.well-known/$'
     | '/bands'
     | '/community'
@@ -449,6 +460,7 @@ export interface FileRouteTypes {
     | '/consent'
     | '/login'
     | '/mcp'
+    | '/privacy'
     | '/.well-known/$'
     | '/_app/admin'
     | '/_app/bands'
@@ -491,6 +503,7 @@ export interface RootRouteChildren {
   ConsentRoute: typeof ConsentRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
+  PrivacyRoute: typeof PrivacyRoute
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   ApiAdminRoute: typeof ApiAdminRoute
   ApiBandsRoute: typeof ApiBandsRoute
@@ -531,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/$': {
@@ -874,6 +894,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConsentRoute: ConsentRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
+  PrivacyRoute: PrivacyRoute,
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   ApiAdminRoute: ApiAdminRoute,
   ApiBandsRoute: ApiBandsRoute,

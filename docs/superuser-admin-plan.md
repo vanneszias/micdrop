@@ -99,8 +99,18 @@ Every step needs integration tests in `apps/web/src/server`. The key ones:
 - quotas return 429;
 - deletes leave no orphaned records or FTS rows.
 
-## Open questions
+## Resolved during implementation
 
-- Should `/admin` also work offline (`routeTree.offline.gen.ts`)? Proposal: no, online only.
-- Signup-burst threshold (proposed: 5 per IP per hour).
-- Should impersonating someone send them a notice afterwards?
+- `/admin` is online only and left out of the offline shell.
+- Sign-up bursts are flagged at 5 accounts from one IP (`SIGNUP_BURST`).
+- Better Auth rate limiting was off on Workers (`NODE_ENV` is never `production` there) and
+  read only `x-forwarded-for`; it now reads `cf-connecting-ip`, stores counts in D1 and is
+  enabled outside the Vite dev server.
+- Disabled OAuth clients and banned accounts are refused at `/mcp` on every call, because
+  access tokens are self-contained JWTs.
+- Share links are handled by `rowid` in the admin UI, so their secret never leaves the server.
+
+## Still open
+
+- Should someone be told after an administrator impersonated them?
+- Should `/mcp` and `/api/search` get a Workers rate-limit binding against scraping?

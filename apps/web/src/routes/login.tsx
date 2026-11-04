@@ -276,6 +276,11 @@ function Login() {
 										{mode === "signin" ? "Create an account" : "Sign in"}
 									</button>
 								</FieldDescription>
+								<FieldDescription className="text-center text-xs">
+									<Link to="/privacy" className="underline underline-offset-4">
+										How Mic Drop handles your data
+									</Link>
+								</FieldDescription>
 							</Field>
 						</FieldGroup>
 					</form>

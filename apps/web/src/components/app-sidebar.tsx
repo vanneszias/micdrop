@@ -429,7 +429,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						className="font-medium text-foreground underline-offset-4 transition-colors hover:text-rose-500 hover:underline"
 					>
 						zias.be
-					</a>
+					</a>{" "}
+					·{" "}
+					<Link
+						to="/privacy"
+						className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+					>
+						Privacy
+					</Link>
 				</p>
 			</SidebarFooter>
 			<SidebarRail />
