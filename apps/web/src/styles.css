@@ -125,13 +125,13 @@
 .diagram:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 .diagram { background: none; border: 0; color: var(--foreground); transition: transform .15s; }
 .diagram:active { transform: scale(.95); }
-.diagram strong { font-family: var(--font-mono); }
+.diagram strong { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
 .diagram small, .diagram-missing small { display: block; font-size: 11px; color: var(--muted-foreground); }
 .diagram svg { display: block; width: 100%; height: auto; margin-top: .125rem; }
 .diagram svg text:not([fill]) { fill: currentColor; }
 .diagram svg text[fill='white'] { fill: var(--brand-foreground); font-weight: 600; }
 .diagram-dot { fill: var(--brand); }
-.diagram-barre { stroke: var(--brand); }
+.diagram-barre { fill: var(--brand); }
 .muted { color: var(--muted-foreground); }
 
 @media (max-width: 640px) {

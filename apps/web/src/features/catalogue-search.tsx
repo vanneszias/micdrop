@@ -310,6 +310,7 @@ export function CatalogueSearch({
 									<span className="flex items-center gap-2 text-sm font-medium">
 										{group.title}
 										{publicOnly &&
+										selected !== group.id &&
 										arrangements.some(
 											(song) =>
 												song.owner === owner && songGroup(song) === group.id,
@@ -346,12 +347,8 @@ export function CatalogueSearch({
 									type="button"
 									size="sm"
 									// Songs already in the set get a quiet "add again" so duplicates stay deliberate.
-									variant={
-										inSet && group.local.some((song) => inSet.includes(song.id))
-											? "ghost"
-											: "outline"
-									}
-									className="min-w-28 data-[variant=ghost]:text-muted-foreground"
+									variant="outline"
+									className="min-w-28"
 									disabled={busy || !editable}
 									onClick={() => {
 										const preferred = [...group.local]

@@ -70,9 +70,12 @@ export function showsBottomNav(pathname: string) {
 function AccountMenu({
 	children,
 	side,
+	showLibraries = false,
 }: {
 	children: React.ReactNode;
 	side: "top" | "right";
+	/** Phones have no sidebar switcher, so the menu lists the libraries. */
+	showLibraries?: boolean;
 }) {
 	const { user, store, run, busy, online } = useApp();
 	const [connecting, setConnecting] = useState(false);
@@ -92,7 +95,7 @@ function AccountMenu({
 						</div>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
-					{side === "top" && app.bands.length ? (
+					{showLibraries && app.bands.length ? (
 						<>
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
 								Library
@@ -367,7 +370,7 @@ export function BottomNav() {
 					);
 				})}
 				{user ? (
-					<AccountMenu side="top">
+					<AccountMenu side="top" showLibraries>
 						<button type="button" className={tabClass}>
 							<User className="size-5" />
 							Account

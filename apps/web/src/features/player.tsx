@@ -525,8 +525,16 @@ export function Player({
 				aria-label="Chord sheet"
 			>
 				{/* Three columns keep the sheet centred whether or not the diagram rail shows. */}
-				<div className="flex justify-center xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10">
-					<div className="max-xl:hidden" />
+				<div
+					className={cn(
+						"flex justify-center",
+						// One column centres in a three-column grid; wider layouts take the room they need.
+						columns === 1
+							? "xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10"
+							: "gap-8 px-2",
+					)}
+				>
+					{columns === 1 ? <div className="max-xl:hidden" /> : null}
 					<article
 						className={cn(
 							"min-w-0 px-5 py-6 pb-24 max-sm:w-full max-xl:mx-auto sm:px-6 sm:py-8 xl:min-w-[36rem]",

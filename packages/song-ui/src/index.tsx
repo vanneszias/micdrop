@@ -225,7 +225,7 @@ function GuitarDiagram({
 		>
 			<strong>{chord}</strong>
 			<svg
-				viewBox="0 0 100 112"
+				viewBox="-14 0 114 112"
 				role="img"
 				aria-label={`${chord} guitar fingering, fret ${shape.baseFret}`}
 			>
@@ -252,7 +252,7 @@ function GuitarDiagram({
 					/>
 				))}
 				{shape.baseFret > 1 ? (
-					<text x="0" y="36" fontSize="10" fontWeight="600">
+					<text x="3" y="37" fontSize="10" fontWeight="600" textAnchor="end">
 						{shape.baseFret}fr
 					</text>
 				) : null}
@@ -266,14 +266,13 @@ function GuitarDiagram({
 					// One bar with one finger number reads better than a row of identical dots.
 					return (
 						<g key={`barre-${fret}`}>
-							<line
-								x1={from}
-								x2={to}
-								y1={13.5 + fret * 19}
-								y2={13.5 + fret * 19}
+							<rect
+								x={from - 7}
+								y={6.5 + fret * 19}
+								width={to - from + 14}
+								height="14"
+								rx="7"
 								className="diagram-barre"
-								strokeWidth="14"
-								strokeLinecap="round"
 							/>
 							<text
 								x={(from + to) / 2}

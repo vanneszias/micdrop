@@ -170,7 +170,7 @@ function Songs() {
 										<TableCell className="w-px text-right">
 											<Badge
 												variant="outline"
-												className="font-normal text-muted-foreground"
+												className="font-normal text-muted-foreground max-sm:border-transparent max-sm:px-1"
 											>
 												{song.data.draft ? (
 													<PencilLine />

@@ -682,7 +682,7 @@ export function Editor({
 										.join(" · ")}
 								</p>
 							</header>
-							<SongSheet content={content} fontSize={18} />
+							<SongSheet content={content} fontSize={20} />
 						</div>
 					) : null}
 				</div>
