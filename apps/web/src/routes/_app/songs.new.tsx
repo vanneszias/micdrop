@@ -34,7 +34,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link2, PenLine, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 import { api } from "#/lib/songs";
 
@@ -74,7 +74,7 @@ function NewSong() {
 		});
 	return (
 		<>
-			<PageHeader title="Add song">
+			<PageHeader back title="Add song">
 				<Button
 					variant="outline"
 					size="sm"
@@ -84,7 +84,10 @@ function NewSong() {
 					<PenLine /> Blank song
 				</Button>
 			</PageHeader>
-			<div className="w-full max-w-3xl p-4">
+			<PageBody
+				title="Add a song"
+				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
+			>
 				<Tabs defaultValue="paste">
 					<TabsList>
 						<TabsTrigger value="paste">Paste</TabsTrigger>
@@ -244,7 +247,7 @@ function NewSong() {
 						</FieldGroup>
 					</TabsContent>
 				</Tabs>
-			</div>
+			</PageBody>
 		</>
 	);
 }

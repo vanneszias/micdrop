@@ -39,7 +39,7 @@ function AdminLayout() {
 			<>
 				<PageHeader title="Administration" />
 				<div className="p-4">
-					<Empty className="border">
+					<Empty className="border border-dashed">
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
 								<ShieldAlert />

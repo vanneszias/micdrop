@@ -190,7 +190,7 @@ function GuitarDiagram({
 			type="button"
 			className="diagram"
 			onClick={() => setPosition((value) => value + 1)}
-			title={`${chord}: change fingering`}
+			title={`${chord}: tap for another shape`}
 		>
 			<strong>{chord}</strong>
 			<svg
@@ -201,8 +201,8 @@ function GuitarDiagram({
 				{Array.from({ length: 6 }, (_, i) => (
 					<line
 						key={`string-${i}`}
-						x1={20 + i * 12}
-						x2={20 + i * 12}
+						x1={15 + i * 14}
+						x2={15 + i * 14}
 						y1="23"
 						y2="99"
 						stroke="currentColor"
@@ -212,8 +212,8 @@ function GuitarDiagram({
 				{Array.from({ length: 5 }, (_, i) => (
 					<line
 						key={`fret-${i}`}
-						x1="20"
-						x2="80"
+						x1="15"
+						x2="85"
 						y1={23 + i * 19}
 						y2={23 + i * 19}
 						stroke="currentColor"
@@ -232,8 +232,8 @@ function GuitarDiagram({
 					return (
 						<line
 							key={`barre-${fret}`}
-							x1={20 + Math.min(...strings) * 12}
-							x2={20 + Math.max(...strings) * 12}
+							x1={15 + Math.min(...strings) * 14}
+							x2={15 + Math.max(...strings) * 14}
 							y1={13.5 + fret * 19}
 							y2={13.5 + fret * 19}
 							stroke="currentColor"
@@ -246,13 +246,13 @@ function GuitarDiagram({
 					fret > 0 ? (
 						<g key={`dot-${i}`}>
 							<circle
-								cx={20 + i * 12}
+								cx={15 + i * 14}
 								cy={13.5 + fret * 19}
-								r="5.5"
+								r="6"
 								fill="currentColor"
 							/>
 							<text
-								x={20 + i * 12}
+								x={15 + i * 14}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
 								fontSize="8"
@@ -261,22 +261,31 @@ function GuitarDiagram({
 								{shape.fingers[i] || ""}
 							</text>
 						</g>
-					) : (
-						<text
+					) : fret === 0 ? (
+						<circle
 							key={`open-${i}`}
-							x={20 + i * 12}
-							y="16"
-							textAnchor="middle"
-							fontSize="12"
-						>
-							{fret === 0 ? "○" : "×"}
-						</text>
+							cx={15 + i * 14}
+							cy="12"
+							r="3.5"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1.2"
+						/>
+					) : (
+						<path
+							key={`mute-${i}`}
+							d={`M${11.5 + i * 14} 8.5l7 7m0 -7l-7 7`}
+							stroke="currentColor"
+							strokeWidth="1.2"
+						/>
 					),
 				)}
 			</svg>
-			<small>
-				{(position % shapes.length) + 1}/{shapes.length}
-			</small>
+			{shapes.length > 1 ? (
+				<small>
+					Shape {(position % shapes.length) + 1} of {shapes.length}
+				</small>
+			) : null}
 		</button>
 	);
 }

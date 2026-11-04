@@ -12,6 +12,7 @@ import {
 } from "@chords/ui/components/card";
 import {
 	Dialog,
+	DialogClose,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,
@@ -41,7 +42,7 @@ import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Link2, Plus, Users, X } from "lucide-react";
 import { useState } from "react";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
 import { api, type Band } from "#/lib/songs";
@@ -93,8 +94,13 @@ function Bands() {
 									<Input id="band-name" name="name" required maxLength={100} />
 								</Field>
 								<DialogFooter>
+									<DialogClose asChild>
+										<Button type="button" variant="outline">
+											Cancel
+										</Button>
+									</DialogClose>
 									<Button disabled={busy}>
-										{busy ? <Spinner /> : null} Create
+										{busy ? <Spinner /> : null} Create band
 									</Button>
 								</DialogFooter>
 							</form>
@@ -102,9 +108,12 @@ function Bands() {
 					</Dialog>
 				) : null}
 			</PageHeader>
-			<div className="w-full space-y-4 p-4">
+			<PageBody
+				title="Bands"
+				description="Share a repertoire and setlists with the people you play with."
+			>
 				{signedOut || !bands.length ? (
-					<Empty className="border">
+					<Empty className="border border-dashed">
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
 								<Users />
@@ -128,7 +137,7 @@ function Bands() {
 				{bands.map((band) => (
 					<BandCard key={band.id} band={band} changed={changed} run={run} />
 				))}
-			</div>
+			</PageBody>
 		</>
 	);
 }
@@ -161,7 +170,7 @@ function BandCard({
 							size="sm"
 							onClick={() => setInviting(true)}
 						>
-							<Link2 /> Invite link
+							<Link2 /> <span className="max-sm:sr-only">Invite link</span>
 						</Button>
 					) : null}
 				</CardAction>

@@ -8,7 +8,15 @@ import {
 	songGroup,
 } from "@chords/data";
 import { SongSheet } from "@chords/song-ui";
+import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
+import { ButtonGroup } from "@chords/ui/components/button-group";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@chords/ui/components/dropdown-menu";
 import {
 	Empty,
 	EmptyDescription,
@@ -19,7 +27,17 @@ import {
 import { Input } from "@chords/ui/components/input";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Globe, Plus, SearchX } from "lucide-react";
+import {
+	Check,
+	Eye,
+	Flag,
+	Globe,
+	MoreHorizontal,
+	Plus,
+	SearchX,
+	ThumbsDown,
+	ThumbsUp,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
@@ -33,12 +51,15 @@ export function CatalogueSearch({
 	publicOnly = false,
 	chooseGroup,
 	excludeId,
+	inSet,
 }: {
 	onSelect?: (song: Arrangement) => Promise<void>;
 	initialQuery?: string;
 	publicOnly?: boolean;
 	chooseGroup?: (group: { id: string; title: string }) => void;
 	excludeId?: string;
+	/** Arrangement ids already in the setlist being edited. */
+	inSet?: string[];
 }) {
 	const { account, owner, online, arrangements, bands, save, busy, run } =
 		useApp();
@@ -145,12 +166,20 @@ export function CatalogueSearch({
 				</p>
 			) : null}
 			{!groups.length && !catalogue.isFetching ? (
-				<Empty className="border border-dashed py-10">
+				<Empty
+					className={
+						chooseGroup
+							? "border border-dashed p-4 md:p-4"
+							: "border border-dashed py-10"
+					}
+				>
 					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							{debounced.trim() ? <SearchX /> : <Globe />}
-						</EmptyMedia>
-						<EmptyTitle className="text-base">
+						{chooseGroup ? null : (
+							<EmptyMedia variant="icon">
+								{debounced.trim() ? <SearchX /> : <Globe />}
+							</EmptyMedia>
+						)}
+						<EmptyTitle className={chooseGroup ? "text-sm" : "text-base"}>
 							{debounced.trim()
 								? `No songs match “${debounced.trim()}”`
 								: publicOnly
@@ -182,7 +211,15 @@ export function CatalogueSearch({
 									setSelected(selected === group.id ? undefined : group.id)
 								}
 							>
-								<span className="block font-medium">{group.title}</span>
+								<span className="flex items-center gap-2 text-sm font-medium">
+									{group.title}
+									{inSet &&
+									group.local.some((song) => inSet.includes(song.id)) ? (
+										<Badge variant="secondary" className="font-normal">
+											<Check /> In set
+										</Badge>
+									) : null}
+								</span>
 								<span className="block text-xs text-muted-foreground">
 									{[
 										group.artists || "Unknown artist",
@@ -229,7 +266,12 @@ export function CatalogueSearch({
 							) : null}
 						</div>
 						{selected === group.id ? (
-							<ArrangementChoices group={group} onSelect={select} busy={busy} />
+							<ArrangementChoices
+								group={group}
+								onSelect={select}
+								busy={busy}
+								picking={!!onSelect}
+							/>
 						) : null}
 					</li>
 				))}
@@ -251,12 +293,15 @@ function ArrangementChoices({
 	group,
 	onSelect,
 	busy,
+	picking,
 }: {
 	group: Group;
 	onSelect: (song: Arrangement) => Promise<void>;
 	busy: boolean;
+	/** True when choosing for a setlist or song group rather than saving to the repertoire. */
+	picking: boolean;
 }) {
-	const { account, owner, online, bands, run } = useApp();
+	const { account, owner, online, bands, run, arrangements } = useApp();
 	const editable =
 		owner === account ||
 		canEditRole(bands.find((band) => band.id === owner)?.role);
@@ -323,6 +368,7 @@ function ArrangementChoices({
 					id: song.id,
 					data: song.data,
 					local: song,
+					saved: false,
 					score: 0,
 					myVote: 0,
 				})),
@@ -332,13 +378,19 @@ function ArrangementChoices({
 						id: p.id,
 						data: p.data,
 						local: undefined,
+						saved: arrangements.some(
+							(song) =>
+								song.owner === owner &&
+								(song.id === p.record_id ||
+									song.data.copiedFrom === p.record_id),
+						),
 						score: p.score,
 						myVote: p.myVote,
 					})),
 			].map((version, index) => (
 				<div key={version.id} className="space-y-2">
 					<div className="flex flex-wrap items-center gap-2">
-						<div className="min-w-0 flex-1 text-sm">
+						<div className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
 							<span className="font-medium">
 								{version.data.artist || "Unknown artist"} ·{" "}
 								{version.data.arrangementName || "Standard arrangement"}
@@ -348,11 +400,13 @@ function ArrangementChoices({
 									? version.local.owner === owner
 										? "Repertoire"
 										: "Personal"
-									: `Public · score ${version.score}`}
+									: version.score
+										? `Public · ${version.score > 0 ? "+" : ""}${version.score} from players`
+										: "Public"}
 								{version.data.preferred
-									? " · Preferred"
-									: index === 0
-										? " · Recommended"
+									? " · Your preferred version"
+									: index === 0 && version.score > 0
+										? " · Top rated"
 										: ""}
 								{version.data.draft ? " · Draft" : ""}
 							</p>
@@ -361,15 +415,20 @@ function ArrangementChoices({
 							type="button"
 							size="sm"
 							variant="ghost"
+							aria-expanded={preview === version.id}
 							onClick={() =>
 								setPreview(preview === version.id ? undefined : version.id)
 							}
 						>
-							Preview
+							<Eye /> {preview === version.id ? "Hide" : "Preview"}
 						</Button>
 						{account === "local" ? (
 							<Button size="sm" variant="outline" asChild>
 								<Link to="/login">Sign in to save</Link>
+							</Button>
+						) : version.saved && !picking ? (
+							<Button size="sm" variant="outline" disabled>
+								<Check /> Saved
 							</Button>
 						) : (
 							<Button
@@ -388,34 +447,48 @@ function ArrangementChoices({
 						)}
 						{!version.local && account !== "local" ? (
 							<>
-								{([1, -1] as const).map((value) => (
-									<Button
-										key={value}
-										type="button"
-										size="sm"
-										variant="ghost"
-										aria-pressed={version.myVote === value}
-										onClick={() =>
-											void run(async () => {
-												await api("/api/publications", {
-													action: "vote",
-													id: version.id,
-													value: version.myVote === value ? 0 : value,
-												});
-												await versions.refetch();
-											})
-										}
-									>
-										{value === 1 ? "Useful" : "Not useful"}
-									</Button>
-								))}
-								<Button
-									size="sm"
-									variant="ghost"
-									onClick={() => setReport(version.id)}
-								>
-									Report
-								</Button>
+								<ButtonGroup aria-label="Rate this arrangement">
+									{([1, -1] as const).map((value) => (
+										<Button
+											key={value}
+											type="button"
+											size="icon-sm"
+											variant="outline"
+											aria-label={value === 1 ? "Useful" : "Not useful"}
+											aria-pressed={version.myVote === value}
+											className="aria-pressed:bg-accent aria-pressed:text-foreground"
+											onClick={() =>
+												void run(async () => {
+													await api("/api/publications", {
+														action: "vote",
+														id: version.id,
+														value: version.myVote === value ? 0 : value,
+													});
+													await versions.refetch();
+												})
+											}
+										>
+											{value === 1 ? <ThumbsUp /> : <ThumbsDown />}
+										</Button>
+									))}
+								</ButtonGroup>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											type="button"
+											size="icon-sm"
+											variant="ghost"
+											aria-label="More actions"
+										>
+											<MoreHorizontal />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										<DropdownMenuItem onSelect={() => setReport(version.id)}>
+											<Flag /> Report a problem
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
 							</>
 						) : null}
 					</div>

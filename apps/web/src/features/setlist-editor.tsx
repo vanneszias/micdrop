@@ -15,7 +15,6 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	AlertDialogTrigger,
 } from "@chords/ui/components/alert-dialog";
 import { Button } from "@chords/ui/components/button";
 import { Calendar } from "@chords/ui/components/calendar";
@@ -174,6 +173,7 @@ export function SetlistEditor({
 			popup.requestAnimationFrame(() => popup.print()),
 		);
 	}
+	const [deleting, setDeleting] = useState(false);
 	return (
 		<>
 			<PageHeader embedded title={list.data.title}>
@@ -202,12 +202,22 @@ export function SetlistEditor({
 				>
 					<Printer />
 				</Button>
-				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<Button variant="ghost" size="icon-sm" aria-label="Delete setlist">
-							<Trash2 />
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="ghost" size="icon-sm" aria-label="Setlist actions">
+							<MoreHorizontal />
 						</Button>
-					</AlertDialogTrigger>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem
+							variant="destructive"
+							onSelect={() => setDeleting(true)}
+						>
+							<Trash2 /> Delete setlist
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+				<AlertDialog open={deleting} onOpenChange={setDeleting}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete this setlist?</AlertDialogTitle>
@@ -379,6 +389,7 @@ export function SetlistEditor({
 				<div className="space-y-3">
 					<h2 className="font-medium">Add songs</h2>
 					<CatalogueSearch
+						inSet={list.data.entries.map((entry) => entry.arrangementId)}
 						onSelect={async (source) => {
 							const { rows } = addToSetlist(list, source, songs);
 							await saveMany(rows);

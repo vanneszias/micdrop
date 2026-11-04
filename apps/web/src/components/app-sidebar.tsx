@@ -27,14 +27,21 @@ import {
 import { cn } from "@chords/ui/lib/utils";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+	Bot,
 	ChevronsUpDown,
 	Cloud,
 	CloudOff,
 	Globe,
+	HardDriveUpload,
 	Heart,
 	ListMusic,
 	LogIn,
+	LogOut,
+	Monitor,
+	Moon,
 	Music,
+	Shield,
+	Sun,
 	User,
 	Users,
 } from "lucide-react";
@@ -44,6 +51,7 @@ import { ConnectAssistantDialog } from "#/features/connect-assistant";
 import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
+import { type Theme, useTheme } from "#/lib/theme";
 
 const items = [
 	{ to: "/songs", label: "Repertoire", icon: Music },
@@ -54,7 +62,8 @@ const items = [
 
 // Playing a song is full screen on mobile, like a native performance mode.
 export function showsBottomNav(pathname: string) {
-	return !/^\/(songs\/(?!new$)|shared\/)[^/]+$/.test(pathname);
+	// Songs, the song editor and shared links get the full screen.
+	return !/^\/(songs\/(?!new$)[^/]+(\/edit)?|shared\/[^/]+)$/.test(pathname);
 }
 
 function AccountMenu({
@@ -67,6 +76,7 @@ function AccountMenu({
 	const { user, store, run, busy, online } = useApp();
 	const [connecting, setConnecting] = useState(false);
 	const impersonating = !!useImpersonator();
+	const { theme, setTheme } = useTheme();
 	return (
 		<>
 			<DropdownMenu>
@@ -79,6 +89,24 @@ function AccountMenu({
 						</div>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
+					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+						Appearance
+					</DropdownMenuLabel>
+					<DropdownMenuRadioGroup
+						value={theme}
+						onValueChange={(value) => setTheme(value as Theme)}
+					>
+						<DropdownMenuRadioItem value="system">
+							<Monitor /> System
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem value="light">
+							<Sun /> Light
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem value="dark">
+							<Moon /> Dark
+						</DropdownMenuRadioItem>
+					</DropdownMenuRadioGroup>
+					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						// While impersonating, this would copy the administrator's own songs.
 						disabled={busy || impersonating}
@@ -89,14 +117,16 @@ function AccountMenu({
 							)
 						}
 					>
-						Import this device’s songs
+						<HardDriveUpload /> Import this device’s songs
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => setConnecting(true)}>
-						Add to Claude or ChatGPT
+						<Bot /> Add to Claude or ChatGPT
 					</DropdownMenuItem>
 					{online && user?.role?.split(",").includes("admin") ? (
 						<DropdownMenuItem asChild>
-							<Link to="/admin">Administration</Link>
+							<Link to="/admin">
+								<Shield /> Administration
+							</Link>
 						</DropdownMenuItem>
 					) : null}
 					<DropdownMenuItem
@@ -110,7 +140,7 @@ function AccountMenu({
 							})
 						}
 					>
-						Sign out
+						<LogOut /> Sign out
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -251,7 +281,9 @@ export function BottomNav() {
 			aria-label="Main"
 			className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
 		>
-			{bands.length ? <LibrarySwitcher mobile /> : null}
+			{bands.length && /^\/(songs|setlists)$/.test(pathname) ? (
+				<LibrarySwitcher mobile />
+			) : null}
 			<div className="grid grid-cols-5">
 				{tabs.map((item) => {
 					const active = pathname.startsWith(item.to);

@@ -32,11 +32,24 @@ import {
 	TableRow,
 } from "@chords/ui/components/table";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { EllipsisVertical, Music, Plus } from "lucide-react";
+import {
+	Archive,
+	ArrowRightLeft,
+	Copy,
+	CopyPlus,
+	Download,
+	EllipsisVertical,
+	Globe,
+	Music,
+	Pencil,
+	Plus,
+	SearchX,
+	Share2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
@@ -88,7 +101,18 @@ function Songs() {
 	return (
 		<>
 			<PageHeader title="Repertoire">{songs.length ? add : null}</PageHeader>
-			<div className="w-full space-y-4 p-4">
+			<PageBody
+				title={
+					owner === account
+						? "Repertoire"
+						: `${bands.find((band) => band.id === owner)?.name ?? "Band"} repertoire`
+				}
+				description={
+					songs.length
+						? `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
+						: undefined
+				}
+			>
 				{songs.length ? (
 					<SearchInput
 						aria-label="Search songs"
@@ -162,7 +186,7 @@ function Songs() {
 												<DropdownMenuContent align="end">
 													<DropdownMenuItem asChild>
 														<Link to="/songs/$id/edit" params={{ id: song.id }}>
-															Edit
+															<Pencil /> Edit
 														</Link>
 													</DropdownMenuItem>
 													<DropdownMenuItem
@@ -182,10 +206,10 @@ function Songs() {
 															)
 														}
 													>
-														Duplicate
+														<CopyPlus /> Duplicate
 													</DropdownMenuItem>
 													<DropdownMenuItem onClick={() => exportSheet(song)}>
-														Export ChordPro
+														<Download /> Export ChordPro
 													</DropdownMenuItem>
 													<DropdownMenuItem
 														disabled={
@@ -219,18 +243,18 @@ function Songs() {
 															})
 														}
 													>
-														Publish
+														<Globe /> Publish
 													</DropdownMenuItem>
 													<DropdownMenuItem
 														disabled={account === "local"}
 														onClick={() => setSharing(song)}
 													>
-														Share link
+														<Share2 /> Share link
 													</DropdownMenuItem>
 													{targets.length ? (
 														<DropdownMenuSub>
 															<DropdownMenuSubTrigger>
-																Copy to
+																<Copy /> Copy to
 															</DropdownMenuSubTrigger>
 															<DropdownMenuSubContent>
 																{targets.map((target) => (
@@ -255,7 +279,7 @@ function Songs() {
 													{targets.length && movable ? (
 														<DropdownMenuSub>
 															<DropdownMenuSubTrigger>
-																Move to
+																<ArrowRightLeft /> Move to
 															</DropdownMenuSubTrigger>
 															<DropdownMenuSubContent>
 																{targets.map((target) => (
@@ -284,7 +308,7 @@ function Songs() {
 															)
 														}
 													>
-														Archive
+														<Archive /> Archive
 													</DropdownMenuItem>
 												</DropdownMenuContent>
 											</DropdownMenu>
@@ -295,16 +319,22 @@ function Songs() {
 						</Table>
 					</div>
 				) : (
-					<Empty className="border">
+					<Empty className="border border-dashed">
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
-								<Music />
+								{q ? <SearchX /> : <Music />}
 							</EmptyMedia>
-							<EmptyTitle>{q ? "No matches" : "No songs yet"}</EmptyTitle>
+							<EmptyTitle>
+								{q ? `No songs match “${q}”` : "No songs yet"}
+							</EmptyTitle>
 							<EmptyDescription>
 								{q
-									? "Try another title, artist or lyric."
-									: "Add a song to get started. No account needed."}
+									? "Check the spelling, or try the artist or a line of the lyrics."
+									: owner !== account
+										? `Songs added here are shared with everyone in ${bands.find((band) => band.id === owner)?.name ?? "this band"}.`
+										: account === "local"
+											? "Paste a chord sheet or import one from a link. No account needed."
+											: "Paste a chord sheet, import one from a link, or save one from the catalogue."}
 							</EmptyDescription>
 						</EmptyHeader>
 						<EmptyContent>
@@ -321,7 +351,7 @@ function Songs() {
 						</EmptyContent>
 					</Empty>
 				)}
-			</div>
+			</PageBody>
 			{sharing ? (
 				<ShareDialog
 					key={sharing.id}

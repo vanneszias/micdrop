@@ -12,15 +12,23 @@ export function KeySelect({
 	onChange,
 	className,
 	label = "Key",
+	prefix,
 }: {
 	value: string;
 	onChange: (key: string) => void;
 	className?: string;
 	label?: string;
+	/** Visible label inside the trigger, for toolbars without a field label. */
+	prefix?: string;
 }) {
 	return (
 		<Select value={value} onValueChange={onChange}>
 			<SelectTrigger className={className} aria-label={label}>
+				{prefix ? (
+					<span className="text-xs text-muted-foreground max-sm:hidden">
+						{prefix}
+					</span>
+				) : null}
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
@@ -38,10 +46,12 @@ export function CapoSelect({
 	value,
 	onChange,
 	className,
+	prefix,
 }: {
 	value: number;
 	onChange: (capo: number) => void;
 	className?: string;
+	prefix?: string;
 }) {
 	return (
 		<Select
@@ -49,6 +59,11 @@ export function CapoSelect({
 			onValueChange={(next) => onChange(Number(next))}
 		>
 			<SelectTrigger className={className} aria-label="Capo">
+				{prefix ? (
+					<span className="text-xs text-muted-foreground max-sm:hidden">
+						{prefix}
+					</span>
+				) : null}
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>

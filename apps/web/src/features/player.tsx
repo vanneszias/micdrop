@@ -2,6 +2,7 @@ import type { Arrangement } from "@chords/data";
 import { displayTranspose, KEYS, keyDistance } from "@chords/song-core";
 import { ChordDiagrams, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
+import { ButtonGroup } from "@chords/ui/components/button-group";
 import { Label } from "@chords/ui/components/label";
 import {
 	Popover,
@@ -21,9 +22,11 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Guitar,
+	Minus,
 	Pause,
 	Pencil,
 	Play,
+	Plus,
 	Printer,
 	SlidersHorizontal,
 } from "lucide-react";
@@ -99,7 +102,14 @@ export function Player({
 			arrangement.data.sourceCapo,
 	);
 	const [shapes, setShapes] = useState(saved?.shapes ?? true);
-	const [fontSize, setFontSize] = useState(saved?.fontSize ?? 23);
+	const [fontSize, setFontSize] = useState(
+		() =>
+			saved?.fontSize ??
+			(typeof window !== "undefined" &&
+			window.matchMedia("(max-width: 640px)").matches
+				? 18
+				: 23),
+	);
 	const [columns, setColumns] = useState(saved?.columns ?? 1);
 	const [diagrams, setDiagrams] = useState(saved?.diagrams ?? false);
 	const [lyricsOnly, setLyricsOnly] = useState(saved?.lyricsOnly ?? false);
@@ -135,6 +145,10 @@ export function Player({
 		speed,
 	]);
 	const sheet = useRef<HTMLElement>(null);
+	const step = (semitones: number) => {
+		const index = KEYS.indexOf(key as (typeof KEYS)[number]);
+		if (index >= 0) setKey(KEYS[(index + semitones + 12) % 12]);
+	};
 	const delta = displayTranspose(shown.data.key, key, shapes ? capo : 0);
 	useEffect(() => {
 		if (!scrolling) return;
@@ -231,11 +245,40 @@ export function Player({
 			</PageHeader>
 			<div
 				data-print="hide"
-				className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2"
+				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:gap-2 [&>*]:shrink-0"
 			>
-				<KeySelect value={key} onChange={setKey} label="Key" className="w-20" />
+				<ButtonGroup aria-label="Key">
+					<Button
+						variant="outline"
+						size="icon"
+						aria-label="Transpose down a semitone"
+						onClick={() => step(-1)}
+					>
+						<Minus />
+					</Button>
+					<KeySelect
+						value={key}
+						onChange={setKey}
+						label="Key"
+						prefix="Key"
+						className="w-20 justify-between sm:w-24"
+					/>
+					<Button
+						variant="outline"
+						size="icon"
+						aria-label="Transpose up a semitone"
+						onClick={() => step(1)}
+					>
+						<Plus />
+					</Button>
+				</ButtonGroup>
 				{lyricsOnly ? null : (
-					<CapoSelect value={capo} onChange={setCapo} className="w-28" />
+					<CapoSelect
+						value={capo}
+						onChange={setCapo}
+						prefix="Capo"
+						className="w-28 justify-between sm:w-36"
+					/>
 				)}
 				<Popover>
 					<PopoverTrigger asChild>
@@ -318,16 +361,16 @@ export function Player({
 				aria-label="Chord sheet"
 			>
 				<article
-					className="mx-auto px-6 py-8 pb-24"
+					className="mx-auto px-5 py-6 pb-24 sm:px-6 sm:py-8"
 					style={{
 						maxWidth: columns === 1 ? 800 : columns === 2 ? 1480 : 2100,
 					}}
 				>
-					<h2 className="text-3xl font-semibold tracking-tight">
+					<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
 						{shown.data.title}
 					</h2>
 					<p className="text-muted-foreground">{shown.data.artist}</p>
-					<p className="mt-3 mb-8 font-mono text-xs text-muted-foreground">
+					<p className="mt-2 mb-6 font-mono text-xs text-muted-foreground sm:mt-3 sm:mb-8">
 						Key {key}
 						{lyricsOnly ? null : ` · Capo ${capo && shapes ? capo : "none"}`}
 					</p>
@@ -346,8 +389,10 @@ export function Player({
 				</article>
 			</section>
 			{diagrams && !lyricsOnly ? (
-				<div data-print="hide" className="shrink-0 border-t px-4 py-3">
-					<ChordDiagrams content={shown.data.content} semitones={delta} />
+				<div data-print="hide" className="shrink-0 border-t bg-card/50 py-3">
+					<div className="mx-auto max-w-[800px] px-6">
+						<ChordDiagrams content={shown.data.content} semitones={delta} />
+					</div>
 				</div>
 			) : null}
 			<footer
@@ -368,7 +413,9 @@ export function Player({
 					}
 				>
 					<ChevronLeft />
-					<span className="truncate">{previousTitle || "Previous"}</span>
+					<span className="truncate max-sm:hidden">
+						{previousTitle || "Previous"}
+					</span>
 				</Button>
 				<div className="mx-auto flex items-center gap-3">
 					<Button
@@ -380,14 +427,20 @@ export function Player({
 						{scrolling ? <Pause /> : <Play />}
 						{scrolling ? "Pause" : "Scroll"}
 					</Button>
-					<Slider
-						className="w-24"
-						aria-label="Scroll speed"
-						min={5}
-						max={80}
-						value={[speed]}
-						onValueChange={([value]) => setSpeed(value)}
-					/>
+					<div className="flex items-center gap-2 max-sm:hidden">
+						<span className="text-xs text-muted-foreground">Speed</span>
+						<Slider
+							className="w-24"
+							aria-label="Scroll speed"
+							min={5}
+							max={80}
+							value={[speed]}
+							onValueChange={([value]) => setSpeed(value)}
+						/>
+						<span className="w-6 text-right font-mono text-xs tabular-nums text-muted-foreground">
+							{speed}
+						</span>
+					</div>
 				</div>
 				<Button
 					variant="ghost"
@@ -395,7 +448,7 @@ export function Player({
 					onClick={next}
 					disabled={!next}
 					className={cn(
-						"max-w-[30%] min-w-0",
+						"max-w-[30%] min-w-0 max-sm:max-w-[60%]",
 						previous || next ? "" : "invisible",
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}

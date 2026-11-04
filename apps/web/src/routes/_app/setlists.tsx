@@ -42,9 +42,18 @@ import {
 	Outlet,
 	useNavigate,
 } from "@tanstack/react-router";
-import { EllipsisVertical, FileUp, ListMusic, Plus } from "lucide-react";
+import {
+	ArrowRightLeft,
+	Copy,
+	EllipsisVertical,
+	FileUp,
+	ListMusic,
+	Plus,
+	Share2,
+	Trash2,
+} from "lucide-react";
 import { useState } from "react";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
 import { canMoveFrom, destinations, type Library } from "#/lib/songs";
@@ -123,7 +132,10 @@ function Setlists() {
 			<PageHeader title="Setlists">
 				{setlists.length ? actions : null}
 			</PageHeader>
-			<div className="w-full space-y-4 p-4">
+			<PageBody
+				title="Setlists"
+				description="Put songs in order, set a key for each, then play straight through."
+			>
 				{setlists.length ? (
 					<>
 						<div className="rounded-lg border">
@@ -131,7 +143,7 @@ function Setlists() {
 								<TableHeader>
 									<TableRow>
 										<TableHead>Setlist</TableHead>
-										<TableHead className="w-28">Date</TableHead>
+										<TableHead className="w-32">Date</TableHead>
 										<TableHead className="w-20 text-right">Songs</TableHead>
 										<TableHead className="w-12" />
 									</TableRow>
@@ -149,7 +161,15 @@ function Setlists() {
 												</Link>
 											</TableCell>
 											<TableCell className="text-muted-foreground">
-												{list.data.date || "—"}
+												{list.data.date
+													? new Date(
+															`${list.data.date}T00:00:00`,
+														).toLocaleDateString(undefined, {
+															day: "numeric",
+															month: "short",
+															year: "numeric",
+														})
+													: "No date"}
 											</TableCell>
 											<TableCell className="text-right tabular-nums">
 												{list.data.entries.length}
@@ -168,19 +188,19 @@ function Setlists() {
 													<DropdownMenuContent align="end">
 														<DropdownMenuItem asChild>
 															<Link to="/setlists/$id" params={{ id: list.id }}>
-																Open
+																<ListMusic /> Open
 															</Link>
 														</DropdownMenuItem>
 														<DropdownMenuItem
 															disabled={account === "local"}
 															onClick={() => setSharing(list)}
 														>
-															Share link
+															<Share2 /> Share link
 														</DropdownMenuItem>
 														{targets.length ? (
 															<DropdownMenuSub>
 																<DropdownMenuSubTrigger>
-																	Copy to
+																	<Copy /> Copy to
 																</DropdownMenuSubTrigger>
 																<DropdownMenuSubContent>
 																	{targets.map((target) => (
@@ -199,7 +219,7 @@ function Setlists() {
 														{targets.length && movable ? (
 															<DropdownMenuSub>
 																<DropdownMenuSubTrigger>
-																	Move to
+																	<ArrowRightLeft /> Move to
 																</DropdownMenuSubTrigger>
 																<DropdownMenuSubContent>
 																	{targets.map((target) => (
@@ -220,7 +240,7 @@ function Setlists() {
 															variant="destructive"
 															onClick={() => setRemoving(list)}
 														>
-															Delete
+															<Trash2 /> Delete
 														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>
@@ -232,7 +252,7 @@ function Setlists() {
 						</div>
 					</>
 				) : (
-					<Empty className="border">
+					<Empty className="border border-dashed">
 						<EmptyHeader>
 							<EmptyMedia variant="icon">
 								<ListMusic />
@@ -247,7 +267,7 @@ function Setlists() {
 						</EmptyContent>
 					</Empty>
 				)}
-			</div>
+			</PageBody>
 			<AlertDialog
 				open={!!removing}
 				onOpenChange={(open) => !open && setRemoving(undefined)}
@@ -269,7 +289,7 @@ function Setlists() {
 								void run(() => save({ ...removing, archived: true }), "Deleted")
 							}
 						>
-							Delete
+							<Trash2 /> Delete
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

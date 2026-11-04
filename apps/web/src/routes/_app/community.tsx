@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { PageHeader } from "#/components/page-header";
+import { PageBody, PageHeader } from "#/components/page-header";
 import { CatalogueAdmin } from "#/features/catalogue-admin";
 import { CatalogueSearch } from "#/features/catalogue-search";
 
@@ -13,10 +13,13 @@ function Community() {
 	return (
 		<>
 			<PageHeader title="Catalogue" />
-			<div className="w-full max-w-5xl space-y-4 p-4">
+			<PageBody
+				title="Catalogue"
+				description="Arrangements shared by other players. Save one to get your own private copy."
+			>
 				<CatalogueSearch initialQuery={q} publicOnly />
 				<CatalogueAdmin />
-			</div>
+			</PageBody>
 		</>
 	);
 }
