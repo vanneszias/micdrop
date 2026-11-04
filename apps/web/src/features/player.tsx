@@ -158,17 +158,6 @@ export function Player({
 		speed,
 	]);
 	const sheet = useRef<HTMLElement>(null);
-	const heading = useRef<HTMLElement>(null);
-	const [headingVisible, setHeadingVisible] = useState(true);
-	useEffect(() => {
-		if (!heading.current || !sheet.current) return;
-		const observer = new IntersectionObserver(
-			([entry]) => setHeadingVisible(entry.isIntersecting),
-			{ root: sheet.current },
-		);
-		observer.observe(heading.current);
-		return () => observer.disconnect();
-	}, []);
 	const step = (semitones: number) => {
 		const index = KEYS.indexOf(key as (typeof KEYS)[number]);
 		if (index >= 0) setKey(KEYS[(index + semitones + 12) % 12]);
@@ -249,20 +238,13 @@ export function Player({
 		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
 			<PageHeader
 				back
+				crumbs={[
+					playing
+						? { label: "Setlists", to: "/setlists" }
+						: { label: "Repertoire", to: "/songs" },
+				]}
 				title={
-					playing ? (
-						<SetlistSheet title={shown.data.title} />
-					) : (
-						// The sheet's own heading names the song until it scrolls away.
-						<span
-							className={cn(
-								"transition-opacity",
-								headingVisible && "opacity-0",
-							)}
-						>
-							{shown.data.title}
-						</span>
-					)
+					playing ? <SetlistSheet title={shown.data.title} /> : shown.data.title
 				}
 			>
 				{actions}
@@ -395,13 +377,12 @@ export function Player({
 								className="max-sm:px-2.5"
 							>
 								<SlidersHorizontal />
-								<span className="sm:hidden">View</span>
-								<span className="max-sm:hidden">Display</span>
+								View
 							</Button>
 						</PopoverTrigger>
 					</IconTip>
-					<PopoverContent align="start" className="w-64 space-y-4">
-						<div className="flex items-center justify-between">
+					<PopoverContent align="start" className="w-72 space-y-4">
+						<div className="flex items-center justify-between gap-4">
 							<Label htmlFor="lyrics-only">Lyrics only</Label>
 							<Switch
 								id="lyrics-only"
@@ -410,7 +391,7 @@ export function Player({
 							/>
 						</div>
 						{lyricsOnly ? null : (
-							<div className="flex items-center justify-between">
+							<div className="flex items-center justify-between gap-4">
 								<Label htmlFor="shapes">Show chord shapes for capo</Label>
 								<Switch
 									id="shapes"
@@ -458,8 +439,7 @@ export function Player({
 							className="px-2.5 sm:px-3"
 						>
 							<Guitar />
-							<span className="sm:hidden">Chords</span>
-							<span className="max-sm:hidden">Diagrams</span>
+							Diagrams
 						</Toggle>
 					</IconTip>
 				)}
@@ -493,7 +473,7 @@ export function Player({
 							maxWidth: columns === 1 ? 800 : columns === 2 ? 1480 : 2100,
 						}}
 					>
-						<header ref={heading} className="mb-5 sm:mb-7">
+						<header className="mb-5 sm:mb-7">
 							<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
 								{shown.data.title}
 							</h2>
@@ -551,7 +531,7 @@ export function Player({
 					</div>
 				</div>
 			) : null}
-			{nextTitle && !diagrams ? (
+			{nextTitle ? (
 				<button
 					type="button"
 					data-print="hide"

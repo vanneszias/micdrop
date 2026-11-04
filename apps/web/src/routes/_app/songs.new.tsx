@@ -92,7 +92,11 @@ function NewSong() {
 		});
 	return (
 		<>
-			<PageHeader pageTitle title="Add song" />
+			<PageHeader
+				pageTitle
+				title="Add song"
+				crumbs={[{ label: "Repertoire", to: "/songs" }]}
+			/>
 			<PageBody
 				title="Add a song"
 				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."

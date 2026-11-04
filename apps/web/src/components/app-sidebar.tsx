@@ -4,8 +4,6 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@chords/ui/components/dropdown-menu";
@@ -257,22 +255,21 @@ function LibrarySwitcher() {
 				<DropdownMenuLabel className="text-xs text-muted-foreground">
 					Library
 				</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={app.owner}
-					onValueChange={(value) => {
-						app.setOwner(value);
-						void navigate({ to: "/songs" });
-					}}
-				>
-					<DropdownMenuRadioItem value={app.account}>
-						Personal
-					</DropdownMenuRadioItem>
-					{app.bands.map((band) => (
-						<DropdownMenuRadioItem key={band.id} value={band.id}>
-							{band.name}
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
+				{[
+					{ id: app.account, name: "Personal", icon: User },
+					...app.bands.map((band) => ({ ...band, icon: Users })),
+				].map(({ id, name, icon: Icon }) => (
+					<DropdownMenuItem
+						key={id}
+						onSelect={() => {
+							app.setOwner(id);
+							void navigate({ to: "/songs" });
+						}}
+					>
+						<Icon /> {name}
+						{app.owner === id ? <Check className="ml-auto" /> : null}
+					</DropdownMenuItem>
+				))}
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
 					<Link to="/bands">

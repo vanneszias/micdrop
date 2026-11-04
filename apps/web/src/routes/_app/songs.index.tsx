@@ -33,9 +33,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	Archive,
 	ArrowRightLeft,
-	Copy,
 	CopyPlus,
 	Download,
+	FolderInput,
 	Globe,
 	Lock,
 	MoreHorizontal,
@@ -150,13 +150,23 @@ function Songs() {
 											>
 												{song.data.title}
 											</Link>
-											<div className="truncate text-xs text-muted-foreground">
-												{[
-													song.data.artist || "Unknown artist",
-													song.data.arrangementName,
-												]
-													.filter(Boolean)
-													.join(" · ")}
+											<div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+												{/* Phones hide the visibility column, so a small icon keeps the context. */}
+												{song.data.visibility === "public" &&
+												!song.data.draft ? (
+													<Globe
+														className="size-3 shrink-0 sm:hidden"
+														aria-label="Public"
+													/>
+												) : null}
+												<span className="truncate">
+													{[
+														song.data.artist || "Unknown artist",
+														song.data.arrangementName,
+													]
+														.filter(Boolean)
+														.join(" · ")}
+												</span>
 											</div>
 										</TableCell>
 										<TableCell className="w-px text-right max-sm:hidden">
@@ -261,7 +271,7 @@ function Songs() {
 													{targets.length ? (
 														<DropdownMenuSub>
 															<DropdownMenuSubTrigger>
-																<Copy /> Copy to
+																<FolderInput /> Copy to
 															</DropdownMenuSubTrigger>
 															<DropdownMenuSubContent>
 																{targets.map((target) => (

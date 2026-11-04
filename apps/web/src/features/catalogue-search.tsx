@@ -96,6 +96,19 @@ export function CatalogueSearch({
 					),
 		[arrangements, owner, account, publicOnly, excludeId],
 	);
+	// The catalogue lists public arrangements only; point at matching songs you already have.
+	const ownMatches = useMemo(
+		() =>
+			publicOnly && debounced.trim()
+				? arrangements
+						.filter(
+							(song) =>
+								song.owner === owner && searchRelevance(song.data, debounced),
+						)
+						.slice(0, 3)
+				: [],
+		[publicOnly, debounced, arrangements, owner],
+	);
 	const groups = useMemo(() => {
 		const map = new Map<string, Group>();
 		for (const page of (online ? catalogue.data?.pages : []) || [])
@@ -143,7 +156,11 @@ export function CatalogueSearch({
 	return (
 		<div className="space-y-3">
 			<SearchInput
-				aria-label="Search catalogue and repertoire"
+				aria-label={
+					publicOnly
+						? "Search the public catalogue"
+						: "Search catalogue and repertoire"
+				}
 				placeholder="Search songs, artists or lyrics…"
 				value={query}
 				onChange={(event) => {
@@ -166,6 +183,21 @@ export function CatalogueSearch({
 						: "Your repertoire, personal songs and the public catalogue"
 					: "Offline · searching saved songs only"}
 			</p>
+			{ownMatches.length ? (
+				<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+					<span className="text-muted-foreground">In your repertoire:</span>
+					{ownMatches.map((song) => (
+						<Link
+							key={song.id}
+							to="/songs/$id"
+							params={{ id: song.id }}
+							className="font-medium underline-offset-4 hover:underline"
+						>
+							{song.data.title}
+						</Link>
+					))}
+				</p>
+			) : null}
 			{catalogue.isFetching && online ? (
 				<output className="text-sm">Searching…</output>
 			) : null}
@@ -192,7 +224,9 @@ export function CatalogueSearch({
 							{chooseGroup
 								? "No other versions found"
 								: debounced.trim()
-									? `No songs match “${debounced.trim()}”`
+									? publicOnly
+										? `No public arrangements match “${debounced.trim()}”`
+										: `No songs match “${debounced.trim()}”`
 									: publicOnly
 										? "Browse the public catalogue"
 										: "Nothing to add yet"}
@@ -501,7 +535,9 @@ function ArrangementChoices({
 						{!version.local && account !== "local" ? (
 							<>
 								<fieldset className="flex items-center">
-									<legend className="sr-only">Rate this arrangement</legend>
+									<legend className="float-left mr-1 text-xs text-muted-foreground">
+										Useful?
+									</legend>
 									{([1, -1] as const).map((value) => (
 										<Button
 											key={value}

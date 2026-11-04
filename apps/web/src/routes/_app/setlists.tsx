@@ -42,8 +42,8 @@ import {
 } from "@tanstack/react-router";
 import {
 	ArrowRightLeft,
-	Copy,
 	FileUp,
+	FolderInput,
 	ListMusic,
 	MoreHorizontal,
 	Plus,
@@ -196,7 +196,7 @@ function Setlists() {
 														{targets.length ? (
 															<DropdownMenuSub>
 																<DropdownMenuSubTrigger>
-																	<Copy /> Copy to
+																	<FolderInput /> Copy to
 																</DropdownMenuSubTrigger>
 																<DropdownMenuSubContent>
 																	{targets.map((target) => (

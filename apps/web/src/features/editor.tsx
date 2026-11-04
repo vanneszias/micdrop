@@ -241,7 +241,17 @@ export function Editor({
 	}
 	return (
 		<>
-			<PageHeader back title={draft.data.title || "Untitled song"}>
+			<PageHeader
+				back
+				title="Edit"
+				crumbs={[
+					{ label: "Repertoire", to: "/songs" },
+					{
+						label: draft.data.title || "Untitled song",
+						to: `/songs/${arrangement.id}`,
+					},
+				]}
+			>
 				<output className="flex items-center gap-1 text-xs text-muted-foreground">
 					<Check className="size-3" />
 					{saved ? "Saved" : "Saving…"}
@@ -560,7 +570,7 @@ export function Editor({
 				<div className={preview ? "grid gap-4 lg:grid-cols-2" : ""}>
 					{/* On small screens the preview replaces the source instead of stacking under it. */}
 					<div className={cn("space-y-2", preview && "max-lg:hidden")}>
-						<div className="flex flex-wrap items-center gap-1">
+						<div className="flex items-center gap-1 overflow-x-auto [&>*]:shrink-0">
 							{snippets.map(([label, value]) => (
 								<Button
 									key={label}
@@ -583,9 +593,13 @@ export function Editor({
 							</Button>
 							<Popover>
 								<PopoverTrigger asChild>
-									<Button variant="ghost" size="sm" className="ml-auto">
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										className="ml-auto"
+										aria-label="ChordPro syntax help"
+									>
 										<CircleHelp />
-										<span className="max-sm:sr-only">Syntax</span>
 									</Button>
 								</PopoverTrigger>
 								<PopoverContent align="end" className="w-80 space-y-3 text-sm">
@@ -607,13 +621,13 @@ export function Editor({
 							<Toggle
 								size="sm"
 								variant="outline"
-								className="data-[state=on]:border-input data-[state=on]:bg-accent"
+								className="w-8 px-0 data-[state=on]:border-input data-[state=on]:bg-accent"
 								pressed={wrapLines}
 								onPressedChange={setWrapLines}
 								aria-label="Wrap long lines"
+								title="Wrap long lines"
 							>
 								<WrapText />
-								<span className="max-sm:sr-only">Wrap</span>
 							</Toggle>
 						</div>
 						<ChordProTextarea

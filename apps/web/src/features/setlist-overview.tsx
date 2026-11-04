@@ -47,14 +47,13 @@ export function SetlistSheet({ title }: { title: string }) {
 					className="flex max-w-full min-w-0 flex-col items-start rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					aria-label={`Song ${current + 1} of ${entries.length} in ${list.data.title}, show setlist`}
 				>
-					<span className="w-full truncate">{title}</span>
-					<span className="flex w-full min-w-0 items-center gap-1 text-xs font-normal text-muted-foreground">
-						<span className="shrink-0 tabular-nums">
+					{/* The sheet below names the song; the bar says where it sits in the set. */}
+					<span className="flex w-full min-w-0 items-center gap-1.5">
+						<span className="truncate">{list.data.title}</span>
+						<span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">
 							{current + 1} of {entries.length}
 						</span>
-						<span aria-hidden>·</span>
-						<span className="truncate">{list.data.title}</span>
-						<ChevronDown className="size-3 shrink-0" />
+						<ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
 					</span>
 				</button>
 			</SheetTrigger>

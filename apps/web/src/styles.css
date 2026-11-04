@@ -12,8 +12,9 @@
   --card-foreground: oklch(0.2 0.01 60);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.01 60);
-  --primary: oklch(0.24 0.012 60);
-  --primary-foreground: oklch(0.985 0.002 85);
+  /* Amber is the brand: primary actions, active states and chords share it. */
+  --primary: oklch(0.74 0.15 70);
+  --primary-foreground: oklch(0.2 0.04 60);
   --secondary: oklch(0.955 0.004 85);
   --secondary-foreground: oklch(0.24 0.012 60);
   --muted: oklch(0.955 0.004 85);
@@ -46,8 +47,8 @@
   --card-foreground: oklch(0.97 0.004 85);
   --popover: oklch(0.22 0.005 60);
   --popover-foreground: oklch(0.97 0.004 85);
-  --primary: oklch(0.94 0.004 85);
-  --primary-foreground: oklch(0.2 0.005 60);
+  --primary: oklch(0.82 0.14 78);
+  --primary-foreground: oklch(0.2 0.04 60);
   --secondary: oklch(0.27 0.006 60);
   --secondary-foreground: oklch(0.97 0.004 85);
   --muted: oklch(0.27 0.006 60);
