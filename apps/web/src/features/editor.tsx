@@ -11,7 +11,11 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@chords/ui/components/collapsible";
-import { Field, FieldLabel } from "@chords/ui/components/field";
+import {
+	Field,
+	FieldDescription,
+	FieldLabel,
+} from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
 import {
 	Select,
@@ -23,8 +27,20 @@ import {
 import { Switch } from "@chords/ui/components/switch";
 import { Textarea } from "@chords/ui/components/textarea";
 import { Toggle } from "@chords/ui/components/toggle";
+import {
+	ToggleGroup,
+	ToggleGroupItem,
+} from "@chords/ui/components/toggle-group";
+import { cn } from "@chords/ui/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, Columns2, Wand2 } from "lucide-react";
+import {
+	Check,
+	ChevronRight,
+	Columns2,
+	Eye,
+	Pencil,
+	Wand2,
+} from "lucide-react";
 import {
 	useCallback,
 	useDeferredValue,
@@ -214,6 +230,7 @@ export function Editor({
 					pressed={preview}
 					onPressedChange={setPreview}
 					aria-label="Toggle preview"
+					className="max-lg:hidden"
 				>
 					<Columns2 />
 					<span className="max-sm:sr-only">Preview</span>
@@ -240,7 +257,7 @@ export function Editor({
 							onChange={(event) => update("title", event.target.value)}
 						/>
 					</Field>
-					<Field className="lg:col-span-3">
+					<Field className="lg:col-span-2">
 						<FieldLabel htmlFor="artist">Artist</FieldLabel>
 						<Input
 							id="artist"
@@ -262,7 +279,7 @@ export function Editor({
 							onChange={(capo) => update("sourceCapo", capo)}
 						/>
 					</Field>
-					<Field className="lg:col-span-2">
+					<Field className="lg:col-span-3">
 						<FieldLabel htmlFor="publication-state">Visibility</FieldLabel>
 						<Select
 							value={state}
@@ -297,20 +314,20 @@ export function Editor({
 								))}
 							</SelectContent>
 						</Select>
+						<FieldDescription className="text-xs">
+							{draft.data.reviewRequired
+								? "Nothing is published until you save."
+								: state === "draft"
+									? "Drafts work in setlists. Visitors keep seeing the last published version."
+									: state === "public"
+										? "Saved edits, including notes in the sheet, are visible to everyone."
+										: "Only you or this band can see this arrangement."}
+							{account === "local"
+								? " Sign in to publish or sync; until then it stays on this device."
+								: ""}
+						</FieldDescription>
 					</Field>
 				</div>
-				<p className="-mt-1 text-xs text-muted-foreground">
-					{draft.data.reviewRequired
-						? "Nothing is published until you save."
-						: state === "draft"
-							? "Drafts work in setlists. Visitors keep seeing the last published version."
-							: state === "public"
-								? "Saved edits, including notes in the sheet, are visible to everyone."
-								: "Only you or this band can see this arrangement."}
-					{account === "local"
-						? " Sign in to publish or sync; until then it stays on this device."
-						: ""}
-				</p>
 				<EditorSection
 					title="More options"
 					summary={[
@@ -459,8 +476,23 @@ export function Editor({
 						</div>
 					</div>
 				</EditorSection>
+				<ToggleGroup
+					type="single"
+					variant="outline"
+					className="w-full lg:hidden"
+					value={preview ? "preview" : "edit"}
+					onValueChange={(value) => value && setPreview(value === "preview")}
+				>
+					<ToggleGroupItem value="edit" className="flex-1">
+						<Pencil /> Edit
+					</ToggleGroupItem>
+					<ToggleGroupItem value="preview" className="flex-1">
+						<Eye /> Preview
+					</ToggleGroupItem>
+				</ToggleGroup>
 				<div className={preview ? "grid gap-4 lg:grid-cols-2" : ""}>
-					<div className="space-y-2">
+					{/* On small screens the preview replaces the source instead of stacking under it. */}
+					<div className={cn("space-y-2", preview && "max-lg:hidden")}>
 						<div className="flex flex-wrap items-center gap-1">
 							{snippets.map(([label, value]) => (
 								<Button
@@ -473,14 +505,15 @@ export function Editor({
 								</Button>
 							))}
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="sm"
 								className="ml-auto"
 								onClick={() =>
 									update("content", normalizeSheet(draft.data.content).content)
 								}
 							>
-								<Wand2 /> Convert pasted text
+								<Wand2 /> Convert
+								<span className="max-sm:hidden"> pasted text</span>
 							</Button>
 						</div>
 						<ChordProTextarea
@@ -509,7 +542,7 @@ export function Editor({
 						) : null}
 					</div>
 					{preview ? (
-						<div className="min-w-0 rounded-lg border p-4">
+						<div className="min-w-0 self-start rounded-lg border bg-card/40 p-4 lg:sticky lg:top-18 lg:max-h-[calc(100svh-6rem)] lg:overflow-y-auto">
 							<SongSheet content={content} fontSize={18} />
 						</div>
 					) : null}

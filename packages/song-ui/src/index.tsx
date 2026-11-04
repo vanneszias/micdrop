@@ -294,7 +294,7 @@ function GuitarDiagram({
 					),
 				)}
 			</svg>
-			{shapes.length > 1 ? (
+			{shapes.length > 1 && position % shapes.length ? (
 				<small>
 					Shape {(position % shapes.length) + 1} of {shapes.length}
 				</small>

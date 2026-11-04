@@ -10,6 +10,7 @@ import {
 import { Input } from "@chords/ui/components/input";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Music } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
@@ -141,10 +142,11 @@ function Login() {
 	};
 	return (
 		<div className="relative grid min-h-svh overflow-hidden lg:grid-cols-2">
-			<NotesBackground className="lg:hidden" />
 			<div className="relative flex flex-col gap-4 p-6 md:p-10">
-				<Link to="/songs" className="flex items-center gap-2 font-medium">
-					<img src="/icon.svg" alt="" className="size-6 rounded-md" />
+				<Link to="/songs" className="flex items-center gap-2 font-semibold">
+					<span className="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-foreground">
+						<Music className="size-4" />
+					</span>
 					Mic Drop
 				</Link>
 				<div className="flex flex-1 items-center justify-center">

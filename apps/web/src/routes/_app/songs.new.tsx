@@ -35,7 +35,7 @@ import {
 import { Textarea } from "@chords/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Link2, PenLine, Search } from "lucide-react";
+import { ClipboardPaste, FileText, Link2, PenLine, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageBody, PageHeader } from "#/components/page-header";
@@ -69,21 +69,30 @@ function NewSong() {
 		enabled: !!submitted && online,
 		retry: false,
 	});
+	const [failed, setFailed] = useState(false);
 	const importPage = (target: string, rendered = false) =>
 		run(async () => {
+			setFailed(false);
 			const imported = await api<{
 				title: string;
 				content: string;
 				rawSource: string;
 				sourceUrl: string;
 				warnings: string[];
-			}>("/api/import", { url: target, rendered });
+			}>("/api/import", { url: target, rendered }).catch((reason) => {
+				setFailed(true);
+				throw reason;
+			});
+			if (!imported.content.trim()) {
+				setFailed(true);
+				throw new Error("No chord sheet was found on that page.");
+			}
 			await createSong(imported);
 			if (imported.warnings.length) toast.warning(imported.warnings.join(" "));
 		});
 	return (
 		<>
-			<PageHeader back title="Add song">
+			<PageHeader back pageTitle title="Add song">
 				<Button
 					variant="outline"
 					size="sm"
@@ -98,10 +107,16 @@ function NewSong() {
 				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
 			>
 				<Tabs defaultValue="paste">
-					<TabsList>
-						<TabsTrigger value="paste">Paste</TabsTrigger>
-						<TabsTrigger value="link">Link</TabsTrigger>
-						<TabsTrigger value="file">File</TabsTrigger>
+					<TabsList className="h-10 w-full sm:w-auto">
+						<TabsTrigger value="paste" className="px-4">
+							<ClipboardPaste /> Paste
+						</TabsTrigger>
+						<TabsTrigger value="link" className="px-4">
+							<Link2 /> Link
+						</TabsTrigger>
+						<TabsTrigger value="file" className="px-4">
+							<FileText /> File
+						</TabsTrigger>
 					</TabsList>
 					<TabsContent value="paste" className="mt-4">
 						<FieldGroup>
@@ -110,9 +125,9 @@ function NewSong() {
 								<Textarea
 									id="paste"
 									rows={14}
-									className="min-h-56 font-mono sm:min-h-[45vh]"
+									className="min-h-56 font-mono placeholder:text-muted-foreground/60 sm:min-h-[45vh]"
 									placeholder={
-										"[Verse 1]\nG              C          G\nAmazing grace, how sweet the sound\n          Em      D\nThat saved a wretch like me"
+										"Example:\n\n[Verse 1]\nG              C          G\nAmazing grace, how sweet the sound\n          Em      D\nThat saved a wretch like me"
 									}
 									value={text}
 									onChange={(event) => setText(event.target.value)}
@@ -156,20 +171,22 @@ function NewSong() {
 									</InputGroupAddon>
 								</InputGroup>
 								<FieldDescription>
-									{online ? (
+									{!online ? (
+										"Importing needs a connection."
+									) : failed ? (
 										<>
-											Page empty?{" "}
+											Some sites draw their chords with scripts.{" "}
 											<button
 												type="button"
 												className="underline underline-offset-4"
 												disabled={busy || !url}
 												onClick={() => void importPage(url, true)}
 											>
-												Try the rendered page
+												Load the page fully and try again
 											</button>
 										</>
 									) : (
-										"Importing needs a connection."
+										"Paste a link to a page with a chord sheet, such as a song on a chords site."
 									)}
 								</FieldDescription>
 							</Field>

@@ -246,11 +246,8 @@ export function CatalogueSearch({
 								<Button
 									type="button"
 									size="sm"
-									variant={
-										inSet && group.local.some((song) => inSet.includes(song.id))
-											? "ghost"
-											: "outline"
-									}
+									variant="outline"
+									className="min-w-28"
 									disabled={busy || !editable}
 									onClick={() => {
 										const preferred = [...group.local]
@@ -406,9 +403,14 @@ function ArrangementChoices({
 				<div key={version.id} className="space-y-2">
 					<div className="flex flex-wrap items-center gap-2">
 						<div className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
-							<span className="font-medium">
-								{version.data.artist || "Unknown artist"} ·{" "}
-								{version.data.arrangementName || "Standard arrangement"}
+							<span className="flex items-center gap-2 font-medium">
+								<Badge
+									variant="secondary"
+									className="min-w-7 justify-center font-mono text-xs"
+								>
+									{version.data.key}
+								</Badge>
+								{version.data.arrangementName || "Standard version"}
 							</span>
 							<p className="text-xs text-muted-foreground">
 								{version.local
@@ -442,9 +444,12 @@ function ArrangementChoices({
 								<Link to="/login">Sign in to save</Link>
 							</Button>
 						) : version.saved && !picking ? (
-							<Button size="sm" variant="outline" disabled>
-								<Check /> Saved
-							</Button>
+							<Badge
+								variant="outline"
+								className="h-8 gap-1.5 px-3 text-sm font-normal text-muted-foreground"
+							>
+								<Check /> In your repertoire
+							</Badge>
 						) : (
 							<Button
 								type="button"

@@ -28,6 +28,7 @@ import { cn } from "@chords/ui/lib/utils";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
 	Bot,
+	Check,
 	ChevronsUpDown,
 	Cloud,
 	CloudOff,
@@ -52,7 +53,7 @@ import { ConnectAssistantDialog } from "#/features/connect-assistant";
 import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
-import { type Theme, useTheme } from "#/lib/theme";
+import { useTheme } from "#/lib/theme";
 
 const items = [
 	{ to: "/songs", label: "Repertoire", icon: Music },
@@ -93,20 +94,24 @@ function AccountMenu({
 					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
 						Appearance
 					</DropdownMenuLabel>
-					<DropdownMenuRadioGroup
-						value={theme}
-						onValueChange={(value) => setTheme(value as Theme)}
-					>
-						<DropdownMenuRadioItem value="system">
-							<Monitor /> System
-						</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="light">
-							<Sun /> Light
-						</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="dark">
-							<Moon /> Dark
-						</DropdownMenuRadioItem>
-					</DropdownMenuRadioGroup>
+					{(
+						[
+							["system", Monitor, "System"],
+							["light", Sun, "Light"],
+							["dark", Moon, "Dark"],
+						] as const
+					).map(([value, Icon, label]) => (
+						<DropdownMenuItem
+							key={value}
+							onSelect={(event) => {
+								event.preventDefault();
+								setTheme(value);
+							}}
+						>
+							<Icon /> {label}
+							{theme === value ? <Check className="ml-auto" /> : null}
+						</DropdownMenuItem>
+					))}
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						// While impersonating, this would copy the administrator's own songs.
@@ -218,7 +223,11 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 						aria-label={`Switch library, current: ${workspace}`}
 						className="flex h-11 w-full min-w-0 items-center gap-2 border-b px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 					>
-						<Users className="size-4 shrink-0" />
+						{app.owner === app.account ? (
+							<User className="size-4 shrink-0" />
+						) : (
+							<Users className="size-4 shrink-0" />
+						)}
 						<span className="shrink-0 text-muted-foreground">Library</span>
 						<span className="truncate font-medium">{workspace}</span>
 						<ChevronsUpDown className="ml-auto size-4 shrink-0" />
@@ -228,7 +237,7 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 						tooltip={workspace}
 						aria-label={`Switch library, current: ${workspace}`}
 					>
-						<Users />
+						{app.owner === app.account ? <User /> : <Users />}
 						<span className="truncate group-data-[collapsible=icon]:hidden">
 							{workspace}
 						</span>

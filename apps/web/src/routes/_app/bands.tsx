@@ -40,7 +40,7 @@ import {
 } from "@chords/ui/components/select";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Library, Link2, Plus, Users, X } from "lucide-react";
+import { ArrowRight, Link2, Plus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
@@ -157,7 +157,7 @@ function BandCard({
 	const { setOwner } = useApp();
 	const navigate = useNavigate();
 	return (
-		<Card className="animate-in fade-in-0">
+		<Card className="max-w-3xl animate-in fade-in-0">
 			<CardHeader>
 				<CardTitle>{band.name}</CardTitle>
 				<CardDescription>
@@ -165,7 +165,7 @@ function BandCard({
 					{band.members.length === 1 ? "member" : "members"} · you are{" "}
 					{band.role === "owner" ? "the owner" : `a ${band.role}`}
 				</CardDescription>
-				<CardAction className="flex items-center gap-2">
+				<CardAction className="flex items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
 					<Button
 						size="sm"
 						onClick={() => {
@@ -173,7 +173,7 @@ function BandCard({
 							void navigate({ to: "/songs" });
 						}}
 					>
-						<Library /> Open
+						Open library <ArrowRight />
 					</Button>
 					{owner ? (
 						<Button
@@ -195,14 +195,16 @@ function BandCard({
 							</AvatarFallback>
 						</Avatar>
 						<div className="min-w-0 flex-1">
-							<div className="truncate text-sm font-medium">{member.name}</div>
+							<div className="flex items-center gap-2 text-sm font-medium">
+								<span className="truncate">{member.name}</span>
+								<Badge variant="secondary" className="capitalize">
+									{member.role}
+								</Badge>
+							</div>
 							<div className="truncate text-xs text-muted-foreground">
 								{member.email}
 							</div>
 						</div>
-						<Badge variant="secondary" className="capitalize">
-							{member.role}
-						</Badge>
 						{owner && member.role !== "owner" ? (
 							<Button
 								variant="ghost"

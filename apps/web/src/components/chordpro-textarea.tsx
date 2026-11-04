@@ -10,10 +10,7 @@ function highlight(line: string) {
 		return <span className="text-muted-foreground">{line}</span>;
 	return line.split(TOKEN).map((part, index) =>
 		!part ? null : part.startsWith("[") ? (
-			<span
-				key={index}
-				className="font-semibold text-chord-foreground dark:text-chord"
-			>
+			<span key={index} className="font-semibold text-chord-foreground">
 				{part}
 			</span>
 		) : part.startsWith("{") ? (

@@ -25,8 +25,10 @@ import {
 import { cn } from "@chords/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import {
+	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	Gauge,
 	Guitar,
 	Minus,
 	Pause,
@@ -114,7 +116,7 @@ export function Player({
 			saved?.fontSize ??
 			(typeof window !== "undefined" &&
 			window.matchMedia("(max-width: 640px)").matches
-				? 18
+				? 17
 				: 23),
 	);
 	const [columns, setColumns] = useState(saved?.columns ?? 1);
@@ -260,48 +262,108 @@ export function Player({
 				data-print="hide"
 				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:gap-2 [&>*]:shrink-0"
 			>
-				<ButtonGroup aria-label="Key">
-					<Button
-						variant="outline"
-						size="icon"
-						aria-label="Transpose down a semitone"
-						className="max-sm:hidden"
-						onClick={() => step(-1)}
-					>
-						<Minus />
-					</Button>
-					<KeySelect
-						value={key}
-						onChange={setKey}
-						label="Key"
-						prefix="Key"
-						original={shiftKey(shown.data.key, shown.data.sourceCapo)}
-						className="w-24 justify-between max-sm:rounded-md! max-sm:border-l!"
-					/>
-					<Button
-						variant="outline"
-						size="icon"
-						aria-label="Transpose up a semitone"
-						className="max-sm:hidden"
-						onClick={() => step(1)}
-					>
-						<Plus />
-					</Button>
-				</ButtonGroup>
-				{lyricsOnly ? null : (
-					<CapoSelect
-						value={capo}
-						onChange={setCapo}
-						prefix="Capo"
-						soundingKey={key}
-						className="w-32 justify-between sm:w-36"
-					/>
-				)}
+				<div className="flex items-center gap-2 max-sm:hidden">
+					<ButtonGroup aria-label="Key">
+						<Button
+							variant="outline"
+							size="icon"
+							aria-label="Transpose down a semitone"
+							onClick={() => step(-1)}
+						>
+							<Minus />
+						</Button>
+						<KeySelect
+							value={key}
+							onChange={setKey}
+							label="Key"
+							prefix="Key"
+							original={shiftKey(shown.data.key, shown.data.sourceCapo)}
+							className="w-24 justify-between"
+						/>
+						<Button
+							variant="outline"
+							size="icon"
+							aria-label="Transpose up a semitone"
+							onClick={() => step(1)}
+						>
+							<Plus />
+						</Button>
+					</ButtonGroup>
+					{lyricsOnly ? null : (
+						<CapoSelect
+							value={capo}
+							onChange={setCapo}
+							prefix="Capo"
+							soundingKey={key}
+							className="w-36 justify-between"
+						/>
+					)}
+				</div>
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button variant="outline" className="sm:hidden">
+							<span className="text-xs text-muted-foreground">Key</span>
+							{key}
+							{lyricsOnly ? null : (
+								<>
+									<span className="text-muted-foreground">·</span>
+									{capo ? `Capo ${capo}` : "No capo"}
+								</>
+							)}
+							<ChevronDown className="text-muted-foreground" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent align="start" className="w-72 space-y-4">
+						<div className="space-y-2">
+							<Label>Key</Label>
+							<ButtonGroup className="w-full">
+								<Button
+									variant="outline"
+									size="icon"
+									aria-label="Transpose down a semitone"
+									onClick={() => step(-1)}
+								>
+									<Minus />
+								</Button>
+								<KeySelect
+									value={key}
+									onChange={setKey}
+									original={shiftKey(shown.data.key, shown.data.sourceCapo)}
+									className="flex-1 justify-between"
+								/>
+								<Button
+									variant="outline"
+									size="icon"
+									aria-label="Transpose up a semitone"
+									onClick={() => step(1)}
+								>
+									<Plus />
+								</Button>
+							</ButtonGroup>
+						</div>
+						{lyricsOnly ? null : (
+							<div className="space-y-2">
+								<Label>Capo</Label>
+								<CapoSelect
+									value={capo}
+									onChange={setCapo}
+									soundingKey={key}
+									className="w-full justify-between"
+								/>
+							</div>
+						)}
+					</PopoverContent>
+				</Popover>
 				<Popover>
 					<IconTip label="View options">
 						<PopoverTrigger asChild>
-							<Button variant="outline" size="icon" aria-label="View options">
+							<Button
+								variant="outline"
+								aria-label="View options"
+								className="max-sm:size-9 max-sm:px-0"
+							>
 								<SlidersHorizontal />
+								<span className="max-sm:hidden">Display</span>
 							</Button>
 						</PopoverTrigger>
 					</IconTip>
@@ -316,7 +378,7 @@ export function Player({
 						</div>
 						{lyricsOnly ? null : (
 							<div className="flex items-center justify-between">
-								<Label htmlFor="shapes">Guitar shapes</Label>
+								<Label htmlFor="shapes">Chords relative to capo</Label>
 								<Switch
 									id="shapes"
 									checked={shapes}
@@ -360,8 +422,10 @@ export function Player({
 							pressed={diagrams}
 							onPressedChange={setDiagrams}
 							aria-label="Chord diagrams"
+							className="max-sm:size-9 max-sm:px-0 sm:px-3"
 						>
 							<Guitar />
+							<span className="max-sm:hidden">Diagrams</span>
 						</Toggle>
 					</IconTip>
 				)}
@@ -394,7 +458,7 @@ export function Player({
 					}}
 				>
 					<header className="mb-5 sm:mb-7">
-						<h2 className="text-xl font-semibold tracking-tight sm:text-3xl">
+						<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
 							{shown.data.title}
 						</h2>
 						<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
@@ -430,15 +494,12 @@ export function Player({
 							semitones={delta}
 							accidental={accidental}
 						/>
-						<p className="mt-1 text-xs text-muted-foreground">
-							Tap a diagram to see another way to play it.
-						</p>
 					</div>
 				</div>
 			) : null}
 			<footer
 				data-print="hide"
-				className="flex shrink-0 items-center gap-2 border-t px-4 py-2"
+				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2"
 			>
 				<Button
 					variant="ghost"
@@ -446,7 +507,7 @@ export function Player({
 					onClick={previous}
 					disabled={!previous}
 					className={cn(
-						"max-w-[30%] min-w-0",
+						"min-w-0 max-w-full justify-self-start",
 						previous || next ? "" : "invisible",
 					)}
 					aria-label={
@@ -458,7 +519,7 @@ export function Player({
 						{previousTitle || "Previous"}
 					</span>
 				</Button>
-				<div className="mx-auto flex items-center gap-3">
+				<div className="flex items-center gap-3">
 					<Button
 						variant={scrolling ? "secondary" : "default"}
 						size="sm"
@@ -466,8 +527,32 @@ export function Player({
 						onClick={() => setScrolling((value) => !value)}
 					>
 						{scrolling ? <Pause /> : <Play />}
-						{scrolling ? "Pause" : "Scroll"}
+						<span className="max-sm:sr-only">
+							{scrolling ? "Pause" : "Scroll"}
+						</span>
 					</Button>
+					<Popover>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className="font-mono tabular-nums sm:hidden"
+								aria-label={`Scroll speed ${speed}`}
+							>
+								<Gauge /> {speed}
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent side="top" className="w-56 space-y-3">
+							<Label>Scroll speed · {speed}</Label>
+							<Slider
+								min={5}
+								max={80}
+								value={[speed]}
+								onValueChange={([value]) => setSpeed(value)}
+								aria-label="Scroll speed"
+							/>
+						</PopoverContent>
+					</Popover>
 					<div className="flex items-center gap-2 max-sm:hidden">
 						<span className="text-xs text-muted-foreground">Speed</span>
 						<Slider
@@ -489,7 +574,7 @@ export function Player({
 					onClick={next}
 					disabled={!next}
 					className={cn(
-						"max-w-[30%] min-w-0 max-sm:max-w-[60%]",
+						"min-w-0 max-w-full justify-self-end",
 						previous || next ? "" : "invisible",
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}

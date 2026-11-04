@@ -23,7 +23,7 @@ function SetlistPage() {
 		<Sheet open onOpenChange={(open) => !open && close()}>
 			<SheetContent
 				showCloseButton={false}
-				className="w-full gap-0 overflow-y-auto sm:max-w-3xl"
+				className="w-full gap-0 overflow-y-auto sm:inset-y-3 sm:right-3 sm:h-auto sm:max-w-3xl sm:rounded-3xl sm:border"
 				// Focus the panel itself so the first toolbar button doesn't open with a focus ring.
 				onOpenAutoFocus={(event) => {
 					event.preventDefault();

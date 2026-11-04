@@ -15,7 +15,7 @@ export function PageHeader({
 	title: React.ReactNode;
 	back?: boolean;
 	embedded?: boolean;
-	/** The page body repeats the title as a heading, so small screens hide this one. */
+	/** The page body shows the title as its heading, so the bar leaves it out. */
 	pageTitle?: boolean;
 	children?: React.ReactNode;
 }) {
@@ -23,7 +23,11 @@ export function PageHeader({
 	return (
 		<header
 			data-print="hide"
-			className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur"
+			className={cn(
+				"sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur",
+				// An empty bar on a phone is only lost space; the page heading names the page.
+				pageTitle && !children && !back && "max-md:hidden",
+			)}
 		>
 			{back ? (
 				<Button
@@ -45,15 +49,12 @@ export function PageHeader({
 					/>
 				</>
 			)}
-			<h1
-				className={cn(
-					"min-w-0 flex-1 truncate text-sm font-medium",
-					pageTitle && "max-md:sr-only",
-				)}
-			>
-				{title}
-			</h1>
-			{pageTitle ? <div className="flex-1 md:hidden" /> : null}
+			{pageTitle ? (
+				// The page body shows this title as its heading.
+				<div className="flex-1" />
+			) : (
+				<h1 className="min-w-0 flex-1 truncate text-sm font-medium">{title}</h1>
+			)}
 			<div className="flex items-center gap-2">{children}</div>
 		</header>
 	);
@@ -80,7 +81,7 @@ export function PageBody({
 		>
 			{title ? (
 				<div className="space-y-1">
-					<h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+					<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 					{description ? (
 						<p className="text-sm text-muted-foreground">{description}</p>
 					) : null}
