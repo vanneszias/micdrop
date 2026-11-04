@@ -8,6 +8,9 @@
   "d1_databases": [{ "binding": "DB", "database_name": "chords", "database_id": "4026fa4f-3cfe-4fd2-a53d-a619b186f1b0", "migrations_dir": "migrations" }],
   "browser": { "binding": "BROWSER" },
   "routes": [{ "pattern": "micdrop.day", "custom_domain": true }],
+  // Gives each Preview a <preview>-chords.<subdomain>.workers.dev URL. Takes effect
+  // on the next production deploy.
+  "preview_urls": true,
   "vars": { "BETTER_AUTH_URL": "https://micdrop.day", "SENTRY_DSN": "https://352a2aae8de1434ebaf33c33c822bf6b@error.zias.be/3" },
   // Pull request environments (`wrangler preview`). Only compatibility settings
   // are inherited from above. The preview workflow adds the per-PR D1 database

@@ -62,7 +62,11 @@ deploy() {
 		WRANGLER_OUTPUT_FILE_PATH="$output" "${wrangler[@]}" preview --config "$built" --name "$name" \
 			--message "${GITHUB_SHA:-local}" \
 			--var "BETTER_AUTH_URL:$url" --secrets-file "$tmp/secrets.json"
-		actual="$(jq -ser 'map(select(.type == "preview")) | last | .preview_urls[0]' "$output")"
+		actual="$(jq -sr 'map(select(.type == "preview")) | last | .preview_urls[0] // empty' "$output")"
+		if [[ -z "$actual" ]]; then
+			echo "Preview $name has no URL. Deploy production with preview_urls enabled first." >&2
+			exit 1
+		fi
 		actual="${actual%/}"
 		[[ "$actual" == https://* ]] || actual="https://$actual"
 		[[ "$actual" == "$url" ]] && break
