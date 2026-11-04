@@ -8,6 +8,7 @@ import { isAPIError } from "better-auth/api";
 import { admin, jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
+import { auditStatement, BAN_HIDDEN } from "./admin";
 import { HttpError } from "./http-error";
 
 export { HttpError } from "./http-error";
@@ -44,6 +45,29 @@ export function getAuth() {
 				create: {
 					after: async (user) => {
 						logger.info("user.signed_up", { userId: user.id });
+					},
+				},
+			},
+			session: {
+				create: {
+					after: async (session) => {
+						const impersonator = (session as { impersonatedBy?: string | null })
+							.impersonatedBy;
+						if (impersonator) {
+							await auditStatement(
+								impersonator,
+								"impersonate",
+								"user",
+								session.userId,
+							).run();
+							return;
+						}
+						// A ban that expired is lifted at sign-in; bring back what it hid.
+						await env.DB.prepare(
+							"UPDATE publications SET moderated=0 WHERE owner=?1 AND moderated=?2 AND EXISTS(SELECT 1 FROM user WHERE id=?1 AND COALESCE(banned,0)=0)",
+						)
+							.bind(session.userId, BAN_HIDDEN)
+							.run();
 					},
 				},
 			},
@@ -87,6 +111,16 @@ export function getAuth() {
 export async function requireUser(request: Request) {
 	const session = await getAuth().api.getSession({ headers: request.headers });
 	if (!session) throw new HttpError(401, "Sign in to use your cloud songbook.");
+	// Impersonation has full access, so every change made through it is attributed.
+	const impersonator = session.session.impersonatedBy;
+	if (impersonator && request.method !== "GET" && request.method !== "HEAD")
+		await auditStatement(
+			impersonator,
+			"impersonated_write",
+			"user",
+			session.user.id,
+			{ path: new URL(request.url).pathname },
+		).run();
 	return session.user;
 }
 export function isAdminRole(role: string | null | undefined) {

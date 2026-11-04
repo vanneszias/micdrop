@@ -11,6 +11,7 @@ import {
 	useAdmin,
 	when,
 } from "#/features/admin";
+import { AccountActions } from "#/features/admin-actions";
 
 export const Route = createFileRoute("/_app/admin/users/$id")({
 	component: UserDetail,
@@ -159,6 +160,7 @@ function UserDetail() {
 					Opening this page is recorded in the audit log.
 				</p>
 			</div>
+			<AccountActions target={user} />
 			<div className="grid gap-4 xl:grid-cols-2">
 				<Section
 					title={`Personal library · ${bytes(data.recordTotals.bytes)}`}

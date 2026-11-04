@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { listUsers, overview, userDetail } from "#/server/admin";
+import { AdminAction, runAdminAction } from "#/server/admin-actions";
 import { endpoint, requireAdmin } from "#/server/auth";
 
 const Query = z.discriminatedUnion("view", [
@@ -31,6 +32,11 @@ export const Route = createFileRoute("/api/admin")({
 				return Response.json(await userDetail(admin.id, input.id), {
 					headers,
 				});
+			}),
+			POST: endpoint(async (request) => {
+				const admin = await requireAdmin(request);
+				const input = AdminAction.parse(await request.json());
+				return Response.json(await runAdminAction(request, admin.id, input));
 			}),
 		},
 	},

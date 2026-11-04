@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { localSql } from "./test-db";
 
 const base = process.env.CHORDS_TEST_URL || "";
 
@@ -25,34 +26,6 @@ async function account(name: string, extra: Record<string, unknown> = {}) {
 const admin = (path: string, cookie = "") =>
 	fetch(`${base}/api/admin?${path}`, { headers: { Cookie: cookie } });
 
-/** Grants a role in the local D1 fixture only; never against a deployed database. */
-async function sql(command: string) {
-	if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname))
-		throw new Error("Integration checks must use a local app.");
-	const root = new URL("../../../../", import.meta.url).pathname;
-	const process_ = Bun.spawn(
-		[
-			`${root}apps/web/node_modules/.bin/wrangler`,
-			"d1",
-			"execute",
-			"chords",
-			"--cwd",
-			"apps/web",
-			"--local",
-			"--persist-to",
-			process.env.CHORDS_TEST_D1_STATE || `${root}apps/web/.wrangler/state`,
-			"--command",
-			command,
-		],
-		{ cwd: root, stdout: "pipe", stderr: "pipe" },
-	);
-	const [exit, stderr] = await Promise.all([
-		process_.exited,
-		new Response(process_.stderr).text(),
-	]);
-	if (exit) throw new Error(`Local fixture provisioning failed: ${stderr}`);
-}
-
 test.skipIf(!base)(
 	"platform administration is gated, audited and never leaks session tokens",
 	async () => {
@@ -70,7 +43,7 @@ test.skipIf(!base)(
 
 		if (!/^[a-zA-Z0-9_-]+$/.test(operator.id))
 			throw new Error("Unexpected fixture user id.");
-		await sql(`UPDATE user SET role='admin' WHERE id='${operator.id}'`);
+		await localSql(`UPDATE user SET role='admin' WHERE id='${operator.id}'`);
 
 		const overview = await admin("view=overview", operator.cookie);
 		expect(overview.status).toBe(200);
@@ -124,6 +97,183 @@ test.skipIf(!base)(
 			})
 		).json()) as { admin: boolean };
 		expect(catalogue.admin).toBe(true);
+	},
+	60_000,
+);
+
+/** Better Auth clears a cookie and sets it again in one response; the last value wins. */
+function cookiesFrom(response: Response) {
+	const jar = new Map<string, string>();
+	for (const header of response.headers.getSetCookie()) {
+		const [pair = ""] = header.split(";");
+		const name = pair.slice(0, pair.indexOf("="));
+		if (/max-age=0/i.test(header)) jar.delete(name);
+		else jar.set(name, pair);
+	}
+	return [...jar.values()].join("; ");
+}
+
+async function post(path: string, cookie: string, body: unknown) {
+	return fetch(`${base}${path}`, {
+		method: "POST",
+		headers: {
+			Cookie: cookie,
+			Origin: base,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(body),
+	});
+}
+
+const signIn = (email: string) =>
+	post("/api/auth/sign-in/email", "", {
+		email,
+		password: "integration-test-password-2026",
+	});
+
+function arrangement(owner: string, title: string) {
+	return {
+		id: crypto.randomUUID(),
+		owner,
+		kind: "arrangement",
+		version: 0,
+		archived: false,
+		updatedAt: new Date().toISOString(),
+		data: {
+			title,
+			artist: "Ban Test",
+			content: `[G]${crypto.randomUUID()}`,
+			key: "G",
+			sourceCapo: 0,
+			tags: [],
+			sourceUrl: "",
+			rawSource: "",
+			copiedFrom: "",
+			visibility: "public",
+		},
+	};
+}
+
+test.skipIf(!base)(
+	"bans, sign-outs and impersonation are enforced and logged",
+	async () => {
+		const operator = await account("Ban operator");
+		const target = await account("Ban target");
+		const colleague = await account("Fellow operator");
+		for (const id of [operator.id, colleague.id])
+			if (!/^[a-zA-Z0-9_-]+$/.test(id))
+				throw new Error("Unexpected fixture user id.");
+		await localSql(
+			`UPDATE user SET role='admin' WHERE id IN ('${operator.id}','${colleague.id}')`,
+		);
+		const song = arrangement(target.id, `Banned song ${crypto.randomUUID()}`);
+		const saved = await post("/api/sync", target.cookie, {
+			id: crypto.randomUUID(),
+			baseVersion: 0,
+			record: song,
+		});
+		expect(saved.status).toBe(200);
+		const published = () =>
+			fetch(`${base}/api/publications?id=${song.id}`).then((r) => r.status);
+		expect(await published()).toBe(200);
+
+		const act = (cookie: string, body: Record<string, unknown>) =>
+			post("/api/admin", cookie, body).then((r) => r.status);
+		expect(
+			await act(target.cookie, {
+				action: "ban",
+				userId: operator.id,
+				reason: "Not allowed",
+			}),
+		).toBe(403);
+		expect(
+			await act(operator.cookie, {
+				action: "ban",
+				userId: colleague.id,
+				reason: "Administrators are protected",
+			}),
+		).toBe(403);
+		expect(
+			await act(operator.cookie, {
+				action: "ban",
+				userId: operator.id,
+				reason: "Not myself",
+			}),
+		).toBe(400);
+
+		// Only administrators impersonate, and an impersonated session is not an administrator.
+		expect(
+			(
+				await post("/api/auth/admin/impersonate-user", target.cookie, {
+					userId: operator.id,
+				})
+			).status,
+		).toBe(403);
+		const impersonation = await post(
+			"/api/auth/admin/impersonate-user",
+			operator.cookie,
+			{ userId: target.id },
+		);
+		expect(impersonation.status).toBe(200);
+		const actingAs = cookiesFrom(impersonation);
+		const session = (await (
+			await fetch(`${base}/api/auth/get-session`, {
+				headers: { Cookie: actingAs },
+			})
+		).json()) as { user: { id: string }; session: { impersonatedBy: string } };
+		expect(session.user.id).toBe(target.id);
+		expect(session.session.impersonatedBy).toBe(operator.id);
+		expect((await admin("view=overview", actingAs)).status).toBe(403);
+		const written = await post("/api/sync", actingAs, {
+			id: crypto.randomUUID(),
+			baseVersion: 0,
+			record: arrangement(target.id, "Written while impersonating"),
+		});
+		expect(written.status).toBe(200);
+
+		expect(
+			await act(operator.cookie, {
+				action: "ban",
+				userId: target.id,
+				reason: "Spam",
+				days: 1,
+			}),
+		).toBe(200);
+		expect(
+			(await fetch(`${base}/api/bands`, { headers: { Cookie: target.cookie } }))
+				.status,
+		).toBe(401);
+		expect(
+			(await fetch(`${base}/api/bands`, { headers: { Cookie: actingAs } }))
+				.status,
+		).toBe(401);
+		const refused = await signIn(target.email);
+		expect(refused.status).toBe(403);
+		expect(((await refused.json()) as { code: string }).code).toBe(
+			"BANNED_USER",
+		);
+		expect(await published()).toBe(404);
+
+		const { audit } = (await (
+			await admin(`view=user&id=${target.id}`, operator.cookie)
+		).json()) as { audit: { action: string }[] };
+		const actions = audit.map((entry) => entry.action);
+		for (const action of ["ban", "impersonated_write", "impersonate"])
+			expect(actions).toContain(action);
+
+		expect(
+			await act(operator.cookie, { action: "unban", userId: target.id }),
+		).toBe(200);
+		expect(await published()).toBe(200);
+		const back = await signIn(target.email);
+		expect(back.status).toBe(200);
+		const fresh = cookiesFrom(back);
+		expect(
+			await act(operator.cookie, { action: "sign_out", userId: target.id }),
+		).toBe(200);
+		expect(
+			(await fetch(`${base}/api/bands`, { headers: { Cookie: fresh } })).status,
+		).toBe(401);
 	},
 	60_000,
 );

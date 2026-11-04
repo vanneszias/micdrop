@@ -205,3 +205,28 @@ export async function userDetail(adminId: string, id: string) {
 		audit: audit.results,
 	};
 }
+
+/** Whether a ban is in force. Better Auth lifts expired bans only at the next sign-in. */
+export async function activeBan(userId: string, now = Date.now()) {
+	return !!(await env.DB.prepare(
+		`SELECT 1 FROM user WHERE id=? AND banned=1 AND (banExpires IS NULL OR ${ms("banExpires")}>?)`,
+	)
+		.bind(userId, now)
+		.first());
+}
+
+/**
+ * Access tokens are JWTs that stay valid until they expire, so /mcp checks bans itself;
+ * revoking here stops refreshes, including offline_access tokens that outlive sessions.
+ */
+export function revokeOAuthStatements(userId: string, now = Date.now()) {
+	const revoked = new Date(now).toISOString();
+	return ["oauthRefreshToken", "oauthAccessToken"].map((table) =>
+		env.DB.prepare(
+			`UPDATE ${table} SET revoked=? WHERE userId=? AND (revoked IS NULL OR revoked=0)`,
+		).bind(revoked, userId),
+	);
+}
+
+/** Publications hidden by a ban use moderated=2, so lifting the ban restores only those. */
+export const BAN_HIDDEN = 2;

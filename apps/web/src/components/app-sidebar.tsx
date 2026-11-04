@@ -41,6 +41,7 @@ import {
 import { useState } from "react";
 import { useApp } from "#/features/app-context";
 import { ConnectAssistantDialog } from "#/features/connect-assistant";
+import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
 
@@ -65,6 +66,7 @@ function AccountMenu({
 }) {
 	const { user, store, run, busy, online } = useApp();
 	const [connecting, setConnecting] = useState(false);
+	const impersonating = !!useImpersonator();
 	return (
 		<>
 			<DropdownMenu>
@@ -78,7 +80,8 @@ function AccountMenu({
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
-						disabled={busy}
+						// While impersonating, this would copy the administrator's own songs.
+						disabled={busy || impersonating}
 						onSelect={() =>
 							void run(
 								() => store.importLocal(),
@@ -97,7 +100,8 @@ function AccountMenu({
 						</DropdownMenuItem>
 					) : null}
 					<DropdownMenuItem
-						disabled={busy}
+						// The banner's "Stop impersonating" also clears their songbook.
+						disabled={busy || impersonating}
 						onSelect={() =>
 							void run(async () => {
 								await authClient.signOut();

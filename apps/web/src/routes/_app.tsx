@@ -14,6 +14,10 @@ import { toast } from "sonner";
 import { AppSidebar, showsBottomNav } from "#/components/app-sidebar";
 import { AppProvider, useApp } from "#/features/app-context";
 import { Conflicts } from "#/features/conflicts";
+import {
+	ImpersonationBanner,
+	usePurgeImpersonatedSongbook,
+} from "#/features/impersonation";
 import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/_app")({ component: Layout });
@@ -74,6 +78,7 @@ function Layout() {
 	const account =
 		session?.user.id ||
 		(!online || isPending || error ? cachedAccount : "local");
+	usePurgeImpersonatedSongbook(account);
 	return (
 		<TooltipProvider>
 			<Suspense fallback={<ShellSkeleton />}>
@@ -119,6 +124,7 @@ function Shell() {
 		<SidebarProvider className="has-data-[variant=inset]:bg-background">
 			<AppSidebar />
 			<SidebarInset className="min-w-0 overflow-hidden bg-card md:peer-data-[variant=inset]:rounded-3xl">
+				<ImpersonationBanner />
 				<div
 					key={pathname}
 					className={cn(
