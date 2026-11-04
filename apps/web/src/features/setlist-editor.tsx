@@ -345,7 +345,8 @@ export function SetlistEditor({
 													0
 												}
 												onChange={(capo) => patch(entry.id, { capo })}
-												className="w-28 data-[size=default]:h-8"
+												prefix="Capo"
+												className="w-32 justify-between data-[size=default]:h-8"
 											/>
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>

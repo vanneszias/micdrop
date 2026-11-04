@@ -164,9 +164,11 @@ export function Player({
 	const { setOpen } = useSidebar();
 	const [stage, setStage] = useState(false);
 	useEffect(() => {
+		// Leaving full screen with Esc also leaves stage mode.
 		const change = () => {
-			setStage(!!document.fullscreenElement);
-			if (!document.fullscreenElement) setOpen(true);
+			if (document.fullscreenElement) return;
+			setStage(false);
+			setOpen(true);
 		};
 		document.addEventListener("fullscreenchange", change);
 		return () => document.removeEventListener("fullscreenchange", change);
@@ -247,69 +249,93 @@ export function Player({
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [next, previous]);
+	const leaveStage = () => {
+		if (document.fullscreenElement) void document.exitFullscreen();
+		setStage(false);
+		setOpen(true);
+	};
 	return (
-		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
-			<PageHeader
-				back
-				headingInBody
-				crumbs={[
-					playing
-						? { label: "Setlists", to: "/setlists" }
-						: { label: "Repertoire", to: "/songs" },
-				]}
-				title={
-					playing ? <SetlistSheet title={shown.data.title} /> : shown.data.title
-				}
-			>
-				{actions}
-				{readOnly ? null : (
-					<IconTip label="Edit song">
-						<Button variant="ghost" size="icon-sm" asChild>
-							<Link
-								to="/songs/$id/edit"
-								params={{ id: arrangement.id }}
-								aria-label="Edit song"
-							>
-								<Pencil />
+		<div
+			className={cn(
+				"flex h-svh flex-col",
+				stage
+					? "fixed inset-0 z-40 bg-background"
+					: "md:h-[calc(100svh-1.5rem)]",
+			)}
+		>
+			{stage ? (
+				<Button
+					variant="secondary"
+					size="sm"
+					className="fixed top-3 right-3 z-50 shadow-sm"
+					onClick={leaveStage}
+				>
+					<Minimize2 /> Exit stage
+				</Button>
+			) : null}
+			<div className={stage ? "hidden" : "contents"}>
+				<PageHeader
+					back
+					headingInBody
+					crumbs={[
+						playing
+							? { label: "Setlists", to: "/setlists" }
+							: { label: "Repertoire", to: "/songs" },
+					]}
+					title={
+						playing ? (
+							<SetlistSheet title={shown.data.title} />
+						) : (
+							shown.data.title
+						)
+					}
+				>
+					{actions}
+					{readOnly ? null : (
+						<Button variant="outline" size="sm" asChild>
+							<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
+								<Pencil /> <span className="max-sm:sr-only">Edit</span>
 							</Link>
 						</Button>
-					</IconTip>
-				)}
-				<IconTip label={stage ? "Leave stage mode" : "Stage mode"}>
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						className="max-sm:hidden"
-						aria-label={stage ? "Leave stage mode" : "Stage mode"}
-						aria-pressed={stage}
-						onClick={() => {
-							// Stage mode hides the app around the sheet: full screen, no sidebar.
-							if (document.fullscreenElement) {
-								void document.exitFullscreen();
-								setOpen(true);
-							} else {
+					)}
+					<IconTip label={stage ? "Leave stage mode" : "Stage mode"}>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							className="max-sm:hidden"
+							aria-label={stage ? "Leave stage mode" : "Stage mode"}
+							aria-pressed={stage}
+							onClick={() => {
+								// Stage mode hides the app around the sheet: full screen, no sidebar.
+								if (stage) return leaveStage();
 								setOpen(false);
-								void document.documentElement.requestFullscreen?.();
-							}
-						}}
-					>
-						{stage ? <Minimize2 /> : <Maximize2 />}
-					</Button>
-				</IconTip>
-				<IconTip label="Print">
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						aria-label="Print"
-						onClick={() => window.print()}
-					>
-						<Printer />
-					</Button>
-				</IconTip>
-			</PageHeader>
+								setStage(true);
+								void document.documentElement
+									.requestFullscreen?.()
+									.catch(() => {});
+							}}
+						>
+							{stage ? <Minimize2 /> : <Maximize2 />}
+						</Button>
+					</IconTip>
+					<IconTip label="Print">
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							aria-label="Print"
+							onClick={() => window.print()}
+						>
+							<Printer />
+						</Button>
+					</IconTip>
+				</PageHeader>
+			</div>
 			<div
 				data-print="hide"
-				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0"
+				className={cn(
+					"flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0",
+					stage && "hidden",
+				)}
 			>
 				<div className="flex items-center gap-2 max-sm:hidden">
 					<ButtonGroup aria-label="Key">
@@ -498,10 +524,12 @@ export function Player({
 				tabIndex={0}
 				aria-label="Chord sheet"
 			>
-				<div className="flex justify-center gap-10">
+				{/* Three columns keep the sheet centred whether or not the diagram rail shows. */}
+				<div className="flex justify-center xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10">
+					<div className="max-xl:hidden" />
 					<article
 						className={cn(
-							"min-w-0 px-5 py-6 pb-24 max-sm:w-full max-xl:mx-auto sm:px-6 sm:py-8",
+							"min-w-0 px-5 py-6 pb-24 max-sm:w-full max-xl:mx-auto sm:px-6 sm:py-8 xl:min-w-[36rem]",
 							columns > 1 && "flex-1",
 							// One column hugs its content so the sheet sits centred, not left-aligned.
 							columns === 1 && "sm:w-fit sm:min-w-[min(100%,36rem)]",
@@ -533,7 +561,8 @@ export function Player({
 							content={shown.data.content}
 							semitones={delta}
 							accidental={accidental}
-							fontSize={fontSize}
+							// Stage mode trades the hidden controls for larger text.
+							fontSize={stage ? fontSize + 4 : fontSize}
 							columns={columns}
 							chords={!lyricsOnly}
 						/>
@@ -543,7 +572,7 @@ export function Player({
 						<aside
 							data-print="hide"
 							aria-label="Chord diagrams"
-							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 pt-10 xl:block"
+							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10 xl:block"
 						>
 							<ChordDiagrams
 								content={shown.data.content}
@@ -568,7 +597,7 @@ export function Player({
 					</div>
 				</div>
 			) : null}
-			{nextTitle ? (
+			{nextTitle && !diagrams ? (
 				<button
 					type="button"
 					data-print="hide"
@@ -663,7 +692,7 @@ export function Player({
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
 					<span className={cn("truncate", !diagrams && "max-sm:hidden")}>
-						{nextTitle ? (
+						{nextTitle && !diagrams ? (
 							<>
 								<span className="text-muted-foreground max-sm:hidden">
 									Next:{" "}

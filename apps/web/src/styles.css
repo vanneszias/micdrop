@@ -101,8 +101,8 @@
 
 /* Chord sheet */
 .song-sheet { font-family: var(--font-sans); line-height: 1.7; }
-.sheet-space { height: .7em; }
-.sheet-section { font-size: .55em; letter-spacing: .05em; color: var(--muted-foreground); font-weight: 600; text-transform: uppercase; margin: 1.9em 0 1em; }
+.sheet-space { height: .4em; }
+.sheet-section { font-size: .55em; letter-spacing: .05em; color: var(--muted-foreground); font-weight: 600; text-transform: uppercase; margin: 1.4em 0 .8em; }
 .sheet-note { color: var(--muted-foreground); font-size: .65em; margin: 1.3em 0; }
 .sheet-line { display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: .35em; margin-bottom: .85em; }
 .sheet-word { display: inline-flex; align-items: flex-end; }

@@ -183,7 +183,7 @@ function Login() {
 					>
 						<FieldGroup>
 							{/* Phones get a small taste of the chord sheet the desktop panel shows. */}
-							<div className="rounded-xl border bg-card px-4 py-3 lg:hidden">
+							<div className="order-last rounded-xl border bg-card px-4 py-3 lg:hidden">
 								<SongSheet
 									fontSize={15}
 									content={

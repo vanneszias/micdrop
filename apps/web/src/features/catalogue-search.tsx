@@ -309,6 +309,15 @@ export function CatalogueSearch({
 								<span className="min-w-0 flex-1">
 									<span className="flex items-center gap-2 text-sm font-medium">
 										{group.title}
+										{publicOnly &&
+										arrangements.some(
+											(song) =>
+												song.owner === owner && songGroup(song) === group.id,
+										) ? (
+											<Badge variant="secondary" className="font-normal">
+												<Check /> In repertoire
+											</Badge>
+										) : null}
 										{inSet &&
 										group.local.some((song) => inSet.includes(song.id)) ? (
 											<Badge variant="secondary" className="font-normal">

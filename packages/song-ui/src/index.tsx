@@ -163,6 +163,24 @@ export function ChordDiagrams({
 		</div>
 	);
 }
+/**
+ * A barre shape with no open strings reads as a nut chord when drawn from fret 1.
+ * Start the grid at its lowest fret instead, so it gets a "2fr" position label.
+ */
+function fromLowestFret(shape: Fingering | undefined): Fingering | undefined {
+	if (!shape || shape.baseFret !== 1 || shape.frets.includes(0)) return shape;
+	const lowest = Math.min(...shape.frets.filter((fret) => fret > 0));
+	if (!Number.isFinite(lowest) || lowest <= 1 || !shape.barres.length)
+		return shape;
+	const shift = lowest - 1;
+	return {
+		...shape,
+		baseFret: lowest,
+		frets: shape.frets.map((fret) => (fret > 0 ? fret - shift : fret)),
+		barres: shape.barres.map((fret) => fret - shift),
+	};
+}
+
 function GuitarDiagram({
 	chord,
 	database,
@@ -190,7 +208,7 @@ function GuitarDiagram({
 	const shapes =
 		database.chords[key]?.find((value) => value.suffix === suffix)?.positions ||
 		[];
-	const shape = shapes[position % Math.max(1, shapes.length)];
+	const shape = fromLowestFret(shapes[position % Math.max(1, shapes.length)]);
 	if (!shape)
 		return (
 			<div className="diagram-missing">

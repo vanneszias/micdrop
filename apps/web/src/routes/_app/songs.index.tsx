@@ -179,11 +179,13 @@ function Songs() {
 												) : (
 													<Lock />
 												)}
-												{song.data.draft
-													? "Draft"
-													: song.data.visibility === "public"
-														? "Public"
-														: "Private"}
+												<span className="max-sm:sr-only">
+													{song.data.draft
+														? "Draft"
+														: song.data.visibility === "public"
+															? "Public"
+															: "Private"}
+												</span>
 											</Badge>
 										</TableCell>
 										<TableCell className="relative z-[1] w-px pr-2 text-right">

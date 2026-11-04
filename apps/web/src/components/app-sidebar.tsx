@@ -414,7 +414,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 							tooltip="Mic Drop"
 							isActive={pathname === "/"}
 						>
-							<Link to="/" onClick={() => setOpenMobile(false)}>
+							<Link
+								to="/"
+								aria-label="Mic Drop home"
+								onClick={() => setOpenMobile(false)}
+							>
 								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 									<Music className="size-4" />
 								</div>
@@ -473,6 +477,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						<SidebarMenuButton
 							size="sm"
 							tooltip={status}
+							aria-label={`Sync status: ${status}`}
 							className="text-muted-foreground"
 							disabled={!app.online || app.account === "local"}
 							onClick={() => void app.store.sync()}
@@ -485,8 +490,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						{app.user ? (
-							<AccountMenu side="right">
-								<SidebarMenuButton size="lg" tooltip={app.user.name}>
+							<AccountMenu side="top">
+								<SidebarMenuButton
+									size="lg"
+									tooltip={app.user.name}
+									aria-label={`Account: ${app.user.name}`}
+								>
 									<Avatar className="size-8 rounded-lg">
 										<AvatarFallback className="rounded-lg">
 											{app.user.name[0]?.toUpperCase()}
