@@ -317,7 +317,12 @@ export function SetlistEditor({
 											<Input
 												aria-label={`Notes for song ${index + 1}`}
 												placeholder="Add a note…"
-												className="mt-1 -ml-2 h-7 w-full max-w-sm rounded-md border-transparent bg-transparent px-2 text-xs shadow-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:ring-0 dark:bg-transparent"
+												className={cn(
+													"mt-1 -ml-2 h-7 w-full max-w-sm rounded-md border-transparent bg-transparent px-2 text-xs shadow-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:ring-0 dark:bg-transparent",
+													// With a mouse, empty note fields appear on hover or focus; touch screens always show them.
+													!entry.notes &&
+														"[@media(hover:hover)]:opacity-0 group-hover/entry:opacity-100 focus-visible:opacity-100",
+												)}
 												value={entry.notes}
 												onChange={(event) =>
 													patch(entry.id, { notes: event.target.value })
@@ -475,7 +480,7 @@ function SortableEntry({
 			ref={setNodeRef}
 			style={{ transform: CSS.Translate.toString(transform), transition }}
 			className={cn(
-				"relative flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-3 py-2.5 animate-in fade-in-0 slide-in-from-top-1 first:rounded-t-lg last:rounded-b-lg",
+				"group/entry relative flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-3 py-2.5 animate-in fade-in-0 slide-in-from-top-1 first:rounded-t-lg last:rounded-b-lg",
 				isDragging && "z-10 rounded-lg shadow-lg ring-1 ring-border",
 			)}
 		>

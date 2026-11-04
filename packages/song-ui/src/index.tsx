@@ -249,7 +249,7 @@ function GuitarDiagram({
 							x2={15 + Math.max(...strings) * 14}
 							y1={13.5 + fret * 19}
 							y2={13.5 + fret * 19}
-							stroke="currentColor"
+							className="diagram-barre"
 							strokeWidth="9"
 							strokeLinecap="round"
 						/>
@@ -259,10 +259,10 @@ function GuitarDiagram({
 					fret > 0 ? (
 						<g key={`dot-${i}`}>
 							<circle
+								className="diagram-dot"
 								cx={15 + i * 14}
 								cy={13.5 + fret * 19}
 								r="6"
-								fill="currentColor"
 							/>
 							<text
 								x={15 + i * 14}

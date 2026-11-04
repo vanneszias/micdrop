@@ -20,13 +20,15 @@ export function PageHeader({
 	children?: React.ReactNode;
 }) {
 	const router = useRouter();
+	// Top-level pages carry their title and actions in PageBody; only a phone back button remains.
+	if (pageTitle && !back) return null;
 	return (
 		<header
 			data-print="hide"
 			className={cn(
 				"sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur",
 				// An empty bar on a phone is only lost space; the page heading names the page.
-				pageTitle && !children && !back && "max-md:hidden",
+				pageTitle && "md:hidden",
 			)}
 		>
 			{back ? (
@@ -64,11 +66,13 @@ export function PageHeader({
 export function PageBody({
 	title,
 	description,
+	actions,
 	className,
 	children,
 }: {
 	title?: React.ReactNode;
 	description?: React.ReactNode;
+	actions?: React.ReactNode;
 	className?: string;
 	children: React.ReactNode;
 }) {
@@ -80,10 +84,16 @@ export function PageBody({
 			)}
 		>
 			{title ? (
-				<div className="space-y-1">
-					<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-					{description ? (
-						<p className="text-sm text-muted-foreground">{description}</p>
+				<div className="flex items-start gap-3">
+					<SidebarTrigger className="mt-0.5 -ml-1 hidden md:inline-flex" />
+					<div className="min-w-0 flex-1 space-y-1">
+						<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+						{description ? (
+							<p className="text-sm text-muted-foreground">{description}</p>
+						) : null}
+					</div>
+					{actions ? (
+						<div className="flex shrink-0 items-center gap-2">{actions}</div>
 					) : null}
 				</div>
 			) : null}

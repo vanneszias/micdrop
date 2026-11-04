@@ -27,8 +27,6 @@ import {
 	Table,
 	TableBody,
 	TableCell,
-	TableHead,
-	TableHeader,
 	TableRow,
 } from "@chords/ui/components/table";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -100,9 +98,7 @@ function Songs() {
 	);
 	return (
 		<>
-			<PageHeader pageTitle title="Repertoire">
-				{songs.length ? add : null}
-			</PageHeader>
+			<PageHeader pageTitle title="Repertoire" />
 			<PageBody
 				title={
 					owner === account
@@ -114,6 +110,7 @@ function Songs() {
 						? `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: undefined
 				}
+				actions={songs.length ? add : null}
 			>
 				{songs.length ? (
 					<SearchInput
@@ -126,21 +123,15 @@ function Songs() {
 								replace: true,
 							})
 						}
+						onClear={() => void navigate({ search: {}, replace: true })}
 					/>
 				) : null}
 				{shown.length ? (
 					<div className="rounded-lg border">
 						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead className="w-16 pl-4">Key</TableHead>
-									<TableHead>Song</TableHead>
-									<TableHead className="w-12" />
-								</TableRow>
-							</TableHeader>
 							<TableBody>
 								{shown.map((song) => (
-									<TableRow key={song.id} className="relative">
+									<TableRow key={song.id} className="relative h-15">
 										<TableCell className="pl-4">
 											<Badge
 												variant="secondary"
@@ -157,25 +148,28 @@ function Songs() {
 											>
 												{song.data.title}
 											</Link>
-											<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-												<span className="truncate">
-													{[
-														song.data.artist || "Unknown artist",
-														song.data.arrangementName,
-													]
-														.filter(Boolean)
-														.join(" · ")}
-												</span>
-												{song.data.draft ||
-												song.data.visibility === "public" ? (
-													<Badge
-														variant="outline"
-														className="h-4.5 px-1.5 text-[11px] font-normal text-muted-foreground"
-													>
-														{song.data.draft ? "Draft" : "Public"}
-													</Badge>
-												) : null}
+											<div className="truncate text-xs text-muted-foreground">
+												{[
+													song.data.artist || "Unknown artist",
+													song.data.arrangementName,
+												]
+													.filter(Boolean)
+													.join(" · ")}
 											</div>
+										</TableCell>
+										<TableCell className="w-24 text-right">
+											{song.data.draft || song.data.visibility === "public" ? (
+												<Badge
+													variant="outline"
+													className="font-normal text-muted-foreground"
+												>
+													{song.data.draft ? "Draft" : "Public"}
+												</Badge>
+											) : (
+												<span className="text-xs text-muted-foreground">
+													Private
+												</span>
+											)}
 										</TableCell>
 										<TableCell className="relative z-[1] text-right">
 											<DropdownMenu>

@@ -38,7 +38,7 @@ import {
 	Printer,
 	SlidersHorizontal,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { IconTip } from "#/components/icon-tip";
 import { CapoSelect, KeySelect } from "#/components/key-select";
@@ -47,7 +47,8 @@ import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
-	fontSize: z.number().min(14).max(40).default(23),
+	// Absent until the player picks a size; until then it follows the screen width.
+	fontSize: z.number().min(14).max(40).optional(),
 	columns: z.number().int().min(1).max(3).default(1),
 	diagrams: z.boolean().default(false),
 	lyricsOnly: z.boolean().default(false),
@@ -111,14 +112,17 @@ export function Player({
 			arrangement.data.sourceCapo,
 	);
 	const [shapes, setShapes] = useState(saved?.shapes ?? true);
-	const [fontSize, setFontSize] = useState(
-		() =>
-			saved?.fontSize ??
-			(typeof window !== "undefined" &&
-			window.matchMedia("(max-width: 640px)").matches
-				? 17
-				: 23),
+	const [chosenSize, setFontSize] = useState(saved?.fontSize);
+	const narrow = useSyncExternalStore(
+		(change) => {
+			const media = window.matchMedia("(max-width: 640px)");
+			media.addEventListener("change", change);
+			return () => media.removeEventListener("change", change);
+		},
+		() => window.matchMedia("(max-width: 640px)").matches,
+		() => false,
 	);
+	const fontSize = chosenSize ?? (narrow ? 17 : 23);
 	const [columns, setColumns] = useState(saved?.columns ?? 1);
 	const [diagrams, setDiagrams] = useState(saved?.diagrams ?? false);
 	const [lyricsOnly, setLyricsOnly] = useState(saved?.lyricsOnly ?? false);
@@ -130,7 +134,7 @@ export function Player({
 				preferenceKey,
 				JSON.stringify({
 					shapes,
-					fontSize,
+					fontSize: chosenSize,
 					columns,
 					diagrams,
 					lyricsOnly,
@@ -147,7 +151,7 @@ export function Player({
 		key,
 		capo,
 		shapes,
-		fontSize,
+		chosenSize,
 		columns,
 		diagrams,
 		lyricsOnly,
@@ -386,7 +390,7 @@ export function Player({
 								/>
 							</div>
 						)}
-						<div className="space-y-2">
+						<div className="space-y-2 max-md:hidden">
 							<Label>Columns</Label>
 							<ToggleGroup
 								type="single"
@@ -497,6 +501,20 @@ export function Player({
 					</div>
 				</div>
 			) : null}
+			{nextTitle ? (
+				<button
+					type="button"
+					data-print="hide"
+					onClick={next}
+					className="flex shrink-0 items-center gap-2 border-t px-4 py-2 text-left text-xs text-muted-foreground sm:hidden"
+				>
+					Up next
+					<span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+						{nextTitle}
+					</span>
+					<ChevronRight className="size-4" />
+				</button>
+			) : null}
 			<footer
 				data-print="hide"
 				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2"
@@ -539,11 +557,11 @@ export function Player({
 								className="font-mono tabular-nums sm:hidden"
 								aria-label={`Scroll speed ${speed}`}
 							>
-								<Gauge /> {speed}
+								<Gauge /> {(speed / 25).toFixed(1)}×
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent side="top" className="w-56 space-y-3">
-							<Label>Scroll speed · {speed}</Label>
+							<Label>Scroll speed · {(speed / 25).toFixed(1)}×</Label>
 							<Slider
 								min={5}
 								max={80}
@@ -563,8 +581,8 @@ export function Player({
 							value={[speed]}
 							onValueChange={([value]) => setSpeed(value)}
 						/>
-						<span className="w-6 text-right font-mono text-xs tabular-nums text-muted-foreground">
-							{speed}
+						<span className="w-8 text-right font-mono text-xs tabular-nums text-muted-foreground">
+							{(speed / 25).toFixed(1)}×
 						</span>
 					</div>
 				</div>
@@ -579,7 +597,7 @@ export function Player({
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
-					<span className="truncate">
+					<span className="truncate max-sm:hidden">
 						{nextTitle ? (
 							<>
 								<span className="text-muted-foreground max-sm:hidden">

@@ -41,7 +41,7 @@ import {
 	Monitor,
 	Moon,
 	Music,
-	Plus,
+	Settings2,
 	Shield,
 	Sun,
 	User,
@@ -79,6 +79,8 @@ function AccountMenu({
 	const [connecting, setConnecting] = useState(false);
 	const impersonating = !!useImpersonator();
 	const { theme, setTheme } = useTheme();
+	const app = useApp();
+	const navigate = useNavigate();
 	return (
 		<>
 			<DropdownMenu>
@@ -91,6 +93,29 @@ function AccountMenu({
 						</div>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
+					{side === "top" && app.bands.length ? (
+						<>
+							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+								Library
+							</DropdownMenuLabel>
+							{[
+								{ id: app.account, name: "Personal", icon: User },
+								...app.bands.map((band) => ({ ...band, icon: Users })),
+							].map(({ id, name, icon: Icon }) => (
+								<DropdownMenuItem
+									key={id}
+									onSelect={() => {
+										app.setOwner(id);
+										void navigate({ to: "/songs" });
+									}}
+								>
+									<Icon /> {name}
+									{app.owner === id ? <Check className="ml-auto" /> : null}
+								</DropdownMenuItem>
+							))}
+							<DropdownMenuSeparator />
+						</>
+					) : null}
 					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
 						Appearance
 					</DropdownMenuLabel>
@@ -207,7 +232,7 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 	);
 }
 
-function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
+function LibrarySwitcher() {
 	const app = useApp();
 	const navigate = useNavigate();
 	const workspace =
@@ -217,39 +242,18 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				{mobile ? (
-					<button
-						type="button"
-						aria-label={`Switch library, current: ${workspace}`}
-						className="flex h-11 w-full min-w-0 items-center gap-2 border-b px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-					>
-						{app.owner === app.account ? (
-							<User className="size-4 shrink-0" />
-						) : (
-							<Users className="size-4 shrink-0" />
-						)}
-						<span className="shrink-0 text-muted-foreground">Library</span>
-						<span className="truncate font-medium">{workspace}</span>
-						<ChevronsUpDown className="ml-auto size-4 shrink-0" />
-					</button>
-				) : (
-					<SidebarMenuButton
-						tooltip={workspace}
-						aria-label={`Switch library, current: ${workspace}`}
-					>
-						{app.owner === app.account ? <User /> : <Users />}
-						<span className="truncate group-data-[collapsible=icon]:hidden">
-							{workspace}
-						</span>
-						<ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-					</SidebarMenuButton>
-				)}
+				<SidebarMenuButton
+					tooltip={workspace}
+					aria-label={`Switch library, current: ${workspace}`}
+				>
+					{app.owner === app.account ? <User /> : <Users />}
+					<span className="truncate group-data-[collapsible=icon]:hidden">
+						{workspace}
+					</span>
+					<ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
+				</SidebarMenuButton>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent
-				className="min-w-56"
-				align="start"
-				side={mobile ? "top" : "right"}
-			>
+			<DropdownMenuContent className="min-w-56" align="start" side="right">
 				<DropdownMenuLabel className="text-xs text-muted-foreground">
 					Library
 				</DropdownMenuLabel>
@@ -272,7 +276,7 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
 					<Link to="/bands">
-						<Plus /> Manage bands
+						<Settings2 /> Manage bands
 					</Link>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
@@ -281,7 +285,7 @@ function LibrarySwitcher({ mobile = false }: { mobile?: boolean }) {
 }
 
 export function BottomNav() {
-	const { user, bands } = useApp();
+	const { user } = useApp();
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
@@ -297,9 +301,6 @@ export function BottomNav() {
 			aria-label="Main"
 			className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
 		>
-			{bands.length && /^\/(songs|setlists)$/.test(pathname) ? (
-				<LibrarySwitcher mobile />
-			) : null}
 			<div className="grid grid-cols-5">
 				{tabs.map((item) => {
 					const active = pathname.startsWith(item.to);

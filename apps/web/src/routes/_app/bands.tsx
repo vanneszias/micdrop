@@ -59,58 +59,64 @@ function Bands() {
 	};
 	return (
 		<>
-			<PageHeader pageTitle title="Bands">
-				{!signedOut ? (
-					<Dialog open={open} onOpenChange={setOpen}>
-						<DialogTrigger asChild>
-							<Button size="sm">
-								<Plus /> New band
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<form
-								className="space-y-4"
-								onSubmit={(event) => {
-									event.preventDefault();
-									const form = new FormData(event.currentTarget);
-									void run(async () => {
-										await api("/api/bands", {
-											action: "create",
-											name: form.get("name"),
-										});
-										await refetchBands();
-										setOpen(false);
-									}, "Band created");
-								}}
-							>
-								<DialogHeader>
-									<DialogTitle>New band</DialogTitle>
-									<DialogDescription>
-										A shared library of songs and setlists.
-									</DialogDescription>
-								</DialogHeader>
-								<Field>
-									<FieldLabel htmlFor="band-name">Name</FieldLabel>
-									<Input id="band-name" name="name" required maxLength={100} />
-								</Field>
-								<DialogFooter>
-									<DialogClose asChild>
-										<Button type="button" variant="outline">
-											Cancel
-										</Button>
-									</DialogClose>
-									<Button disabled={busy}>
-										{busy ? <Spinner /> : null} Create band
-									</Button>
-								</DialogFooter>
-							</form>
-						</DialogContent>
-					</Dialog>
-				) : null}
-			</PageHeader>
+			<PageHeader pageTitle title="Bands" />
 			<PageBody
 				title="Bands"
 				description="Share a repertoire and setlists with the people you play with."
+				actions={
+					!signedOut ? (
+						<Dialog open={open} onOpenChange={setOpen}>
+							<DialogTrigger asChild>
+								<Button size="sm">
+									<Plus /> New band
+								</Button>
+							</DialogTrigger>
+							<DialogContent>
+								<form
+									className="space-y-4"
+									onSubmit={(event) => {
+										event.preventDefault();
+										const form = new FormData(event.currentTarget);
+										void run(async () => {
+											await api("/api/bands", {
+												action: "create",
+												name: form.get("name"),
+											});
+											await refetchBands();
+											setOpen(false);
+										}, "Band created");
+									}}
+								>
+									<DialogHeader>
+										<DialogTitle>New band</DialogTitle>
+										<DialogDescription>
+											A shared library of songs and setlists.
+										</DialogDescription>
+									</DialogHeader>
+									<Field>
+										<FieldLabel htmlFor="band-name">Name</FieldLabel>
+										<Input
+											id="band-name"
+											name="name"
+											required
+											maxLength={100}
+										/>
+									</Field>
+									<DialogFooter>
+										<DialogClose asChild>
+											<Button type="button" variant="outline">
+												Cancel
+											</Button>
+										</DialogClose>
+										<Button disabled={busy}>
+											{busy ? <Spinner /> : null} Create band
+										</Button>
+									</DialogFooter>
+								</form>
+							</DialogContent>
+						</Dialog>
+					) : null
+				}
 			>
 				{signedOut || !bands.length ? (
 					<Empty className="border border-dashed">
@@ -157,17 +163,17 @@ function BandCard({
 	const { setOwner } = useApp();
 	const navigate = useNavigate();
 	return (
-		<Card className="max-w-3xl animate-in fade-in-0">
-			<CardHeader>
+		<Card className="animate-in fade-in-0">
+			<CardHeader className="max-sm:grid-cols-1">
 				<CardTitle>{band.name}</CardTitle>
 				<CardDescription>
 					{band.members.length}{" "}
-					{band.members.length === 1 ? "member" : "members"} · you are{" "}
-					{band.role === "owner" ? "the owner" : `a ${band.role}`}
+					{band.members.length === 1 ? "member" : "members"}
 				</CardDescription>
 				<CardAction className="flex items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
 					<Button
 						size="sm"
+						variant="outline"
 						onClick={() => {
 							setOwner(band.id);
 							void navigate({ to: "/songs" });

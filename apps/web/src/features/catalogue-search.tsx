@@ -19,6 +19,7 @@ import {
 } from "@chords/ui/components/dropdown-menu";
 import {
 	Empty,
+	EmptyContent,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
@@ -150,8 +151,16 @@ export function CatalogueSearch({
 					setQuery(event.target.value);
 					setSelected(undefined);
 				}}
+				onClear={() => {
+					setQuery("");
+					setDebounced("");
+					setSelected(undefined);
+				}}
 			/>
-			<p className="text-xs text-muted-foreground">
+			<p
+				className="text-xs text-muted-foreground"
+				hidden={!groups.length && !catalogue.isFetching}
+			>
 				{online
 					? publicOnly
 						? "Public catalogue · choose a song to see its arrangements"
@@ -199,6 +208,20 @@ export function CatalogueSearch({
 										: "Search by title, artist or a line of the lyrics."}
 						</EmptyDescription>
 					</EmptyHeader>
+					{debounced.trim() && !chooseGroup ? (
+						<EmptyContent>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									setQuery("");
+									setDebounced("");
+								}}
+							>
+								Clear search
+							</Button>
+						</EmptyContent>
+					) : null}
 				</Empty>
 			) : null}
 			<ul
@@ -437,7 +460,10 @@ function ArrangementChoices({
 								setPreview(preview === version.id ? undefined : version.id)
 							}
 						>
-							<Eye /> {preview === version.id ? "Hide" : "Preview"}
+							<Eye />
+							<span className="max-sm:sr-only">
+								{preview === version.id ? "Hide" : "Preview"}
+							</span>
 						</Button>
 						{account === "local" ? (
 							<Button size="sm" variant="outline" asChild>
@@ -448,7 +474,8 @@ function ArrangementChoices({
 								variant="outline"
 								className="h-8 gap-1.5 px-3 text-sm font-normal text-muted-foreground"
 							>
-								<Check /> In your repertoire
+								<Check /> <span className="sm:hidden">Saved</span>
+								<span className="max-sm:hidden">In your repertoire</span>
 							</Badge>
 						) : (
 							<Button

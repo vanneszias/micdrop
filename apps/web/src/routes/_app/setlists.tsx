@@ -129,12 +129,11 @@ function Setlists() {
 	);
 	return (
 		<>
-			<PageHeader pageTitle title="Setlists">
-				{setlists.length ? actions : null}
-			</PageHeader>
+			<PageHeader pageTitle title="Setlists" />
 			<PageBody
 				title="Setlists"
 				description="Put songs in order, set a key for each, then play straight through."
+				actions={setlists.length ? actions : null}
 			>
 				{setlists.length ? (
 					<>

@@ -92,19 +92,20 @@ function NewSong() {
 		});
 	return (
 		<>
-			<PageHeader back pageTitle title="Add song">
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={busy}
-					onClick={() => void run(() => createSong())}
-				>
-					<PenLine /> Blank song
-				</Button>
-			</PageHeader>
+			<PageHeader back pageTitle title="Add song" />
 			<PageBody
 				title="Add a song"
 				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
+				actions={
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={busy}
+						onClick={() => void run(() => createSong())}
+					>
+						<PenLine /> Blank song
+					</Button>
+				}
 			>
 				<Tabs defaultValue="paste">
 					<TabsList className="h-10 w-full sm:w-auto">
