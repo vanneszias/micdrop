@@ -1,9 +1,9 @@
 import { oauthProviderClient } from "@better-auth/oauth-provider/client";
-import { organizationClient } from "better-auth/client/plugins";
+import { adminClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
-	plugins: [organizationClient(), oauthProviderClient()],
+	plugins: [organizationClient(), adminClient(), oauthProviderClient()],
 });
 
 /** When an MCP client sent the user here to sign in, returns where to resume authorization. */

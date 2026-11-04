@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 import { HttpError } from "./http-error";
 import { importFromUrl } from "./import-page";
+import { consumeQuota } from "./quotas";
 import { listRecords, saveOperation } from "./sync";
 
 type Caller = { userId: string; scopes: string[] };
@@ -302,6 +303,7 @@ function buildServer(caller: Caller) {
 			caller,
 			"songs:write",
 			async ({ url, rendered, library, ...input }) => {
+				await consumeQuota(userId, "url_import");
 				const page = await importFromUrl(url, rendered);
 				const { song, warnings } = newSong(
 					library || userId,

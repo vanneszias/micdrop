@@ -11,7 +11,8 @@ export default defineConfig({
 			target: "react",
 			routesDirectory: "./src/routes",
 			generatedRouteTree: "./src/routeTree.offline.gen.ts",
-			routeFileIgnorePattern: "api|mcp|well-known",
+			// Administration needs live data, so it stays out of the offline shell.
+			routeFileIgnorePattern: "api|mcp|well-known|admin",
 			autoCodeSplitting: false,
 		}),
 		react(),

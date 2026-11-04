@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { localSql } from "./test-db";
 
 const base = process.env.CHORDS_TEST_URL || "";
 const redirectUri = "https://assistant.chords.test/callback";
@@ -41,6 +42,9 @@ test.skipIf(!base)(
 			}),
 		});
 		expect(signUp.status).toBe(200);
+		const {
+			user: { id: userId },
+		} = (await signUp.json()) as { user: { id: string } };
 		const cookie = signUp.headers
 			.getSetCookie()
 			.map((value) => value.split(";")[0])
@@ -218,6 +222,41 @@ test.skipIf(!base)(
 			songs: [{ id: "nope" }],
 		});
 		expect(missing?.isError).toBe(true);
+
+		// Access tokens are self-contained, so /mcp must refuse them once the account is banned.
+		if (!/^[a-zA-Z0-9_-]+$/.test(userId))
+			throw new Error("Unexpected fixture user id.");
+		const listTools = () =>
+			fetch(`${base}/mcp`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json, text/event-stream",
+					Authorization: `Bearer ${access_token}`,
+				},
+				body: JSON.stringify({ jsonrpc: "2.0", id: 99, method: "tools/list" }),
+			});
+		if (!/^[a-zA-Z0-9_-]+$/.test(client_id))
+			throw new Error("Unexpected fixture client id.");
+		await localSql(
+			`UPDATE oauthClient SET disabled=1 WHERE clientId='${client_id}'`,
+		);
+		expect((await listTools()).status).toBe(403);
+		await localSql(
+			`UPDATE oauthClient SET disabled=0 WHERE clientId='${client_id}'`,
+		);
+		expect((await listTools()).status).toBe(200);
+		await localSql(`UPDATE user SET banned=1 WHERE id='${userId}'`);
+		const banned = await fetch(`${base}/mcp`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json, text/event-stream",
+				Authorization: `Bearer ${access_token}`,
+			},
+			body: JSON.stringify({ jsonrpc: "2.0", id: 99, method: "tools/list" }),
+		});
+		expect(banned.status).toBe(403);
 	},
 	30_000,
 );

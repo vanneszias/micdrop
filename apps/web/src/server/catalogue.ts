@@ -77,9 +77,10 @@ export async function catalogue(request: Request, userId: string) {
 	};
 }
 
+/** Platform administrators moderate the catalogue too; catalogue_admins is the narrower role. */
 export async function isCatalogueAdmin(userId: string) {
 	return !!(await env.DB.prepare(
-		"SELECT user_id FROM catalogue_admins WHERE user_id=?",
+		"SELECT 1 FROM user u WHERE u.id=? AND (','||COALESCE(u.role,'')||',' LIKE '%,admin,%' OR EXISTS(SELECT 1 FROM catalogue_admins c WHERE c.user_id=u.id))",
 	)
 		.bind(userId)
 		.first());

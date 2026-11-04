@@ -41,6 +41,7 @@ import {
 import { useState } from "react";
 import { useApp } from "#/features/app-context";
 import { ConnectAssistantDialog } from "#/features/connect-assistant";
+import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
 
@@ -63,8 +64,9 @@ function AccountMenu({
 	children: React.ReactNode;
 	side: "top" | "right";
 }) {
-	const { user, store, run, busy } = useApp();
+	const { user, store, run, busy, online } = useApp();
 	const [connecting, setConnecting] = useState(false);
+	const impersonating = !!useImpersonator();
 	return (
 		<>
 			<DropdownMenu>
@@ -78,7 +80,8 @@ function AccountMenu({
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
-						disabled={busy}
+						// While impersonating, this would copy the administrator's own songs.
+						disabled={busy || impersonating}
 						onSelect={() =>
 							void run(
 								() => store.importLocal(),
@@ -91,8 +94,14 @@ function AccountMenu({
 					<DropdownMenuItem onSelect={() => setConnecting(true)}>
 						Add to Claude or ChatGPT
 					</DropdownMenuItem>
+					{online && user?.role?.split(",").includes("admin") ? (
+						<DropdownMenuItem asChild>
+							<Link to="/admin">Administration</Link>
+						</DropdownMenuItem>
+					) : null}
 					<DropdownMenuItem
-						disabled={busy}
+						// The banner's "Stop impersonating" also clears their songbook.
+						disabled={busy || impersonating}
 						onSelect={() =>
 							void run(async () => {
 								await authClient.signOut();
@@ -420,7 +429,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						className="font-medium text-foreground underline-offset-4 transition-colors hover:text-rose-500 hover:underline"
 					>
 						zias.be
-					</a>
+					</a>{" "}
+					·{" "}
+					<Link
+						to="/privacy"
+						className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+					>
+						Privacy
+					</Link>
 				</p>
 			</SidebarFooter>
 			<SidebarRail />

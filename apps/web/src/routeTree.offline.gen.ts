@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppBandsRouteImport } from './routes/_app/bands'
 import { Route as AppCommunityRouteImport } from './routes/_app/community'
@@ -38,6 +39,11 @@ const ConsentRoute = ConsentRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/setlists': typeof AppSetlistsRouteWithChildren
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
   '/': typeof AppIndexRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/consent': typeof ConsentRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/_app/bands': typeof AppBandsRoute
   '/_app/community': typeof AppCommunityRoute
   '/_app/setlists': typeof AppSetlistsRouteWithChildren
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/'
     | '/consent'
     | '/login'
+    | '/privacy'
     | '/bands'
     | '/community'
     | '/setlists'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
   to:
     | '/consent'
     | '/login'
+    | '/privacy'
     | '/bands'
     | '/community'
     | '/'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/consent'
     | '/login'
+    | '/privacy'
     | '/_app/bands'
     | '/_app/community'
     | '/_app/setlists'
@@ -216,6 +228,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ConsentRoute: typeof ConsentRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -383,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ConsentRoute: ConsentRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

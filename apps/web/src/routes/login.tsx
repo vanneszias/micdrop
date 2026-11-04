@@ -11,6 +11,7 @@ import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
+import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
 import {
 	authClient,
 	pendingAuthorization,
@@ -115,6 +116,9 @@ function Login() {
 	const { data: session } = authClient.useSession();
 	const [mode, setMode] = useState<"signin" | "signup">("signin");
 	const [busy, setBusy] = useState(false);
+	const [captcha, setCaptcha] = useState("");
+	const [attempt, setAttempt] = useState(0);
+	const needsCaptcha = mode === "signup" && !!TURNSTILE_SITE_KEY;
 	// An assistant connecting over MCP sent the user here; resume its authorization.
 	const done = useCallback(async () => {
 		const authorization = pendingAuthorization();
@@ -157,9 +161,19 @@ function Login() {
 												email,
 												password,
 												name: String(form.get("name")),
+												fetchOptions: {
+													headers: { "x-captcha-response": captcha },
+												},
 											})
 										: await authClient.signIn.email({ email, password });
-								if (result.error) throw new Error(result.error.message);
+								if (result.error) {
+									// Turnstile tokens work once; get a fresh one for the retry.
+									if (needsCaptcha) {
+										setCaptcha("");
+										setAttempt((value) => value + 1);
+									}
+									throw new Error(result.error.message);
+								}
 								await done();
 							});
 						}}
@@ -210,8 +224,11 @@ function Login() {
 									</FieldDescription>
 								) : null}
 							</Field>
+							{needsCaptcha ? (
+								<Turnstile key={attempt} onToken={setCaptcha} />
+							) : null}
 							<Field>
-								<Button disabled={busy}>
+								<Button disabled={busy || (needsCaptcha && !captcha)}>
 									{busy ? <Spinner /> : null}
 									{mode === "signup" ? "Create account" : "Sign in"}
 								</Button>
@@ -258,6 +275,11 @@ function Login() {
 									>
 										{mode === "signin" ? "Create an account" : "Sign in"}
 									</button>
+								</FieldDescription>
+								<FieldDescription className="text-center text-xs">
+									<Link to="/privacy" className="underline underline-offset-4">
+										How Mic Drop handles your data
+									</Link>
 								</FieldDescription>
 							</Field>
 						</FieldGroup>

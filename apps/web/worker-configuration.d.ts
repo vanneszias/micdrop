@@ -15,6 +15,7 @@ interface __BaseEnv_Env {
 	MISTRAL_API_KEY: string;
 	PDF_IMPORT_MODEL: string;
 	SENTRY_DSN: string;
+	TURNSTILE_SECRET_KEY: string;
 }
 declare namespace Cloudflare {
 	interface Env extends __BaseEnv_Env {}
@@ -24,7 +25,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "BRAVE_SEARCH_API_KEY" | "OPENAI_API_KEY" | "PDF_IMPORT_PROVIDER" | "GEMINI_API_KEY" | "MISTRAL_API_KEY" | "PDF_IMPORT_MODEL" | "SENTRY_DSN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "BRAVE_SEARCH_API_KEY" | "OPENAI_API_KEY" | "PDF_IMPORT_PROVIDER" | "GEMINI_API_KEY" | "MISTRAL_API_KEY" | "PDF_IMPORT_MODEL" | "SENTRY_DSN" | "TURNSTILE_SECRET_KEY">> {}
 }
 declare module "*.txt" {
 	const value: string;
