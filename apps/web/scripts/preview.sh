@@ -54,12 +54,15 @@ deploy() {
 		jq -er '.result.subdomain')"
 	url="https://$name-$worker.$subdomain.workers.dev"
 
-	local output actual
+	# `--json` still mixes progress lines into stdout, so read the result from Wrangler's
+	# output file instead.
+	local output="$tmp/output.ndjson" actual
 	for _ in 1 2; do
-		output="$("${wrangler[@]}" preview --config "$built" --name "$name" --json \
+		rm -f "$output"
+		WRANGLER_OUTPUT_FILE_PATH="$output" "${wrangler[@]}" preview --config "$built" --name "$name" \
 			--message "${GITHUB_SHA:-local}" \
-			--var "BETTER_AUTH_URL:$url" --secrets-file "$tmp/secrets.json")"
-		actual="$(jq -er '.preview.urls[0]' <<<"$output")"
+			--var "BETTER_AUTH_URL:$url" --secrets-file "$tmp/secrets.json"
+		actual="$(jq -ser 'map(select(.type == "preview")) | last | .preview_urls[0]' "$output")"
 		actual="${actual%/}"
 		[[ "$actual" == https://* ]] || actual="https://$actual"
 		[[ "$actual" == "$url" ]] && break
