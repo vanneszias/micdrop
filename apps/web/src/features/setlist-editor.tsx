@@ -61,6 +61,7 @@ import {
 	MoreHorizontal,
 	Play,
 	Printer,
+	StickyNote,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -175,6 +176,7 @@ export function SetlistEditor({
 		);
 	}
 	const [deleting, setDeleting] = useState(false);
+	const [noting, setNoting] = useState<string>();
 	return (
 		<>
 			<PageHeader embedded title={list.data.title}>
@@ -305,33 +307,32 @@ export function SetlistEditor({
 										<span className="w-5 font-mono text-xs text-muted-foreground">
 											{index + 1}
 										</span>
-										<div className="min-w-40 flex-1">
+										<div className="min-w-0 flex-1">
 											<Button
 												variant="link"
-												className="h-auto p-0"
+												className="block h-auto max-w-full truncate p-0 text-left"
 												disabled={!song}
 												onClick={() => play(index)}
 											>
 												{song?.data.title || "Song unavailable"}
 											</Button>
-											<Input
-												aria-label={`Notes for song ${index + 1}`}
-												placeholder="Add a note…"
-												className={cn(
-													"mt-1 -ml-2 h-7 w-full max-w-sm rounded-md border-transparent bg-transparent px-2 text-xs shadow-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:ring-0 dark:bg-transparent",
-													// With a mouse, empty note fields appear on hover or focus; touch screens always show them.
-													!entry.notes &&
-														"[@media(hover:hover)]:opacity-0 group-hover/entry:opacity-100 focus-visible:opacity-100",
-												)}
-												value={entry.notes}
-												onChange={(event) =>
-													patch(entry.id, { notes: event.target.value })
-												}
-											/>
+											{entry.notes || noting === entry.id ? (
+												<Input
+													aria-label={`Notes for song ${index + 1}`}
+													placeholder="Add a note…"
+													id={`note-${entry.id}`}
+													onBlur={() => setNoting(undefined)}
+													className="mt-1 -ml-2 h-7 w-full max-w-sm rounded-md border-transparent bg-transparent px-2 text-xs text-muted-foreground shadow-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:text-foreground focus-visible:ring-0 dark:bg-transparent"
+													value={entry.notes}
+													onChange={(event) =>
+														patch(entry.id, { notes: event.target.value })
+													}
+												/>
+											) : null}
 										</div>
-										<div className="flex items-center gap-2 max-sm:w-full max-sm:pl-12">
+										<div className="flex items-center gap-1.5 sm:gap-2">
 											<KeySelect
-												className="w-20 data-[size=default]:h-8"
+												className="w-16 data-[size=default]:h-8 sm:w-20"
 												value={entry.key}
 												onChange={(key) => patch(entry.id, { key })}
 											/>
@@ -343,7 +344,7 @@ export function SetlistEditor({
 													0
 												}
 												onChange={(capo) => patch(entry.id, { capo })}
-												className="w-28 data-[size=default]:h-8"
+												className="w-24 data-[size=default]:h-8 sm:w-28"
 											/>
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
@@ -356,7 +357,26 @@ export function SetlistEditor({
 														<MoreHorizontal />
 													</Button>
 												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
+												<DropdownMenuContent
+													align="end"
+													onCloseAutoFocus={(event) => {
+														// Send focus to the note field that "Add note" just revealed.
+														const field = document.getElementById(
+															`note-${entry.id}`,
+														);
+														if (noting === entry.id && field) {
+															event.preventDefault();
+															field.focus();
+														}
+													}}
+												>
+													<DropdownMenuItem
+														onSelect={() => setNoting(entry.id)}
+													>
+														<StickyNote />{" "}
+														{entry.notes ? "Edit note" : "Add note"}
+													</DropdownMenuItem>
+													<DropdownMenuSeparator />
 													<DropdownMenuItem
 														disabled={index === 0}
 														onSelect={() => move(index, index - 1)}

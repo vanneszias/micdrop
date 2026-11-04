@@ -37,9 +37,11 @@ import {
 	CopyPlus,
 	Download,
 	Globe,
+	Lock,
 	MoreHorizontal,
 	Music,
 	Pencil,
+	PencilLine,
 	Plus,
 	SearchX,
 	Share2,
@@ -132,7 +134,7 @@ function Songs() {
 							<TableBody>
 								{shown.map((song) => (
 									<TableRow key={song.id} className="relative h-15">
-										<TableCell className="pl-4">
+										<TableCell className="w-px pl-4">
 											<Badge
 												variant="secondary"
 												className="min-w-8 justify-center font-mono text-xs"
@@ -157,26 +159,36 @@ function Songs() {
 													.join(" · ")}
 											</div>
 										</TableCell>
-										<TableCell className="w-24 text-right">
-											{song.data.draft || song.data.visibility === "public" ? (
-												<Badge
-													variant="outline"
-													className="font-normal text-muted-foreground"
-												>
-													{song.data.draft ? "Draft" : "Public"}
-												</Badge>
-											) : (
-												<span className="text-xs text-muted-foreground">
-													Private
-												</span>
-											)}
+										<TableCell className="w-28 text-right">
+											<Badge
+												variant={
+													song.data.draft || song.data.visibility === "public"
+														? "outline"
+														: "secondary"
+												}
+												className="font-normal text-muted-foreground"
+											>
+												{song.data.draft ? (
+													<PencilLine />
+												) : song.data.visibility === "public" ? (
+													<Globe />
+												) : (
+													<Lock />
+												)}
+												{song.data.draft
+													? "Draft"
+													: song.data.visibility === "public"
+														? "Public"
+														: "Private"}
+											</Badge>
 										</TableCell>
 										<TableCell className="relative z-[1] text-right">
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
 													<Button
 														variant="ghost"
-														size="icon-sm"
+														size="icon"
+														className="size-10"
 														aria-label={`Actions for ${song.data.title}`}
 													>
 														<MoreHorizontal />

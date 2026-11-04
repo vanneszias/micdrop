@@ -10,7 +10,6 @@ import {
 import { SongSheet } from "@chords/song-ui";
 import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
-import { ButtonGroup } from "@chords/ui/components/button-group";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -434,6 +433,11 @@ function ArrangementChoices({
 									{version.data.key}
 								</Badge>
 								{version.data.arrangementName || "Standard version"}
+								{version.saved && !picking ? (
+									<Badge variant="secondary" className="font-normal">
+										<Check /> In your repertoire
+									</Badge>
+								) : null}
 							</span>
 							<p className="text-xs text-muted-foreground">
 								{version.local
@@ -461,23 +465,13 @@ function ArrangementChoices({
 							}
 						>
 							<Eye />
-							<span className="max-sm:sr-only">
-								{preview === version.id ? "Hide" : "Preview"}
-							</span>
+							{preview === version.id ? "Hide" : "Preview"}
 						</Button>
 						{account === "local" ? (
 							<Button size="sm" variant="outline" asChild>
 								<Link to="/login">Sign in to save</Link>
 							</Button>
-						) : version.saved && !picking ? (
-							<Badge
-								variant="outline"
-								className="h-8 gap-1.5 px-3 text-sm font-normal text-muted-foreground"
-							>
-								<Check /> <span className="sm:hidden">Saved</span>
-								<span className="max-sm:hidden">In your repertoire</span>
-							</Badge>
-						) : (
+						) : version.saved && !picking ? null : (
 							<Button
 								type="button"
 								size="sm"
@@ -494,16 +488,17 @@ function ArrangementChoices({
 						)}
 						{!version.local && account !== "local" ? (
 							<>
-								<ButtonGroup aria-label="Rate this arrangement">
+								<fieldset className="flex items-center">
+									<legend className="sr-only">Rate this arrangement</legend>
 									{([1, -1] as const).map((value) => (
 										<Button
 											key={value}
 											type="button"
 											size="icon-sm"
-											variant="outline"
+											variant="ghost"
 											aria-label={value === 1 ? "Useful" : "Not useful"}
 											aria-pressed={version.myVote === value}
-											className="aria-pressed:bg-accent aria-pressed:text-foreground"
+											className="text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
 											onClick={() =>
 												void run(async () => {
 													await api("/api/publications", {
@@ -518,7 +513,7 @@ function ArrangementChoices({
 											{value === 1 ? <ThumbsUp /> : <ThumbsDown />}
 										</Button>
 									))}
-								</ButtonGroup>
+								</fieldset>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
 										<Button

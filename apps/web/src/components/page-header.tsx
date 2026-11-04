@@ -84,8 +84,9 @@ export function PageBody({
 			)}
 		>
 			{title ? (
-				<div className="flex items-start gap-3">
-					<SidebarTrigger className="mt-0.5 -ml-1 hidden md:inline-flex" />
+				<div className="relative flex items-start gap-3">
+					{/* Hangs in the gutter so the heading lines up with the content below. */}
+					<SidebarTrigger className="absolute top-1 -left-10 hidden md:inline-flex" />
 					<div className="min-w-0 flex-1 space-y-1">
 						<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 						{description ? (

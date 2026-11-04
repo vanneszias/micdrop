@@ -140,6 +140,11 @@ test("transposed chords use the target key's accidentals", () => {
 	expect(transposeChord("G", 2, keyAccidental(shiftKey("G", 2)))).toBe("A");
 	expect(transposeChord("D", 4, keyAccidental(shiftKey("D", 4)))).toBe("F#");
 	expect(keyAccidental("F")).toBe("b");
+	// Capo 2 on a D song shows C shapes, never B# or E#.
+	const shapes = keyAccidental(shiftKey("D", -2));
+	expect(
+		["D", "D7", "G", "A"].map((c) => transposeChord(c, -2, shapes)),
+	).toEqual(["C", "C7", "F", "G"]);
 });
 
 test("stripMetadata keeps everything but record-owned directives", () => {

@@ -109,7 +109,7 @@
 /* A chord wider than its syllable leaves a gap inside the word; bridge it with a hairline. */
 .sheet-pair-joined .sheet-lyric { display: flex; }
 .sheet-pair-joined .sheet-lyric::after { content: ''; flex: 1; align-self: center; height: 1px; margin-top: .15em; background: linear-gradient(currentColor, currentColor) center / calc(100% - .5em) 100% no-repeat; opacity: .35; }
-.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: .68em; font-weight: 700; line-height: 1.5; padding: .05em .35em; margin: 0 .5em .05em -.35em; border-radius: .3em; }
+.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: .78em; font-weight: 700; line-height: 1.45; padding: .05em .35em; margin: 0 .5em .05em -.35em; border-radius: .3em; }
 
 .sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
 .sheet-lyric { min-height: 1.3em; line-height: 1.3; }
@@ -135,10 +135,11 @@
 
 @media (max-width: 640px) {
   .sheet-line { margin-bottom: .6em; }
+  .sheet-chord { font-size: .84em; }
   .sheet-section { margin: 1.4em 0 .7em; }
-  /* Phones wrap the diagrams so every chord is visible without sideways scrolling. */
-  .diagram, .diagram-missing { width: 60px; font-size: 11px; padding: .125rem; }
-  .chord-diagrams { flex-wrap: wrap; justify-content: center; }
+  /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
+  .diagram, .diagram-missing { width: 80px; font-size: 12px; padding: .125rem; }
+  .chord-diagrams { mask-image: linear-gradient(to right, black 85%, transparent); padding-right: 2.5rem; }
   .chord-diagrams { gap: .25rem; }
 }
 
@@ -153,3 +154,5 @@
 }
 .sheet-block { break-inside: avoid; }
 .sheet-block:first-child > .sheet-section:first-child, .sheet-block:first-child > .sheet-space:first-child + .sheet-section, .sheet-block:first-child:has(> .sheet-space:only-child) + .sheet-block > .sheet-section:first-child { margin-top: 0; }
+.diagram-rail .chord-diagrams { flex-wrap: wrap; overflow: visible; gap: .5rem; }
+.diagram-rail .diagram, .diagram-rail .diagram-missing { width: 112px; }

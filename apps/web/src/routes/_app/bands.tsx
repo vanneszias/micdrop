@@ -164,7 +164,7 @@ function BandCard({
 	const navigate = useNavigate();
 	return (
 		<Card className="animate-in fade-in-0">
-			<CardHeader className="max-sm:grid-cols-1">
+			<CardHeader className="max-sm:grid-cols-1! max-sm:px-4">
 				<CardTitle>{band.name}</CardTitle>
 				<CardDescription>
 					{band.members.length}{" "}
@@ -192,7 +192,7 @@ function BandCard({
 					) : null}
 				</CardAction>
 			</CardHeader>
-			<CardContent className="divide-y">
+			<CardContent className="divide-y max-sm:px-4">
 				{band.members.map((member) => (
 					<div key={member.id} className="flex items-center gap-3 py-2.5">
 						<Avatar className="size-8">
@@ -234,10 +234,10 @@ function BandCard({
 				))}
 			</CardContent>
 			{owner ? (
-				<CardFooter className="flex-col items-stretch gap-2 border-t">
+				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
 					<Label htmlFor={`add-member-${band.id}`}>Add a member</Label>
 					<form
-						className="flex w-full flex-wrap gap-2"
+						className="flex w-full gap-2"
 						onSubmit={(event) => {
 							event.preventDefault();
 							const form = event.currentTarget;
@@ -260,10 +260,10 @@ function BandCard({
 							type="email"
 							placeholder="Their account email"
 							required
-							className="min-w-48 flex-1"
+							className="min-w-0 flex-1"
 						/>
 						<Select value={role} onValueChange={setRole}>
-							<SelectTrigger className="w-28" aria-label="Role">
+							<SelectTrigger className="w-24 sm:w-28" aria-label="Role">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>

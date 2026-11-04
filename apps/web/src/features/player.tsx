@@ -451,47 +451,67 @@ export function Player({
 				tabIndex={0}
 				aria-label="Chord sheet"
 			>
-				<article
-					className={cn(
-						"mx-auto px-5 py-6 pb-24 sm:px-6 sm:py-8",
-						// One column hugs its content so the sheet sits centred, not left-aligned.
-						columns === 1 && "sm:w-fit sm:min-w-[min(100%,36rem)]",
-					)}
-					style={{
-						maxWidth: columns === 1 ? 800 : columns === 2 ? 1480 : 2100,
-					}}
-				>
-					<header className="mb-5 sm:mb-7">
-						<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-							{shown.data.title}
-						</h2>
-						<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
-							{[
-								shown.data.artist,
-								`Key ${key}`,
-								lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
-							]
-								.filter(Boolean)
-								.join(" · ")}
-						</p>
-					</header>
-					{notes ? (
-						<p className="mb-6 rounded-md border bg-muted/30 p-3 text-sm">
-							{notes}
-						</p>
+				<div className="flex justify-center gap-10">
+					<article
+						className={cn(
+							"min-w-0 px-5 py-6 pb-24 max-xl:mx-auto sm:px-6 sm:py-8",
+							columns > 1 && "flex-1",
+							// One column hugs its content so the sheet sits centred, not left-aligned.
+							columns === 1 && "sm:w-fit sm:min-w-[min(100%,36rem)]",
+						)}
+						style={{
+							maxWidth: columns === 1 ? 800 : columns === 2 ? 1480 : 2100,
+						}}
+					>
+						<header className="mb-5 sm:mb-7">
+							<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+								{shown.data.title}
+							</h2>
+							<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
+								{[
+									shown.data.artist,
+									`Key ${key}`,
+									lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
+								]
+									.filter(Boolean)
+									.join(" · ")}
+							</p>
+						</header>
+						{notes ? (
+							<p className="mb-6 rounded-md border bg-muted/30 p-3 text-sm">
+								{notes}
+							</p>
+						) : null}
+						<SongSheet
+							content={shown.data.content}
+							semitones={delta}
+							accidental={accidental}
+							fontSize={fontSize}
+							columns={columns}
+							chords={!lyricsOnly}
+						/>
+					</article>
+					{diagrams && !lyricsOnly ? (
+						// Wide screens keep the diagrams beside the sheet instead of under it.
+						<aside
+							data-print="hide"
+							aria-label="Chord diagrams"
+							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 pt-10 xl:block"
+						>
+							<ChordDiagrams
+								content={shown.data.content}
+								semitones={delta}
+								accidental={accidental}
+							/>
+						</aside>
 					) : null}
-					<SongSheet
-						content={shown.data.content}
-						semitones={delta}
-						accidental={accidental}
-						fontSize={fontSize}
-						columns={columns}
-						chords={!lyricsOnly}
-					/>
-				</article>
+				</div>
 			</section>
 			{diagrams && !lyricsOnly ? (
-				<div data-print="hide" className="shrink-0 border-t bg-card/50 py-3">
+				<div
+					data-print="hide"
+					className="shrink-0 border-t bg-card/50 py-3 xl:hidden"
+				>
 					<div className="mx-auto max-w-[800px] px-6">
 						<ChordDiagrams
 							content={shown.data.content}
@@ -501,7 +521,7 @@ export function Player({
 					</div>
 				</div>
 			) : null}
-			{nextTitle ? (
+			{nextTitle && !diagrams ? (
 				<button
 					type="button"
 					data-print="hide"
@@ -545,9 +565,7 @@ export function Player({
 						onClick={() => setScrolling((value) => !value)}
 					>
 						{scrolling ? <Pause /> : <Play />}
-						<span className="max-sm:sr-only">
-							{scrolling ? "Pause" : "Scroll"}
-						</span>
+						{scrolling ? "Pause" : "Scroll"}
 					</Button>
 					<Popover>
 						<PopoverTrigger asChild>

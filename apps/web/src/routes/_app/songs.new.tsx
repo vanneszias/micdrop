@@ -92,7 +92,7 @@ function NewSong() {
 		});
 	return (
 		<>
-			<PageHeader back pageTitle title="Add song" />
+			<PageHeader pageTitle title="Add song" />
 			<PageBody
 				title="Add a song"
 				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."

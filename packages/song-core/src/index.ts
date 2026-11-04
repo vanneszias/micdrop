@@ -174,8 +174,11 @@ export function transposeChord(
 	const chord = Chord.parse(value);
 	if (!chord) return value;
 	const moved = chord.transpose(semitones).normalize();
+	// useAccidental alone turns C into B#, so normalize again afterwards.
 	return (
-		accidental && semitones ? moved.useAccidental(accidental) : moved
+		accidental && semitones
+			? moved.useAccidental(accidental).normalize()
+			: moved
 	).toString();
 }
 

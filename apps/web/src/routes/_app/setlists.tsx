@@ -32,8 +32,6 @@ import {
 	Table,
 	TableBody,
 	TableCell,
-	TableHead,
-	TableHeader,
 	TableRow,
 } from "@chords/ui/components/table";
 import {
@@ -139,17 +137,14 @@ function Setlists() {
 					<>
 						<div className="rounded-lg border">
 							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Setlist</TableHead>
-										<TableHead className="w-32">Date</TableHead>
-										<TableHead className="w-20 text-right">Songs</TableHead>
-										<TableHead className="w-12" />
-									</TableRow>
-								</TableHeader>
 								<TableBody>
 									{sorted.map((list) => (
-										<TableRow key={list.id} className="relative">
+										<TableRow key={list.id} className="relative h-15">
+											<TableCell className="w-px pl-4">
+												<span className="flex size-9 items-center justify-center rounded-md bg-secondary text-muted-foreground">
+													<ListMusic className="size-4" />
+												</span>
+											</TableCell>
 											<TableCell>
 												<Link
 													to="/setlists/$id"
@@ -158,27 +153,29 @@ function Setlists() {
 												>
 													{list.data.title}
 												</Link>
-											</TableCell>
-											<TableCell className="text-muted-foreground">
-												{list.data.date
-													? new Date(
-															`${list.data.date}T00:00:00`,
-														).toLocaleDateString(undefined, {
-															day: "numeric",
-															month: "short",
-															year: "numeric",
-														})
-													: "No date"}
-											</TableCell>
-											<TableCell className="text-right tabular-nums">
-												{list.data.entries.length}
+												<div className="text-xs text-muted-foreground">
+													{[
+														list.data.date
+															? new Date(
+																	`${list.data.date}T00:00:00`,
+																).toLocaleDateString(undefined, {
+																	weekday: "short",
+																	day: "numeric",
+																	month: "short",
+																	year: "numeric",
+																})
+															: "No date",
+														`${list.data.entries.length} ${list.data.entries.length === 1 ? "song" : "songs"}`,
+													].join(" · ")}
+												</div>
 											</TableCell>
 											<TableCell className="relative z-[1] text-right">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button
 															variant="ghost"
-															size="icon-sm"
+															size="icon"
+															className="size-10"
 															aria-label={`Actions for ${list.data.title}`}
 														>
 															<MoreHorizontal />

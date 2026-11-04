@@ -11,11 +11,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@chords/ui/components/collapsible";
-import {
-	Field,
-	FieldDescription,
-	FieldLabel,
-} from "@chords/ui/components/field";
+import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
 import {
 	Select,
@@ -31,6 +27,11 @@ import {
 	ToggleGroup,
 	ToggleGroupItem,
 } from "@chords/ui/components/toggle-group";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@chords/ui/components/tooltip";
 import { cn } from "@chords/ui/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -38,6 +39,7 @@ import {
 	ChevronRight,
 	Columns2,
 	Eye,
+	Info,
 	Pencil,
 	Wand2,
 } from "lucide-react";
@@ -233,7 +235,7 @@ export function Editor({
 					pressed={preview}
 					onPressedChange={setPreview}
 					aria-label="Toggle preview"
-					className="max-lg:hidden"
+					className="max-lg:hidden data-[state=on]:border-input data-[state=on]:bg-accent"
 				>
 					<Columns2 />
 					<span className="max-sm:sr-only">Preview</span>
@@ -313,7 +315,29 @@ export function Editor({
 						/>
 					</Field>
 					<Field className="lg:col-span-3">
-						<FieldLabel htmlFor="publication-state">Visibility</FieldLabel>
+						<FieldLabel htmlFor="publication-state">
+							Visibility
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Info
+										className="size-3.5 text-muted-foreground"
+										aria-label="About visibility"
+									/>
+								</TooltipTrigger>
+								<TooltipContent className="max-w-64">
+									{draft.data.reviewRequired
+										? "Nothing is published until you save."
+										: state === "draft"
+											? "Drafts work in setlists. Visitors keep seeing the last published version."
+											: state === "public"
+												? "Saved edits, including notes in the sheet, are visible to everyone."
+												: "Only you or this band can see this arrangement."}
+									{account === "local"
+										? " Sign in to publish or sync; until then it stays on this device."
+										: ""}
+								</TooltipContent>
+							</Tooltip>
+						</FieldLabel>
 						<Select
 							value={state}
 							onValueChange={(value) => {
@@ -347,18 +371,6 @@ export function Editor({
 								))}
 							</SelectContent>
 						</Select>
-						<FieldDescription className="text-xs">
-							{draft.data.reviewRequired
-								? "Nothing is published until you save."
-								: state === "draft"
-									? "Drafts work in setlists. Visitors keep seeing the last published version."
-									: state === "public"
-										? "Saved edits, including notes in the sheet, are visible to everyone."
-										: "Only you or this band can see this arrangement."}
-							{account === "local"
-								? " Sign in to publish or sync; until then it stays on this device."
-								: ""}
-						</FieldDescription>
 					</Field>
 				</div>
 				<div className={cn(!detailsOpen && "max-lg:hidden")}>
@@ -380,7 +392,7 @@ export function Editor({
 							draft.data.reviewRequired && draft.data.title !== "Untitled song"
 						}
 					>
-						<div className="space-y-4">
+						<div className="space-y-6">
 							<div className="grid gap-3 sm:grid-cols-2">
 								<Field>
 									<FieldLabel htmlFor="arrangement-name">Version</FieldLabel>
@@ -407,8 +419,8 @@ export function Editor({
 									/>
 								</Field>
 							</div>
-							<div className="space-y-3 border-t pt-4">
-								<h3 className="text-sm font-medium">Catalogue song</h3>
+							<div className="space-y-3 border-t pt-6">
+								<h3 className="text-sm font-semibold">Catalogue</h3>
 								<p className="text-xs text-muted-foreground">
 									If this is another version of a song that already exists, link
 									it so both versions are grouped together.
@@ -458,9 +470,9 @@ export function Editor({
 									This is a different song
 								</Button>
 							</div>
-							<div className="space-y-3 border-t pt-4">
-								<h3 className="text-sm font-medium">
-									My performance settings{" "}
+							<div className="space-y-3 border-t pt-6">
+								<h3 className="text-sm font-semibold">
+									Just for me{" "}
 									<span className="font-normal text-muted-foreground">
 										· private to you
 									</span>
@@ -560,7 +572,7 @@ export function Editor({
 							className={cn(
 								"min-h-[60vh]",
 								preview &&
-									"lg:h-[calc(100svh-19rem)] lg:min-h-96 lg:field-sizing-fixed lg:overflow-y-auto",
+									"lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:field-sizing-fixed lg:overflow-y-auto",
 							)}
 							value={draft.data.content}
 							onChange={(event) => update("content", event.target.value)}
@@ -585,7 +597,7 @@ export function Editor({
 						) : null}
 					</div>
 					{preview ? (
-						<div className="min-w-0 rounded-lg border bg-card/40 p-4 lg:mt-10 lg:h-[calc(100svh-19rem)] lg:min-h-96 lg:overflow-y-auto">
+						<div className="min-w-0 rounded-lg border bg-card/40 p-4 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
 							<SongSheet content={content} fontSize={18} />
 						</div>
 					) : null}
