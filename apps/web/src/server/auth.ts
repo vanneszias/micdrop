@@ -5,11 +5,12 @@ import { validateSourceUrl } from "@chords/imports";
 import { captureException, logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { isAPIError } from "better-auth/api";
-import { admin, jwt, organization } from "better-auth/plugins";
+import { admin, captcha, jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
-import { auditStatement, BAN_HIDDEN } from "./admin";
+import { auditStatement, BAN_HIDDEN, SIGNUP_BURST } from "./admin";
 import { HttpError } from "./http-error";
+import { reachedBandLimit } from "./quotas";
 
 export { HttpError } from "./http-error";
 
@@ -35,16 +36,42 @@ export function getAuth() {
 	const googleId = process.env.GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_ID;
 	const googleSecret =
 		process.env.GOOGLE_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET;
+	const turnstileSecret =
+		process.env.TURNSTILE_SECRET_KEY || env.TURNSTILE_SECRET_KEY;
 	return betterAuth({
 		secret,
 		baseURL: process.env.BETTER_AUTH_URL || env.BETTER_AUTH_URL,
 		database: { dialect: new D1Dialect({ database: env.DB }), type: "sqlite" },
 		emailAndPassword: { enabled: true, minPasswordLength: 10 },
+		// Cloudflare sets cf-connecting-ip itself; x-forwarded-for can be supplied by the client.
+		advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
+		rateLimit: {
+			// Better Auth only enables this when NODE_ENV says production, which Workers don't set.
+			enabled: !import.meta.env.DEV,
+			// Per-isolate memory would let each Worker instance count separately.
+			storage: "database",
+			customRules: {
+				"/sign-up/email": { window: 3600, max: 10 },
+				"/sign-in/email": { window: 60, max: 10 },
+				"/oauth2/register": { window: 3600, max: 20 },
+			},
+		},
 		databaseHooks: {
 			user: {
 				create: {
-					after: async (user) => {
+					after: async (user, context) => {
 						logger.info("user.signed_up", { userId: user.id });
+						const ip = context?.request?.headers.get("cf-connecting-ip");
+						if (!ip) return;
+						const recent = await env.DB.prepare(
+							"SELECT COUNT(DISTINCT userId) AS accounts FROM session WHERE ipAddress=? AND createdAt>=?",
+						)
+							.bind(ip, new Date(Date.now() - 3_600_000).toISOString())
+							.first<{ accounts: number }>();
+						// This account's own session is not stored yet, so it counts as one more.
+						const accounts = (recent?.accounts ?? 0) + 1;
+						if (accounts >= SIGNUP_BURST)
+							logger.warn("signup.burst", { ip, accounts, userId: user.id });
 					},
 				},
 			},
@@ -82,7 +109,21 @@ export function getAuth() {
 					}
 				: {},
 		plugins: [
-			organization({ requireEmailVerificationOnInvitation: true }),
+			organization({
+				requireEmailVerificationOnInvitation: true,
+				organizationLimit: (user) => reachedBandLimit(user.id),
+			}),
+			// Turnstile guards email sign-up wherever a secret is configured. It adds no
+			// types, so the cast keeps the other plugins' inferred fields intact.
+			...((turnstileSecret
+				? [
+						captcha({
+							provider: "cloudflare-turnstile",
+							secretKey: turnstileSecret,
+							endpoints: ["/sign-up/email"],
+						}),
+					]
+				: []) as []),
 			// Roles are granted by hand in SQL; there is no self-promotion endpoint.
 			admin(),
 			jwt(),
@@ -165,6 +206,12 @@ export function endpoint(
 				return Response.json(
 					{ error: error.message },
 					{ status: error.status },
+				);
+			// Better Auth's own refusals, such as the band limit, are meant for the user.
+			if (isAPIError(error) && error.statusCode < 500)
+				return Response.json(
+					{ error: error.message },
+					{ status: error.statusCode },
 				);
 			if (error instanceof Error && error.name === "ZodError")
 				return Response.json(

@@ -84,6 +84,8 @@ Tests cover music conversion/transposition, bounded imports, atomic saves, resta
 
 The checked-in configuration targets the `chords` Worker and D1 database in account `6495d15c9d09b19ddc65f0a01892a183`, served at `https://micdrop.day`. The D1 ID is the existing production database; local commands simulate it without accessing production data. Configure runtime secrets (including `BETTER_AUTH_SECRET`) on the Worker with Wrangler; deployment preserves existing secrets.
 
+To guard email sign-up with Cloudflare Turnstile, create a widget for `micdrop.day`, set its secret with `wrangler secret put TURNSTILE_SECRET_KEY`, and build with `VITE_TURNSTILE_SITE_KEY=<site key>`. Without the secret, sign-up has no bot check.
+
 ### GitHub Actions
 
 `.github/workflows/ci.yml` uses GitHub-hosted Ubuntu runners and Bun 1.4.4. Pull requests and pushes to `master` run typecheck, Biome, unit tests, local D1 migrations, a production build, deployment dry run, and server integration tests against a local production preview. Integration tests use a fixed test-only auth secret, an explicit local storage path, and a localhost upstream; they never use production credentials or data.
@@ -112,7 +114,9 @@ No Cloudflare resources are created or deployed by the local setup commands.
 
 Migration `0005_catalogue.sql` preserves existing private libraries and published snapshots; it does not publish old private records. Legacy song groups remain separate until explicitly merged. Public result pages contain summaries; full sheets are loaded only for previewing or saving. The public catalogue is not synchronized wholesale to devices.
 
-Platform administrators are granted by hand with `UPDATE user SET role='admin' WHERE email='<email>';` in the intended database. They get the **Administration** entry in the account menu (`/admin`): an overview of misuse signals, every account with its library, bands, sessions, imports and assistant connections. Opening an account is recorded in `admin_actions`. Platform administrators also moderate the catalogue.
+Platform administrators are granted by hand with `UPDATE user SET role='admin' WHERE email='<email>';` in the intended database. They get the **Administration** entry in the account menu (`/admin`): misuse signals, every account, band, song, setlist, assistant connection and share link, and a combined audit log. Administrators can ban, sign out, impersonate and delete accounts, delete bands, disable assistants and revoke links. Every look at private data and every change is recorded in `admin_actions`. Platform administrators also moderate the catalogue.
+
+Limits against misuse: 20 PDF imports and 100 page imports per account per day (30 page imports per IP when signed out), 5,000 songs and setlists per library and 10 owned bands per account. Better Auth rate-limits sign-up, sign-in and assistant registration per client IP, stored in D1. Quota breaches, bans, catalogue reports and sign-up bursts are logged as `quota.exceeded`, `user.banned`, `report.created` and `signup.burst` for Sentry alert rules.
 
 Catalogue-only moderator access is explicitly granted through the `catalogue_admins` table. Band ownership does not grant catalogue-wide privileges. An authorised operator can grant access with `INSERT INTO catalogue_admins(user_id) VALUES ('<account-id>');` in the intended database; there is no self-promotion endpoint. The Catalogue page then displays reporting and maintenance tools. Actions are recorded in `catalogue_actions`. Merges and regrouping preserve revision history and saved copies; merging also preserves old group IDs as aliases.
 

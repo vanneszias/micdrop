@@ -457,3 +457,118 @@ test.skipIf(!base)(
 	},
 	60_000,
 );
+
+test.skipIf(!base)(
+	"paid imports, libraries and bands stop at their quotas and show up for administrators",
+	async () => {
+		const operator = await account("Quota operator");
+		const heavy = await account("Heavy importer");
+		for (const id of [operator.id, heavy.id])
+			if (!/^[a-zA-Z0-9_-]+$/.test(id))
+				throw new Error("Unexpected fixture user id.");
+		const now = Date.now();
+		const fill = (kind: string, count: number) =>
+			`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<${count}) INSERT INTO usage_events SELECT '${heavy.id}','${kind}',${now} FROM n;`;
+		await localSql(
+			[
+				`UPDATE user SET role='admin' WHERE id='${operator.id}';`,
+				fill("pdf_import", 20),
+				fill("url_import", 100),
+				`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<5000) INSERT INTO records (id,kind,owner,version,updated_at,archived,data,last_operation) SELECT '${heavy.id}-'||i,'setlist','${heavy.id}',1,'2026-01-01T00:00:00.000Z',0,'{"title":"Filler","songs":[]}','fixture' FROM n;`,
+				`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<10) INSERT INTO organization (id,name,slug,createdAt) SELECT '${heavy.id}-band-'||i,'Filler band','${heavy.id}-band-'||i,'2026-01-01T00:00:00.000Z' FROM n;`,
+				`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<10) INSERT INTO member (id,organizationId,userId,role,createdAt) SELECT '${heavy.id}-member-'||i,'${heavy.id}-band-'||i,'${heavy.id}','owner','2026-01-01T00:00:00.000Z' FROM n;`,
+			].join(" "),
+		);
+
+		const pdf = await fetch(`${base}/api/import-pdf`, {
+			method: "POST",
+			headers: {
+				Cookie: heavy.cookie,
+				Origin: base,
+				"Content-Type": "application/pdf",
+			},
+			body: "%PDF-1.4 not really",
+		});
+		expect(pdf.status).toBe(429);
+		const page = await post("/api/import", heavy.cookie, {
+			url: "https://example.com/song",
+		});
+		expect(page.status).toBe(429);
+		expect(((await page.json()) as { error: string }).error).toContain(
+			"100 page imports per day",
+		);
+		const record = await post("/api/sync", heavy.cookie, {
+			id: crypto.randomUUID(),
+			baseVersion: 0,
+			record: arrangement(heavy.id, "One too many"),
+		});
+		expect(record.status).toBe(429);
+		const band = await post("/api/bands", heavy.cookie, {
+			action: "create",
+			name: "Eleventh band",
+		});
+		expect(band.status).toBe(403);
+		// Better Auth's own endpoint applies the same band limit.
+		expect(
+			(
+				await post("/api/auth/organization/create", heavy.cookie, {
+					name: "Eleventh band",
+					slug: `eleventh-${crypto.randomUUID()}`,
+				})
+			).status,
+		).toBe(403);
+
+		const overview = (await (
+			await admin("view=overview", operator.cookie)
+		).json()) as {
+			quotaUsage: { subject: string; kind: string; used: number }[];
+		};
+		expect(overview.quotaUsage).toContainEqual(
+			expect.objectContaining({
+				subject: heavy.id,
+				kind: "pdf_import",
+				used: 20,
+				limit: 20,
+			}),
+		);
+		const detail = (await (
+			await admin(`view=user&id=${heavy.id}`, operator.cookie)
+		).json()) as {
+			usage: { kind: string; used: number; limit: number }[];
+			recordTotals: { total: number };
+		};
+		expect(detail.recordTotals.total).toBe(5000);
+		expect(detail.usage).toContainEqual({
+			kind: "url_import",
+			used: 100,
+			limit: 100,
+		});
+	},
+	120_000,
+);
+
+test.skipIf(!base)(
+	"sign-in attempts are rate limited per client IP",
+	async () => {
+		// Cloudflare sets cf-connecting-ip in production; locally the test supplies it.
+		const ip = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
+		const attempt = () =>
+			fetch(`${base}/api/auth/sign-in/email`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Origin: base,
+					"cf-connecting-ip": ip,
+				},
+				body: JSON.stringify({
+					email: `${crypto.randomUUID()}@chords.test`,
+					password: "wrong-password-attempt",
+				}),
+			}).then((response) => response.status);
+		const statuses: number[] = [];
+		for (let index = 0; index < 11; index++) statuses.push(await attempt());
+		expect(statuses.slice(0, 10).every((status) => status === 401)).toBe(true);
+		expect(statuses[10]).toBe(429);
+	},
+	60_000,
+);

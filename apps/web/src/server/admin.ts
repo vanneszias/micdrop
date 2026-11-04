@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { logger } from "@sentry/cloudflare";
 import { HttpError } from "./http-error";
+import { QUOTAS, type QuotaKind, RECORD_LIMIT } from "./quotas";
 
 const DAY = 86_400_000;
 /** Accounts created from one IP within a day before the overview flags it. */
@@ -36,9 +37,15 @@ export function auditStatement(
 export async function overview(now = Date.now()) {
 	const week = now - 7 * DAY;
 	const day = now - DAY;
-	const [totals, recentUsers, largestLibraries, pdfImporters, signupBursts] =
-		await env.DB.batch([
-			env.DB.prepare(`SELECT
+	const [
+		totals,
+		recentUsers,
+		largestLibraries,
+		pdfImporters,
+		signupBursts,
+		quotaUsage,
+	] = await env.DB.batch([
+		env.DB.prepare(`SELECT
 				(SELECT COUNT(*) FROM user) AS users,
 				(SELECT COUNT(*) FROM user WHERE ${ms("createdAt")}>=?1) AS newUsers,
 				(SELECT COUNT(*) FROM user WHERE banned=1) AS bannedUsers,
@@ -54,36 +61,54 @@ export async function overview(now = Date.now()) {
 				(SELECT COUNT(*) FROM oauthClient WHERE userId IS NULL) AS anonymousClients,
 				(SELECT COUNT(*) FROM pdf_import_jobs WHERE created_at>=?2) AS pdfImportsDay,
 				(SELECT COUNT(*) FROM pdf_import_jobs WHERE created_at>=?1) AS pdfImportsWeek`).bind(
-				week,
-				day,
-				new Date(week).toISOString(),
-				now,
-			),
-			env.DB.prepare(
-				"SELECT id,name,email,emailVerified,role,banned,createdAt FROM user ORDER BY createdAt DESC LIMIT 10",
-			),
-			env.DB.prepare(`SELECT r.owner AS id,COALESCE(u.name,o.name) AS name,CASE WHEN o.id IS NULL THEN 'user' ELSE 'band' END AS kind,
+			week,
+			day,
+			new Date(week).toISOString(),
+			now,
+		),
+		env.DB.prepare(
+			"SELECT id,name,email,emailVerified,role,banned,createdAt FROM user ORDER BY createdAt DESC LIMIT 10",
+		),
+		env.DB.prepare(`SELECT r.owner AS id,COALESCE(u.name,o.name) AS name,CASE WHEN o.id IS NULL THEN 'user' ELSE 'band' END AS kind,
 				COUNT(*) AS records,SUM(length(r.data)) AS bytes
 				FROM records r LEFT JOIN user u ON u.id=r.owner LEFT JOIN organization o ON o.id=r.owner
 				GROUP BY r.owner ORDER BY records DESC LIMIT 10`),
-			env.DB.prepare(
-				"SELECT u.id,u.name,u.email,COUNT(*) AS imports FROM pdf_import_jobs j JOIN user u ON u.id=j.user_id WHERE j.created_at>=? GROUP BY u.id ORDER BY imports DESC LIMIT 10",
-			).bind(week),
-			// Sessions expire, so this undercounts; it is a hint for where to look, not proof.
-			env.DB.prepare(`SELECT s.ipAddress AS ip,COUNT(DISTINCT s.userId) AS accounts
+		env.DB.prepare(
+			"SELECT u.id,u.name,u.email,COUNT(*) AS imports FROM pdf_import_jobs j JOIN user u ON u.id=j.user_id WHERE j.created_at>=? GROUP BY u.id ORDER BY imports DESC LIMIT 10",
+		).bind(week),
+		// Sessions expire, so this undercounts; it is a hint for where to look, not proof.
+		env.DB.prepare(`SELECT s.ipAddress AS ip,COUNT(DISTINCT s.userId) AS accounts
 				FROM session s JOIN user u ON u.id=s.userId
 				WHERE ${ms("u.createdAt")}>=? AND COALESCE(s.ipAddress,'')!=''
 				GROUP BY s.ipAddress HAVING accounts>=? ORDER BY accounts DESC LIMIT 10`).bind(
-				day,
-				SIGNUP_BURST,
-			),
-		]);
+			day,
+			SIGNUP_BURST,
+		),
+		env.DB.prepare(`SELECT e.subject,e.kind,COUNT(*) AS used,u.name
+				FROM usage_events e LEFT JOIN user u ON u.id=e.subject
+				WHERE e.created_at>=? GROUP BY e.subject,e.kind ORDER BY used DESC LIMIT 50`).bind(
+			day,
+		),
+	]);
 	return {
 		totals: totals.results[0],
 		recentUsers: recentUsers.results,
 		largestLibraries: largestLibraries.results,
 		pdfImporters: pdfImporters.results,
 		signupBursts: signupBursts.results,
+		recordLimit: RECORD_LIMIT,
+		// Closest to their cap first, so heavy users of the cheaper quotas don't hide the rest.
+		quotaUsage: (
+			quotaUsage.results as {
+				subject: string;
+				kind: QuotaKind;
+				used: number;
+				name: string | null;
+			}[]
+		)
+			.map((row) => ({ ...row, limit: QUOTAS[row.kind]?.limit ?? 0 }))
+			.sort((a, b) => b.used / b.limit - a.used / a.limit)
+			.slice(0, 10),
 	};
 }
 
@@ -141,6 +166,7 @@ export async function userDetail(adminId: string, id: string) {
 		consents,
 		imports,
 		audit,
+		usage,
 	] = await env.DB.batch([
 		env.DB.prepare(
 			"SELECT id,name,email,emailVerified,image,role,banned,banReason,banExpires,createdAt,updatedAt FROM user WHERE id=?",
@@ -186,6 +212,9 @@ export async function userDetail(adminId: string, id: string) {
 		env.DB.prepare(
 			"SELECT a.id,a.action,a.data,a.created_at AS createdAt,u.name AS adminName FROM admin_actions a LEFT JOIN user u ON u.id=a.admin_id WHERE a.target_kind='user' AND a.target_id=? ORDER BY a.created_at DESC LIMIT 50",
 		).bind(id),
+		env.DB.prepare(
+			"SELECT kind,COUNT(*) AS used FROM usage_events WHERE subject=? AND created_at>=? GROUP BY kind",
+		).bind(id, Date.now() - DAY),
 	]);
 	if (!user.results[0])
 		throw new HttpError(404, "This account does not exist.");
@@ -203,6 +232,10 @@ export async function userDetail(adminId: string, id: string) {
 		consents: consents.results,
 		imports: imports.results,
 		audit: audit.results,
+		usage: (usage.results as { kind: QuotaKind; used: number }[]).map(
+			(row) => ({ ...row, limit: QUOTAS[row.kind]?.limit ?? 0 }),
+		),
+		recordLimit: RECORD_LIMIT,
 	};
 }
 

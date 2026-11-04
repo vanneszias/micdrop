@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { logger } from "@sentry/cloudflare";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { canAccess, endpoint, HttpError, requireUser } from "#/server/auth";
@@ -116,6 +117,10 @@ export const Route = createFileRoute("/api/publications")({
 								new Date().toISOString(),
 							)
 							.run();
+						logger.warn("report.created", {
+							publicationId: input.id,
+							userId: user.id,
+						});
 					} else if (!input.value) {
 						await env.DB.prepare(
 							"DELETE FROM votes WHERE publication_id=? AND user_id=?",

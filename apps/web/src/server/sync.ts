@@ -6,6 +6,7 @@ import {
 } from "@chords/data";
 import { z } from "zod";
 import { canAccess, HttpError, requireUser } from "./auth";
+import { checkRecordLimit } from "./quotas";
 
 type Stored = {
 	id: string;
@@ -84,6 +85,7 @@ export async function saveOperation(
 			403,
 			"Ownership cannot be changed. Make a copy into the destination library.",
 		);
+	if (!existing) await checkRecordLimit(record.owner);
 	const now = new Date().toISOString();
 	if (record.kind === "arrangement") {
 		record.data.songId ||= record.id;

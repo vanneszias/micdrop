@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { logger } from "@sentry/cloudflare";
 import { z } from "zod";
 import {
 	auditStatement,
@@ -61,6 +62,11 @@ export async function runAdminAction(
 				403,
 				"Remove the administrator role in SQL before banning this account.",
 			);
+		logger.warn("user.banned", {
+			adminId,
+			userId: target.id,
+			days: input.days ?? null,
+		});
 		// Better Auth sets the ban and deletes every session of the account.
 		await auth.api.banUser({
 			headers,

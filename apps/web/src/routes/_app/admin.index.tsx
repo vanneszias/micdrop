@@ -52,6 +52,14 @@ type OverviewData = {
 	}[];
 	pdfImporters: { id: string; name: string; email: string; imports: number }[];
 	signupBursts: { ip: string; accounts: number }[];
+	recordLimit: number;
+	quotaUsage: {
+		subject: string;
+		kind: string;
+		used: number;
+		limit: number;
+		name: string | null;
+	}[];
 };
 
 function UserLink({ id, children }: { id: string; children: React.ReactNode }) {
@@ -147,6 +155,38 @@ function Overview() {
 						]}
 					/>
 				</Section>
+				<Section title="Paid imports today, closest to their limit">
+					<Rows
+						rows={data.quotaUsage}
+						empty="No PDF or page imports in the last 24 hours."
+						columns={[
+							[
+								"Who",
+								(row) =>
+									row.subject.startsWith("ip:") ? (
+										`Signed out, ${row.subject.slice(3)}`
+									) : (
+										<OwnerLink id={row.subject} kind="user" name={row.name} />
+									),
+							],
+							["Kind", (row) => row.kind.replaceAll("_", " ")],
+							[
+								"Used",
+								(row) => (
+									<span
+										className={
+											row.used >= row.limit
+												? "font-medium text-destructive"
+												: undefined
+										}
+									>
+										{row.used} / {row.limit}
+									</span>
+								),
+							],
+						]}
+					/>
+				</Section>
 				<Section title="Most PDF imports (last 7 days)">
 					<Rows
 						rows={data.pdfImporters}
@@ -158,7 +198,9 @@ function Overview() {
 						]}
 					/>
 				</Section>
-				<Section title="Largest libraries">
+				<Section
+					title={`Largest libraries (limit ${data.recordLimit.toLocaleString()})`}
+				>
 					<Rows
 						rows={data.largestLibraries}
 						columns={[

@@ -104,6 +104,8 @@ type Detail = {
 		createdAt: number;
 		adminName: string | null;
 	}[];
+	usage: { kind: string; used: number; limit: number }[];
+	recordLimit: number;
 };
 
 function UserDetail() {
@@ -158,6 +160,19 @@ function UserDetail() {
 						{user.banExpires ? ` until ${when(user.banExpires)}` : ""}
 					</p>
 				) : null}
+				<p className="text-xs text-muted-foreground">
+					Last 24 hours:{" "}
+					{data.usage.length
+						? data.usage
+								.map(
+									(row) =>
+										`${row.used} / ${row.limit} ${row.kind.replaceAll("_", " ")}s`,
+								)
+								.join(", ")
+						: "no paid imports"}
+					. Library: {data.recordTotals.total} /{" "}
+					{data.recordLimit.toLocaleString()} records.
+				</p>
 				<p className="text-xs text-muted-foreground">
 					Opening this page is recorded in the audit log.
 				</p>
