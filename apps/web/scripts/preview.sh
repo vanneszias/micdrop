@@ -54,6 +54,19 @@ deploy() {
 		jq -er '.result.subdomain')"
 	url="https://$name-$worker.$subdomain.workers.dev"
 
+	# `preview_urls` only reaches the Worker on a production deploy, so enable it here the
+	# way `wrangler deploy` does, keeping production's workers.dev setting as it is.
+	local api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$worker/subdomain"
+	local headers=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Cloudflare-Workers-Script-Api-Date: 2025-08-01")
+	local current
+	current="$(curl --fail --silent --show-error "${headers[@]}" "$api" | jq -ec '.result')"
+	if [[ "$(jq -r '.previews_enabled' <<<"$current")" != true ]]; then
+		jq -c '{enabled: (.enabled // false), previews_enabled: true}' <<<"$current" |
+			curl --fail --silent --show-error -X POST "${headers[@]}" -H "Content-Type: application/json" \
+				--data @- "$api" >/dev/null
+		echo "Enabled preview URLs on Worker $worker" >&2
+	fi
+
 	# `--json` still mixes progress lines into stdout, so read the result from Wrangler's
 	# output file instead.
 	local output="$tmp/output.ndjson" actual
@@ -64,7 +77,7 @@ deploy() {
 			--var "BETTER_AUTH_URL:$url" --secrets-file "$tmp/secrets.json"
 		actual="$(jq -sr 'map(select(.type == "preview")) | last | .preview_urls[0] // empty' "$output")"
 		if [[ -z "$actual" ]]; then
-			echo "Preview $name has no URL. Deploy production with preview_urls enabled first." >&2
+			echo "Preview $name has no workers.dev URL." >&2
 			exit 1
 		fi
 		actual="${actual%/}"
