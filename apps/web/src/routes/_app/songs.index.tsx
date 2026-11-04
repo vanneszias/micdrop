@@ -159,13 +159,9 @@ function Songs() {
 													.join(" · ")}
 											</div>
 										</TableCell>
-										<TableCell className="w-28 text-right">
+										<TableCell className="w-px text-right max-sm:hidden">
 											<Badge
-												variant={
-													song.data.draft || song.data.visibility === "public"
-														? "outline"
-														: "secondary"
-												}
+												variant="outline"
 												className="font-normal text-muted-foreground"
 											>
 												{song.data.draft ? (
@@ -182,7 +178,7 @@ function Songs() {
 														: "Private"}
 											</Badge>
 										</TableCell>
-										<TableCell className="relative z-[1] text-right">
+										<TableCell className="relative z-[1] w-px pr-2 text-right">
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
 													<Button

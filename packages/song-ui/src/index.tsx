@@ -262,13 +262,14 @@ function GuitarDiagram({
 								className="diagram-dot"
 								cx={15 + i * 14}
 								cy={13.5 + fret * 19}
-								r="6"
+								r="7"
 							/>
 							<text
 								x={15 + i * 14}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="8"
+								fontSize="9.5"
+								fontWeight="600"
 								fill="white"
 							>
 								{shape.fingers[i] || ""}

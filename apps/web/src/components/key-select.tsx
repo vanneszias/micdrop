@@ -7,6 +7,9 @@ import {
 	SelectValue,
 } from "@chords/ui/components/select";
 
+// Keys whose chords are easy open shapes, worth pointing out in the capo menu.
+const OPEN_SHAPES = new Set(["C", "G", "D", "A", "E"]);
+
 export function KeySelect({
 	value,
 	onChange,
@@ -72,16 +75,28 @@ export function CapoSelect({
 				<SelectValue>{value === 0 ? "No capo" : `Capo ${value}`}</SelectValue>
 			</SelectTrigger>
 			<SelectContent>
-				{CAPO_FRETS.map((fret) => (
-					<SelectItem key={fret} value={String(fret)}>
-						{fret === 0 ? "No capo" : `Capo ${fret}`}
-						{soundingKey ? (
-							<span className="text-xs text-muted-foreground">
-								{shiftKey(soundingKey, -fret)} shapes
-							</span>
-						) : null}
-					</SelectItem>
-				))}
+				{CAPO_FRETS.filter(
+					// High frets rarely help; keep them only when a song already uses one.
+					(fret) => !soundingKey || fret <= 7 || fret === value,
+				).map((fret) => {
+					const shapes = soundingKey ? shiftKey(soundingKey, -fret) : "";
+					return (
+						<SelectItem key={fret} value={String(fret)}>
+							{fret === 0 ? "No capo" : `Capo ${fret}`}
+							{shapes ? (
+								<span
+									className={
+										OPEN_SHAPES.has(shapes)
+											? "text-xs font-medium text-foreground"
+											: "text-xs text-muted-foreground"
+									}
+								>
+									{shapes} shapes
+								</span>
+							) : null}
+						</SelectItem>
+					);
+				})}
 			</SelectContent>
 		</Select>
 	);

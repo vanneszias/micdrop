@@ -14,6 +14,11 @@ import {
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@chords/ui/components/popover";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -37,13 +42,16 @@ import { useNavigate } from "@tanstack/react-router";
 import {
 	Check,
 	ChevronRight,
+	CircleHelp,
 	Columns2,
 	Eye,
 	Info,
 	Pencil,
 	Wand2,
+	WrapText,
 } from "lucide-react";
 import {
+	Fragment,
 	useCallback,
 	useDeferredValue,
 	useEffect,
@@ -94,6 +102,14 @@ function EditorSection({
 		</Collapsible>
 	);
 }
+
+const syntaxGuide = [
+	["[G]word", "Chord above the syllable that follows it"],
+	["{start_of_verse: Verse 1}", "Starts a section; end it with {end_of_verse}"],
+	["{start_of_chorus}", "Chorus section, ended by {end_of_chorus}"],
+	["{comment: Softly}", "A note shown in the sheet"],
+	["# text", "A private line that is not shown"],
+] as const;
 
 const snippets = [
 	["Chord", "[D]"],
@@ -167,6 +183,7 @@ export function Editor({
 	}
 
 	const [saved, setSaved] = useState(true);
+	const [wrapLines, setWrapLines] = useState(true);
 	const [detailsOpen, setDetailsOpen] = useState(
 		() => !!arrangement.data.reviewRequired,
 	);
@@ -380,7 +397,7 @@ export function Editor({
 							draft.data.arrangementName || "Standard version",
 							draft.data.songId && draft.data.songId !== draft.id
 								? "linked to a catalogue song"
-								: "not linked",
+								: "own song",
 							draft.data.performanceKey &&
 							draft.data.performanceKey !== draft.data.key
 								? `you play in ${draft.data.performanceKey}`
@@ -557,17 +574,51 @@ export function Editor({
 							<Button
 								variant="outline"
 								size="sm"
-								className="ml-auto"
 								onClick={() =>
 									update("content", normalizeSheet(draft.data.content).content)
 								}
 							>
-								<Wand2 /> Convert
-								<span className="max-sm:hidden"> pasted text</span>
+								<Wand2 /> Clean up
+								<span className="max-sm:hidden"> pasted chords</span>
 							</Button>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button variant="ghost" size="sm" className="ml-auto">
+										<CircleHelp />
+										<span className="max-sm:sr-only">Syntax</span>
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent align="end" className="w-80 space-y-3 text-sm">
+									<p className="font-medium">ChordPro in short</p>
+									<dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
+										{syntaxGuide.map(([code, meaning]) => (
+											<Fragment key={code}>
+												<dt>
+													<code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+														{code}
+													</code>
+												</dt>
+												<dd className="text-muted-foreground">{meaning}</dd>
+											</Fragment>
+										))}
+									</dl>
+								</PopoverContent>
+							</Popover>
+							<Toggle
+								size="sm"
+								variant="outline"
+								className="data-[state=on]:border-input data-[state=on]:bg-accent"
+								pressed={wrapLines}
+								onPressedChange={setWrapLines}
+								aria-label="Wrap long lines"
+							>
+								<WrapText />
+								<span className="max-sm:sr-only">Wrap</span>
+							</Toggle>
 						</div>
 						<ChordProTextarea
 							ref={text}
+							wrapLines={wrapLines}
 							// Side by side, source and preview share one height and scroll on their own.
 							className={cn(
 								"min-h-[60vh]",
@@ -598,6 +649,16 @@ export function Editor({
 					</div>
 					{preview ? (
 						<div className="min-w-0 rounded-lg border bg-card/40 p-4 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
+							<header className="mb-5">
+								<p className="text-xl font-semibold tracking-tight">
+									{draft.data.title || "Untitled song"}
+								</p>
+								<p className="text-sm text-muted-foreground">
+									{[draft.data.artist, `Key ${draft.data.key}`]
+										.filter(Boolean)
+										.join(" · ")}
+								</p>
+							</header>
 							<SongSheet content={content} fontSize={18} />
 						</div>
 					) : null}

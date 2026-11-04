@@ -36,12 +36,20 @@ function highlight(line: string) {
  */
 export const ChordProTextarea = forwardRef<
 	HTMLTextAreaElement,
-	React.ComponentProps<"textarea"> & { value: string }
->(function ChordProTextarea({ className, value, onScroll, ...props }, ref) {
+	React.ComponentProps<"textarea"> & {
+		value: string;
+		/** False keeps each line whole and scrolls sideways instead. */
+		wrapLines?: boolean;
+	}
+>(function ChordProTextarea(
+	{ className, value, onScroll, wrapLines = true, ...props },
+	ref,
+) {
 	const backdrop = useRef<HTMLDivElement>(null);
-	// Phones keep each ChordPro line whole and scroll sideways instead of wrapping.
-	const shared =
-		"px-3 py-2 font-mono text-base leading-relaxed whitespace-pre sm:whitespace-pre-wrap sm:break-words md:text-sm";
+	const shared = cn(
+		"px-3 py-2 font-mono text-base leading-relaxed md:text-sm",
+		wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre",
+	);
 	return (
 		<div className="relative rounded-md bg-transparent dark:bg-input/30">
 			<div
@@ -68,7 +76,8 @@ export const ChordProTextarea = forwardRef<
 				}}
 				className={cn(
 					shared,
-					"relative bg-transparent text-transparent max-sm:overflow-x-auto caret-foreground selection:bg-brand/30 selection:text-transparent dark:bg-transparent",
+					!wrapLines && "overflow-x-auto",
+					"relative bg-transparent text-transparent caret-foreground selection:bg-brand/30 selection:text-transparent dark:bg-transparent",
 					className,
 				)}
 				{...props}

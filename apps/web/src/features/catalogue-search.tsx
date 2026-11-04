@@ -268,8 +268,13 @@ export function CatalogueSearch({
 								<Button
 									type="button"
 									size="sm"
-									variant="outline"
-									className="min-w-28"
+									// Songs already in the set get a quiet "add again" so duplicates stay deliberate.
+									variant={
+										inSet && group.local.some((song) => inSet.includes(song.id))
+											? "ghost"
+											: "outline"
+									}
+									className="min-w-28 data-[variant=ghost]:text-muted-foreground"
 									disabled={busy || !editable}
 									onClick={() => {
 										const preferred = [...group.local]
@@ -439,20 +444,27 @@ function ArrangementChoices({
 									</Badge>
 								) : null}
 							</span>
-							<p className="text-xs text-muted-foreground">
-								{version.local
-									? version.local.owner === owner
-										? "Repertoire"
-										: "Personal"
-									: version.score
-										? `Public · ${version.score > 0 ? "+" : ""}${version.score} from players`
-										: "Public"}
-								{version.data.preferred
-									? " · Your preferred version"
-									: index === 0 && version.score > 0
-										? " · Top rated"
-										: ""}
-								{version.data.draft ? " · Draft" : ""}
+							<p className="text-xs text-muted-foreground empty:hidden">
+								{[
+									version.local
+										? version.local.owner === owner
+											? "Your repertoire"
+											: "Personal"
+										: picking
+											? "Public"
+											: null,
+									version.score
+										? `${version.score > 0 ? "+" : ""}${version.score} from players`
+										: null,
+									version.data.preferred
+										? "Your preferred version"
+										: index === 0 && version.score > 0
+											? "Top rated"
+											: null,
+									version.data.draft ? "Draft" : null,
+								]
+									.filter(Boolean)
+									.join(" · ")}
 							</p>
 						</div>
 						<Button

@@ -407,8 +407,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 											</span>
 										</Link>
 									</SidebarMenuButton>
-									{item.to === "/songs" ? (
-										<SidebarMenuBadge>{app.songs.length}</SidebarMenuBadge>
+									{item.to === "/songs" || item.to === "/setlists" ? (
+										<SidebarMenuBadge>
+											{item.to === "/songs"
+												? app.songs.length
+												: app.setlists.length}
+										</SidebarMenuBadge>
 									) : null}
 								</SidebarMenuItem>
 							))}

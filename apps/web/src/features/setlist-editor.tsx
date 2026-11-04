@@ -307,7 +307,7 @@ export function SetlistEditor({
 										<span className="w-5 font-mono text-xs text-muted-foreground">
 											{index + 1}
 										</span>
-										<div className="min-w-0 flex-1">
+										<div className="min-w-0 flex-1 max-sm:basis-[calc(100%-3.5rem)]">
 											<Button
 												variant="link"
 												className="block h-auto max-w-full truncate p-0 text-left"
@@ -330,7 +330,7 @@ export function SetlistEditor({
 												/>
 											) : null}
 										</div>
-										<div className="flex items-center gap-1.5 sm:gap-2">
+										<div className="flex items-center gap-1.5 max-sm:w-full max-sm:pl-11 sm:gap-2">
 											<KeySelect
 												className="w-16 data-[size=default]:h-8 sm:w-20"
 												value={entry.key}
@@ -344,7 +344,7 @@ export function SetlistEditor({
 													0
 												}
 												onChange={(capo) => patch(entry.id, { capo })}
-												className="w-24 data-[size=default]:h-8 sm:w-28"
+												className="w-28 data-[size=default]:h-8"
 											/>
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>

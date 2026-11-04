@@ -158,6 +158,17 @@ export function Player({
 		speed,
 	]);
 	const sheet = useRef<HTMLElement>(null);
+	const heading = useRef<HTMLElement>(null);
+	const [headingVisible, setHeadingVisible] = useState(true);
+	useEffect(() => {
+		if (!heading.current || !sheet.current) return;
+		const observer = new IntersectionObserver(
+			([entry]) => setHeadingVisible(entry.isIntersecting),
+			{ root: sheet.current },
+		);
+		observer.observe(heading.current);
+		return () => observer.disconnect();
+	}, []);
 	const step = (semitones: number) => {
 		const index = KEYS.indexOf(key as (typeof KEYS)[number]);
 		if (index >= 0) setKey(KEYS[(index + semitones + 12) % 12]);
@@ -236,7 +247,24 @@ export function Player({
 	}, [next, previous]);
 	return (
 		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
-			<PageHeader title={<SetlistSheet title={shown.data.title} />} back>
+			<PageHeader
+				back
+				title={
+					playing ? (
+						<SetlistSheet title={shown.data.title} />
+					) : (
+						// The sheet's own heading names the song until it scrolls away.
+						<span
+							className={cn(
+								"transition-opacity",
+								headingVisible && "opacity-0",
+							)}
+						>
+							{shown.data.title}
+						</span>
+					)
+				}
+			>
 				{actions}
 				{readOnly ? null : (
 					<IconTip label="Edit song">
@@ -364,9 +392,10 @@ export function Player({
 							<Button
 								variant="outline"
 								aria-label="View options"
-								className="max-sm:size-9 max-sm:px-0"
+								className="max-sm:px-2.5"
 							>
 								<SlidersHorizontal />
+								<span className="sm:hidden">View</span>
 								<span className="max-sm:hidden">Display</span>
 							</Button>
 						</PopoverTrigger>
@@ -382,7 +411,7 @@ export function Player({
 						</div>
 						{lyricsOnly ? null : (
 							<div className="flex items-center justify-between">
-								<Label htmlFor="shapes">Chords relative to capo</Label>
+								<Label htmlFor="shapes">Show chord shapes for capo</Label>
 								<Switch
 									id="shapes"
 									checked={shapes}
@@ -426,9 +455,10 @@ export function Player({
 							pressed={diagrams}
 							onPressedChange={setDiagrams}
 							aria-label="Chord diagrams"
-							className="max-sm:size-9 max-sm:px-0 sm:px-3"
+							className="px-2.5 sm:px-3"
 						>
 							<Guitar />
+							<span className="sm:hidden">Chords</span>
 							<span className="max-sm:hidden">Diagrams</span>
 						</Toggle>
 					</IconTip>
@@ -454,7 +484,7 @@ export function Player({
 				<div className="flex justify-center gap-10">
 					<article
 						className={cn(
-							"min-w-0 px-5 py-6 pb-24 max-xl:mx-auto sm:px-6 sm:py-8",
+							"min-w-0 px-5 py-6 pb-24 max-sm:w-full max-xl:mx-auto sm:px-6 sm:py-8",
 							columns > 1 && "flex-1",
 							// One column hugs its content so the sheet sits centred, not left-aligned.
 							columns === 1 && "sm:w-fit sm:min-w-[min(100%,36rem)]",
@@ -463,7 +493,7 @@ export function Player({
 							maxWidth: columns === 1 ? 800 : columns === 2 ? 1480 : 2100,
 						}}
 					>
-						<header className="mb-5 sm:mb-7">
+						<header ref={heading} className="mb-5 sm:mb-7">
 							<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
 								{shown.data.title}
 							</h2>

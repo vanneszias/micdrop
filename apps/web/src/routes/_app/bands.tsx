@@ -237,7 +237,7 @@ function BandCard({
 				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
 					<Label htmlFor={`add-member-${band.id}`}>Add a member</Label>
 					<form
-						className="flex w-full gap-2"
+						className="flex w-full flex-wrap gap-2"
 						onSubmit={(event) => {
 							event.preventDefault();
 							const form = event.currentTarget;
@@ -260,7 +260,7 @@ function BandCard({
 							type="email"
 							placeholder="Their account email"
 							required
-							className="min-w-0 flex-1"
+							className="min-w-0 flex-1 max-sm:basis-full"
 						/>
 						<Select value={role} onValueChange={setRole}>
 							<SelectTrigger className="w-24 sm:w-28" aria-label="Role">

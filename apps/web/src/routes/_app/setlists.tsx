@@ -121,7 +121,7 @@ function Setlists() {
 				</Link>
 			</Button>
 			<Button size="sm" onClick={() => void create()}>
-				<Plus /> New
+				<Plus /> New setlist
 			</Button>
 		</>
 	);
@@ -169,7 +169,7 @@ function Setlists() {
 													].join(" · ")}
 												</div>
 											</TableCell>
-											<TableCell className="relative z-[1] text-right">
+											<TableCell className="relative z-[1] w-px pr-2 text-right">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button

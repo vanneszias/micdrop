@@ -3,7 +3,7 @@ import { Separator } from "@chords/ui/components/separator";
 import { SidebarTrigger } from "@chords/ui/components/sidebar";
 import { cn } from "@chords/ui/lib/utils";
 import { useRouter } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function PageHeader({
 	title,
@@ -15,20 +15,18 @@ export function PageHeader({
 	title: React.ReactNode;
 	back?: boolean;
 	embedded?: boolean;
-	/** The page body shows the title as its heading, so the bar leaves it out. */
+	/** The page body shows the title as its heading, so the bar shows a quiet breadcrumb. */
 	pageTitle?: boolean;
 	children?: React.ReactNode;
 }) {
 	const router = useRouter();
-	// Top-level pages carry their title and actions in PageBody; only a phone back button remains.
-	if (pageTitle && !back) return null;
 	return (
 		<header
 			data-print="hide"
 			className={cn(
 				"sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur",
-				// An empty bar on a phone is only lost space; the page heading names the page.
-				pageTitle && "md:hidden",
+				// Phones use the bottom tabs and the page heading, so the bar would only cost space.
+				pageTitle && "max-md:hidden",
 			)}
 		>
 			{back ? (
@@ -52,8 +50,14 @@ export function PageHeader({
 				</>
 			)}
 			{pageTitle ? (
-				// The page body shows this title as its heading.
-				<div className="flex-1" />
+				<nav
+					aria-label="Breadcrumb"
+					className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground"
+				>
+					<span>Mic Drop</span>
+					<ChevronRight className="size-3.5" />
+					<span className="truncate text-foreground">{title}</span>
+				</nav>
 			) : (
 				<h1 className="min-w-0 flex-1 truncate text-sm font-medium">{title}</h1>
 			)}
@@ -79,14 +83,12 @@ export function PageBody({
 	return (
 		<div
 			className={cn(
-				"mx-auto w-full max-w-5xl space-y-6 px-4 pt-6 pb-10 md:px-8 md:pt-8",
+				"mx-auto w-full max-w-4xl space-y-6 px-4 pt-6 pb-10 md:px-8 md:pt-8",
 				className,
 			)}
 		>
 			{title ? (
-				<div className="relative flex items-start gap-3">
-					{/* Hangs in the gutter so the heading lines up with the content below. */}
-					<SidebarTrigger className="absolute top-1 -left-10 hidden md:inline-flex" />
+				<div className="flex items-start gap-3">
 					<div className="min-w-0 flex-1 space-y-1">
 						<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 						{description ? (

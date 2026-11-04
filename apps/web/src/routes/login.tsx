@@ -305,9 +305,7 @@ function Login() {
 						<p className="text-xl font-semibold tracking-tight">
 							Amazing Grace
 						</p>
-						<p className="text-sm text-muted-foreground">
-							John Newton · Key G · Capo 2
-						</p>
+						<p className="text-sm text-muted-foreground">John Newton · Key G</p>
 					</figcaption>
 					<SongSheet
 						fontSize={17}
