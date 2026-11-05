@@ -811,9 +811,13 @@ export function Player({
 					</div>
 				</div>
 			) : null}
+			{/* Nothing to scroll and no setlist neighbours: no footer at all. */}
 			<footer
 				data-print="hide"
-				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2 max-sm:px-2"
+				className={cn(
+					"grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2 max-sm:px-2",
+					!previous && !next && !overflows && !scrolling && "hidden",
+				)}
 			>
 				<Button
 					variant="ghost"

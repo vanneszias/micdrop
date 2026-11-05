@@ -176,7 +176,7 @@ export function CatalogueSearch({
 				aria-label={
 					publicOnly
 						? "Search the public catalogue"
-						: "Search catalogue and repertoire"
+						: "Search songs, artists or lyrics"
 				}
 				placeholder="Search songs, artists or lyrics…"
 				value={query}
@@ -372,7 +372,8 @@ export function CatalogueSearch({
 											<span>In repertoire</span>
 										</StatusBadge>
 									) : null}
-									{onSelect && own[0] && !placed && !open ? (
+									{/* Add stays in the row when it is expanded, so the action never moves. */}
+									{onSelect && own[0] && !placed ? (
 										<Button
 											type="button"
 											size="sm"

@@ -63,11 +63,11 @@
   --brand-foreground: oklch(0.22 0.04 60);
   --chord: oklch(0.82 0.14 78 / 0.14);
   --chord-foreground: oklch(0.86 0.13 82);
-  --sidebar: oklch(0.2 0.005 60);
+  --sidebar: oklch(0.12 0.004 60); /* a step below the panel, so the inset shape reads */
   --sidebar-foreground: oklch(0.97 0.004 85);
   --sidebar-primary: oklch(0.82 0.14 78);
   --sidebar-primary-foreground: oklch(0.22 0.04 60);
-  --sidebar-accent: oklch(0.28 0.006 60);
+  --sidebar-accent: oklch(0.22 0.006 60);
   --sidebar-accent-foreground: oklch(0.97 0.004 85);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.75 0.12 75);

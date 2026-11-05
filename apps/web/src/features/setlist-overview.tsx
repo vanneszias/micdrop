@@ -70,7 +70,11 @@ export function SetlistSheet({ title }: { title: string }) {
 					event.preventDefault();
 					(event.currentTarget as HTMLElement)
 						.querySelector<HTMLElement>('[aria-current="page"]')
-						?.focus({ preventScroll: true });
+						// A pointer opened the sheet, so no keyboard ring on the current row.
+						?.focus({
+							preventScroll: true,
+							focusVisible: false,
+						} as FocusOptions);
 				}}
 			>
 				<SheetHeader className="border-b">
@@ -110,7 +114,7 @@ export function SetlistSheet({ title }: { title: string }) {
 								</span>
 								<span className="truncate">{entry.title}</span>
 								{entry.key ? (
-									<span className="ml-auto font-mono text-xs text-muted-foreground">
+									<span className="ml-auto inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded bg-chord px-1.5 font-mono text-xs font-semibold text-chord-foreground">
 										{entry.keyName}
 									</span>
 								) : null}

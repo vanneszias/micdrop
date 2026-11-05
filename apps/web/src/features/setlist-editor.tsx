@@ -542,7 +542,7 @@ export function SetlistEditor({
 							</SheetTrigger>
 							<SheetContent
 								side="bottom"
-								className="h-[85svh] gap-0 rounded-t-2xl"
+								className="max-h-[85svh] min-h-[50svh] gap-0 rounded-t-2xl"
 								onOpenAutoFocus={(event) => event.preventDefault()}
 							>
 								<SheetHeader>

@@ -110,9 +110,8 @@ function Setlists() {
 	const actions = (
 		<>
 			<Button variant="outline" size="sm" asChild>
-				<Link to="/setlists/import" aria-label="Import PDF">
-					<FileUp /> <span className="sm:hidden">Import</span>
-					<span className="max-sm:hidden">Import PDF</span>
+				<Link to="/setlists/import" title="Import a setlist from a PDF">
+					<FileUp /> Import
 				</Link>
 			</Button>
 			<Button size="sm" onClick={() => void create()}>
