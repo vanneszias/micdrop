@@ -1,14 +1,21 @@
 import { describe, expect, test } from "bun:test";
 import {
+	balanceColumns,
+	balanceSheet,
 	displayTranspose,
 	exportChordPro,
 	keyAccidental,
 	keyDistance,
+	keyLabel,
+	modeAccidental,
 	normalizeSheet,
+	rootInBass,
 	sheetChords,
+	sheetColumns,
 	sheetLines,
 	sheetMetadata,
 	shiftKey,
+	songMode,
 	stripMetadata,
 	transposeChord,
 } from "./index";
@@ -151,4 +158,188 @@ test("stripMetadata keeps everything but record-owned directives", () => {
 	expect(
 		stripMetadata("{title: A}\n{artist: B}\n{key: G}\n{tempo: 72}\n\n[G]Line"),
 	).toBe("{tempo: 72}\n\n[G]Line");
+});
+
+describe("balanced columns", () => {
+	test("splits sections so the tallest column is as short as possible", () => {
+		// Verse, chorus, verse, chorus, bridge: [6, 4, 6, 4, 2] splits 10 | 12 → 10 | 10 | 2 is worse.
+		expect(balanceColumns([6, 4, 6, 4, 2], 2)).toEqual([0, 2]);
+		expect(balanceColumns([6, 4, 6, 4, 2], 3)).toEqual([0, 2, 3]);
+	});
+	test("keeps one long section whole instead of splitting it", () => {
+		expect(balanceColumns([2, 20, 2], 2)).toEqual([0, 2]);
+	});
+	test("never makes more columns than sections, and one column starts at zero", () => {
+		expect(balanceColumns([5, 5], 3)).toEqual([0, 1]);
+		expect(balanceColumns([5, 5, 5], 1)).toEqual([0]);
+		expect(balanceColumns([], 2)).toEqual([0]);
+	});
+	test("prefers fuller early columns on a tie", () => {
+		expect(balanceColumns([3, 3, 3, 3], 2)).toEqual([0, 2]);
+		expect(balanceColumns([4, 2, 2], 2)).toEqual([0, 1]);
+	});
+});
+
+describe("minor keys", () => {
+	test("a song starting on the root's minor chord is in the minor key", () => {
+		expect(songMode("[Am]There is a [C]house", "A")).toBe("minor");
+		expect(songMode("[Am7]Soft [G]start", "A")).toBe("minor");
+		expect(songMode("[G]Amazing [Em]grace", "G")).toBe("major");
+		// A minor chord on another root is not the key's own minor.
+		expect(songMode("[Em]Down [G]low", "G")).toBe("major");
+		expect(songMode("no chords", "C")).toBe("major");
+	});
+	test("labels and spells minor keys like players do", () => {
+		expect(keyLabel("A", "minor")).toBe("Am");
+		expect(keyLabel("A")).toBe("A");
+		// C minor shares Eb major's flats; D minor shares F major's flat.
+		expect(modeAccidental("C", "minor")).toBe("b");
+		expect(modeAccidental("D", "minor")).toBe("b");
+		expect(modeAccidental("E", "minor")).toBe("#");
+		expect(modeAccidental("C")).toBe("#");
+		expect(
+			transposeChord("Bm", 1, modeAccidental(shiftKey("B", 1), "minor")),
+		).toBe("Cm");
+		expect(
+			transposeChord("F#", -1, modeAccidental(shiftKey("A", 2), "minor")),
+		).toBe("F");
+	});
+});
+
+describe("balanced sheets", () => {
+	const piece = (height: number, start = false) => ({ height, start });
+	// Three sections of four lines; the last section is taller.
+	const song = [
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2),
+	];
+	test("starts columns on sections when that is even enough", () => {
+		expect(balanceSheet(song, 3)).toEqual([0, 4, 8]);
+	});
+	test("splits a section when whole sections would leave a column far shorter", () => {
+		// Whole sections give 8 | 16 at best; splitting the middle verse gives 12 | 12.
+		expect(balanceSheet(song.slice(0, 12), 2)).toEqual([0, 6]);
+		// Here whole sections already reach 16 | 12, close enough to keep.
+		expect(balanceSheet(song, 2)).toEqual([0, 8]);
+	});
+	test("never strands a single line of a section", () => {
+		// Two four-line verses in three columns: split the second verse 2 + 2, not 3 + 1.
+		const short = [
+			piece(2, true),
+			piece(2),
+			piece(2),
+			piece(2),
+			piece(2, true),
+			piece(2),
+			piece(2),
+			piece(2),
+		];
+		expect(balanceSheet(short, 3)).toEqual([0, 4, 6]);
+	});
+	test("a large break cost keeps whole sections", () => {
+		expect(balanceColumns([8, 4, 4, 12], 2, [0, 0, 100, 0])).toEqual([0, 3]);
+	});
+});
+
+describe("sheet columns", () => {
+	const piece = (height: number, start = false) => ({ height, start });
+	const song = [
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+	];
+	test("keeps whole sections when they fit", () => {
+		expect(sheetColumns(song, 2)).toEqual({ starts: [0, 8], tallest: 16 });
+		expect(sheetColumns(song, 2, 16).starts).toEqual([0, 8]);
+	});
+	test("keeps sections whole even when the sheet then scrolls", () => {
+		// Whole sections need 16 of 14; every section (8) fits, so none is split.
+		expect(sheetColumns(song, 2, 14).starts).toEqual([0, 8]);
+	});
+	test("splits only a section taller than the space", () => {
+		const long = [piece(2, true), ...Array.from({ length: 9 }, () => piece(2))];
+		expect(sheetColumns([...song.slice(0, 4), ...long], 2, 12).starts).toEqual([
+			0, 7,
+		]);
+	});
+	test("splits across sections when asked, for stage mode", () => {
+		// Three sections of 8 in 2 columns: whole sections give 16 beside 8; splitting the
+		// middle one evens them to 12 and 12.
+		expect(sheetColumns(song, 2, 20).tallest).toBe(16);
+		expect(sheetColumns(song, 2, 20, true)).toEqual({
+			starts: [0, 6],
+			tallest: 12,
+		});
+	});
+	test("never makes more columns than sections without needing to", () => {
+		expect(sheetColumns(song.slice(0, 8), 3).starts).toEqual([0, 4]);
+	});
+});
+
+describe("key spelling", () => {
+	test("sharp keys spell sharps, flat keys flats", () => {
+		for (const key of ["C", "G", "D", "A", "E", "B", "F#"])
+			expect(keyAccidental(key)).toBe("#");
+		for (const key of ["F", "Bb", "Eb", "Ab", "Db"])
+			expect(keyAccidental(key)).toBe("b");
+		expect(keyAccidental("A#")).toBe("b");
+	});
+	test("capo 3 in G shows E shapes with sharps (C#m, not Dbm)", () => {
+		const delta = displayTranspose("G", "G", 3);
+		const accidental = modeAccidental(shiftKey("G", delta));
+		expect(
+			["Em", "Bm", "F#m"].map((chord) =>
+				transposeChord(chord, delta, accidental),
+			),
+		).toEqual(["C#m", "G#m", "D#m"]);
+	});
+});
+
+describe("chord shapes", () => {
+	test("voices B as x24442 instead of putting F# in the bass", () => {
+		const barre = {
+			frets: [2, 2, 4, 4, 4, 2],
+			fingers: [1, 1, 2, 3, 4, 1],
+			midi: [42, 47, 54, 59, 63, 66],
+		};
+		const shape = rootInBass(barre, "B");
+		expect(shape.frets).toEqual([-1, 2, 4, 4, 4, 2]);
+		expect(shape.fingers[0]).toBe(0);
+	});
+	test("leaves shapes that already have the root in the bass", () => {
+		const g = {
+			frets: [3, 2, 0, 0, 0, 3],
+			fingers: [2, 1, 0, 0, 0, 3],
+			midi: [43, 47, 50, 55, 59, 67],
+		};
+		expect(rootInBass(g, "G")).toBe(g);
+		// C/G style: neither low string is the root, so nothing changes.
+		const inversion = {
+			frets: [3, 3, 2, 0, 1, 0],
+			fingers: [3, 4, 2, 0, 1, 0],
+			midi: [43, 48, 52, 55, 60, 64],
+		};
+		expect(rootInBass(inversion, "A")).toBe(inversion);
+	});
 });

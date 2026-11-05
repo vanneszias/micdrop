@@ -7,8 +7,8 @@ import {
 	searchRelevance,
 	songGroup,
 } from "@chords/data";
+import { keyLabel } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
-import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
 	DropdownMenu,
@@ -25,6 +25,7 @@ import {
 	EmptyTitle,
 } from "@chords/ui/components/empty";
 import { Input } from "@chords/ui/components/input";
+import { cn } from "@chords/ui/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -40,10 +41,17 @@ import {
 	ThumbsDown,
 	ThumbsUp,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
-import { api, canEditRole } from "#/lib/songs";
+import {
+	KeyBadge,
+	rowTarget,
+	SongList,
+	SongRow,
+	StatusBadge,
+} from "#/components/song-row";
+import { api, canEditRole, displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 
 type Group = CatalogueGroup & { local: Arrangement[] };
@@ -54,7 +62,10 @@ export function CatalogueSearch({
 	chooseGroup,
 	excludeId,
 	inSet,
+	compact = false,
 }: {
+	/** Narrow side panel: skips the source explanation under the search field. */
+	compact?: boolean;
 	onSelect?: (song: Arrangement) => Promise<void>;
 	initialQuery?: string;
 	publicOnly?: boolean;
@@ -165,7 +176,7 @@ export function CatalogueSearch({
 				aria-label={
 					publicOnly
 						? "Search the public catalogue"
-						: "Search catalogue and repertoire"
+						: "Search songs, artists or lyrics"
 				}
 				placeholder="Search songs, artists or lyrics…"
 				value={query}
@@ -182,6 +193,7 @@ export function CatalogueSearch({
 			<p
 				className="text-xs text-muted-foreground"
 				hidden={
+					compact ||
 					(!groups.length && !catalogue.isFetching) ||
 					(publicOnly && !!debounced.trim())
 				}
@@ -196,38 +208,33 @@ export function CatalogueSearch({
 				<section aria-labelledby="own-matches" className="space-y-2">
 					<h2
 						id="own-matches"
-						className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+						className="pt-2 text-[13px] text-muted-foreground"
 					>
 						Already in your repertoire
 					</h2>
-					<ul className="divide-y rounded-lg border">
+					<SongList>
 						{ownMatches.map((song) => (
-							<li key={song.id}>
-								<Link
-									to="/songs/$id"
-									params={{ id: song.id }}
-									className="flex items-center gap-3 p-3 hover:bg-accent/40"
-								>
-									<Badge
-										variant="secondary"
-										className="min-w-7 justify-center font-mono text-xs"
+							<SongRow
+								key={song.id}
+								leading={<KeyBadge>{displayKey(song.data)}</KeyBadge>}
+								title={song.data.title}
+								meta={song.data.artist || "Unknown artist"}
+								main={(content) => (
+									<Link
+										to="/songs/$id"
+										params={{ id: song.id }}
+										className={rowTarget}
 									>
-										{song.data.key}
-									</Badge>
-									<span className="min-w-0 flex-1">
-										<span className="block truncate text-sm font-medium">
-											{song.data.title}
-										</span>
-										<span className="block truncate text-xs text-muted-foreground">
-											{song.data.artist || "Unknown artist"}
-										</span>
-									</span>
-									<ChevronRight className="size-4 text-muted-foreground" />
-								</Link>
-							</li>
+										{content}
+									</Link>
+								)}
+								trailing={
+									<ChevronRight className="pointer-events-none size-4 text-muted-foreground" />
+								}
+							/>
 						))}
-					</ul>
-					<h2 className="pt-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					</SongList>
+					<h2 className="pt-3 text-[13px] text-muted-foreground">
 						Public catalogue
 					</h2>
 				</section>
@@ -240,7 +247,12 @@ export function CatalogueSearch({
 					{catalogue.error.message} Your saved songs remain available.
 				</p>
 			) : null}
-			{!groups.length && !catalogue.isFetching ? (
+			{!groups.length && !catalogue.isFetching && ownMatches.length ? (
+				// Your repertoire matched, so the empty public result is a quiet note, not an error.
+				<p className="text-sm text-muted-foreground">
+					No public arrangements match “{debounced.trim()}”.
+				</p>
+			) : !groups.length && !catalogue.isFetching ? (
 				<Empty
 					className={
 						chooseGroup
@@ -291,104 +303,134 @@ export function CatalogueSearch({
 					) : null}
 				</Empty>
 			) : null}
-			<ul
+			<SongList
 				hidden={!groups.length}
-				className={`divide-y rounded-lg border ${chooseGroup ? "max-h-80 overflow-y-auto" : ""}`}
+				className={chooseGroup ? "max-h-80 overflow-y-auto" : undefined}
 			>
-				{groups.map((group) => (
-					<li key={group.id} className="p-3">
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								className="group/row flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-								aria-expanded={selected === group.id}
-								onClick={() =>
-									setSelected(selected === group.id ? undefined : group.id)
-								}
-							>
-								<span className="min-w-0 flex-1">
-									<span className="flex items-center gap-2 text-sm font-medium">
-										{group.title}
-										{publicOnly &&
-										selected !== group.id &&
-										arrangements.some(
-											(song) =>
-												song.owner === owner && songGroup(song) === group.id,
-										) ? (
-											<Badge variant="secondary" className="font-normal">
-												<Check /> In repertoire
-											</Badge>
-										) : null}
-										{inSet &&
-										group.local.some((song) => inSet.includes(song.id)) ? (
-											<Badge variant="secondary" className="font-normal">
-												<Check /> In set
-											</Badge>
-										) : null}
-									</span>
-									<span className="block text-xs text-muted-foreground">
-										{[
-											group.artists || "Unknown artist",
-											group.local.some((song) => song.owner === owner)
-												? "In your repertoire"
-												: null,
-											group.count
-												? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
-												: null,
-										]
-											.filter(Boolean)
-											.join(" · ")}
-									</span>
-								</span>
-								<ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-aria-expanded/row:rotate-180" />
-							</button>
-							{onSelect && group.local.some((song) => song.owner === owner) ? (
-								<Button
+				{groups.map((group) => {
+					const own = group.local
+						.filter((song) => song.owner === owner)
+						.sort(
+							(a, b) => Number(!!b.data.preferred) - Number(!!a.data.preferred),
+						);
+					const inRepertoire =
+						own.length > 0 ||
+						arrangements.some(
+							(song) => song.owner === owner && songGroup(song) === group.id,
+						);
+					const placed =
+						!!inSet && group.local.some((song) => inSet.includes(song.id));
+					const open = selected === group.id;
+					return (
+						<SongRow
+							key={group.id}
+							leading={
+								own[0] ? (
+									<KeyBadge>{displayKey(own[0].data)}</KeyBadge>
+								) : group.key ? (
+									<KeyBadge>{keyLabel(group.key, group.mode)}</KeyBadge>
+								) : (
+									<KeyBadge className="bg-secondary text-muted-foreground">
+										<Globe className="size-4" />
+									</KeyBadge>
+								)
+							}
+							title={group.title}
+							meta={
+								<>
+									{[group.artists || "Unknown artist"]
+										.filter(Boolean)
+										.join(" · ")}
+									{group.count > 1
+										? ` · ${group.count} ${group.count === 1 ? "version" : "versions"}`
+										: null}
+									{inRepertoire && !onSelect && !placed ? (
+										// Phones put the same pill under the artist, so the title keeps its width.
+										<span className="mt-1 flex sm:hidden">
+											<StatusBadge>
+												<Check />
+												<span>In repertoire</span>
+											</StatusBadge>
+										</span>
+									) : null}
+								</>
+							}
+							main={(content) => (
+								<button
 									type="button"
-									size="sm"
-									// Songs already in the set get a quiet "add again" so duplicates stay deliberate.
-									variant="outline"
-									className="min-w-28"
-									disabled={busy || !editable}
-									onClick={() => {
-										const preferred = [...group.local]
-											.filter((song) => song.owner === owner)
-											.sort(
-												(a, b) =>
-													Number(!!b.data.preferred) -
-													Number(!!a.data.preferred),
-											)[0];
-										void run(() => select(preferred), "Arrangement selected");
-									}}
+									className={rowTarget}
+									aria-expanded={open}
+									onClick={() => setSelected(open ? undefined : group.id)}
 								>
-									<Plus />{" "}
-									{inSet && group.local.some((song) => inSet.includes(song.id))
-										? "Add again"
-										: "Add"}
-								</Button>
+									{content}
+								</button>
+							)}
+							trailing={
+								<>
+									{/* Status sits where an action would, on every viewport. */}
+									{placed ? (
+										// Same height and shape as the Add button it stands in for.
+										<StatusBadge>
+											<Check />
+											<span>In set</span>
+										</StatusBadge>
+									) : inRepertoire && !onSelect ? (
+										// The same labelled pill as "In set"; phones show it under the artist.
+										<span className="max-sm:hidden">
+											<StatusBadge>
+												<Check />
+												<span>In repertoire</span>
+											</StatusBadge>
+										</span>
+									) : null}
+									{/* Add stays in the row when it is expanded, so the action never moves. */}
+									{onSelect && own[0] && !placed ? (
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											disabled={busy || !editable}
+											onClick={() =>
+												void run(() => select(own[0]), "Added to the set")
+											}
+										>
+											<Plus /> Add
+										</Button>
+									) : null}
+									{chooseGroup ? (
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											onClick={() => chooseGroup(group)}
+										>
+											Use song group
+										</Button>
+									) : null}
+									<ChevronDown
+										aria-hidden
+										className={cn(
+											"pointer-events-none size-4 text-muted-foreground transition-transform",
+											open && "rotate-180",
+										)}
+									/>
+								</>
+							}
+						>
+							{open ? (
+								<div className="px-3 pb-3 sm:px-4">
+									<ArrangementChoices
+										group={group}
+										onSelect={select}
+										busy={busy}
+										picking={!!onSelect}
+									/>
+								</div>
 							) : null}
-							{chooseGroup ? (
-								<Button
-									type="button"
-									size="sm"
-									variant="outline"
-									onClick={() => chooseGroup(group)}
-								>
-									Use song group
-								</Button>
-							) : null}
-						</div>
-						{selected === group.id ? (
-							<ArrangementChoices
-								group={group}
-								onSelect={select}
-								busy={busy}
-								picking={!!onSelect}
-							/>
-						) : null}
-					</li>
-				))}
-			</ul>
+						</SongRow>
+					);
+				})}
+			</SongList>
 			{catalogue.hasNextPage && online ? (
 				<Button
 					variant="outline"
@@ -414,6 +456,16 @@ function ArrangementChoices({
 	/** True when choosing for a setlist or song group rather than saving to the repertoire. */
 	picking: boolean;
 }) {
+	// Phone previews use the player's phone size.
+	const narrow = useSyncExternalStore(
+		(change) => {
+			const media = window.matchMedia("(max-width: 640px)");
+			media.addEventListener("change", change);
+			return () => media.removeEventListener("change", change);
+		},
+		() => window.matchMedia("(max-width: 640px)").matches,
+		() => false,
+	);
 	const { account, owner, online, bands, run, arrangements } = useApp();
 	const editable =
 		owner === account ||
@@ -466,10 +518,12 @@ function ArrangementChoices({
 	};
 	const action = (localSong?: Arrangement) =>
 		localSong?.owner === owner
-			? "Use arrangement"
+			? "Add"
 			: localSong
-				? "Copy to band and add"
-				: "Save arrangement";
+				? "Copy and add"
+				: picking
+					? "Add"
+					: "Save";
 	return (
 		<div className="mt-3 space-y-3 border-t pt-3">
 			{versions.isPending && online && group.count > 0 ? (
@@ -480,6 +534,8 @@ function ArrangementChoices({
 				...local.map((song) => ({
 					id: song.id,
 					data: song.data,
+					mode: undefined,
+					mine: false,
 					local: song,
 					saved: false,
 					score: 0,
@@ -490,6 +546,7 @@ function ArrangementChoices({
 					.map((p) => ({
 						id: p.id,
 						data: p.data,
+						mode: p.mode,
 						local: undefined,
 						saved: arrangements.some(
 							(song) =>
@@ -497,29 +554,28 @@ function ArrangementChoices({
 								(song.id === p.record_id ||
 									song.data.copiedFrom === p.record_id),
 						),
+						// The player's own published arrangement: nothing to vote on.
+						mine: arrangements.some(
+							(song) => song.id === p.record_id && song.owner === account,
+						),
 						score: p.score,
 						myVote: p.myVote,
 					})),
 			].map((version, index) => (
 				<div key={version.id} className="space-y-2">
-					<div className="flex flex-wrap items-center gap-2">
-						<div className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
-							<span className="flex items-center gap-2 font-medium">
-								<Badge
-									variant="secondary"
-									className="min-w-7 justify-center font-mono text-xs"
-								>
-									{version.data.key}
-								</Badge>
-								{version.data.arrangementName || "Standard version"}
-								{version.saved && !picking ? (
-									<Badge variant="secondary" className="font-normal">
-										<Check /> In your repertoire
-									</Badge>
-								) : null}
+					{/* Versions sit under their song's tile; each names its key in the meta line. */}
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:pl-12">
+						<div className="min-w-0 flex-1">
+							<span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+								<span className="truncate">
+									{version.data.arrangementName || "Standard version"}
+								</span>
+								{/* The song row above already says it is in the repertoire. */}
 							</span>
-							<p className="text-xs text-muted-foreground empty:hidden">
+							<p className="text-[13px] text-muted-foreground empty:hidden">
 								{[
+									`Key ${version.mode ? keyLabel(version.data.key, version.mode) : displayKey(version.data)}`,
+									version.mine ? "Your published arrangement" : null,
 									version.local
 										? version.local.owner === owner
 											? "Your repertoire"
@@ -541,87 +597,103 @@ function ArrangementChoices({
 									.join(" · ")}
 							</p>
 						</div>
-						<Button
-							type="button"
-							size="sm"
-							variant="ghost"
-							aria-expanded={preview === version.id}
-							onClick={() =>
-								setPreview(preview === version.id ? undefined : version.id)
-							}
+						<div
+							className={cn(
+								"flex shrink-0 items-center gap-1.5 max-sm:basis-full",
+								// The narrow setlist panel gives the actions their own line.
+								picking && "basis-full",
+							)}
 						>
-							<Eye />
-							{preview === version.id ? "Hide" : "Preview"}
-						</Button>
-						{account === "local" ? (
-							<Button size="sm" variant="outline" asChild>
-								<Link to="/login">Sign in to save</Link>
-							</Button>
-						) : version.saved && !picking ? null : (
 							<Button
 								type="button"
 								size="sm"
-								disabled={busy || !editable}
+								// Beside an outline Add in a set, Preview matches it.
+								variant={picking ? "outline" : "ghost"}
+								className={picking ? undefined : "max-sm:-ml-2.5"}
+								aria-expanded={preview === version.id}
 								onClick={() =>
-									void run(
-										() => add(version.id, version.local),
-										"Arrangement selected",
-									)
+									setPreview(preview === version.id ? undefined : version.id)
 								}
 							>
-								{action(version.local)}
+								<Eye />
+								{preview === version.id ? "Hide" : "Preview"}
 							</Button>
-						)}
-						{!version.local && account !== "local" ? (
-							<>
-								<fieldset className="flex items-center">
-									<legend className="float-left mr-1 text-xs text-muted-foreground">
-										Useful?
-									</legend>
-									{([1, -1] as const).map((value) => (
-										<Button
-											key={value}
-											type="button"
-											size="icon-sm"
-											variant="ghost"
-											aria-label={value === 1 ? "Useful" : "Not useful"}
-											aria-pressed={version.myVote === value}
-											className="text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
-											onClick={() =>
-												void run(async () => {
-													await api("/api/publications", {
-														action: "vote",
-														id: version.id,
-														value: version.myVote === value ? 0 : value,
-													});
-													await versions.refetch();
-												})
-											}
-										>
-											{value === 1 ? <ThumbsUp /> : <ThumbsDown />}
-										</Button>
-									))}
-								</fieldset>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											type="button"
-											size="icon-sm"
-											variant="ghost"
-											aria-label="More actions"
-										>
-											<MoreHorizontal />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end">
-										<DropdownMenuItem onSelect={() => setReport(version.id)}>
-											<Flag /> Report a problem
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</>
-						) : null}
+							{account === "local" ? (
+								<Button size="sm" variant="outline" asChild>
+									<Link to="/login">Sign in to save</Link>
+								</Button>
+							) : (version.saved && !picking) ||
+								// The row's own Add already picks the first of your versions.
+								(picking && index === 0 && version.local) ? null : (
+								<Button
+									type="button"
+									size="sm"
+									// Adding to a set matches the row's outline Add; saving is the page's primary.
+									variant={picking ? "outline" : "default"}
+									disabled={busy || !editable}
+									onClick={() =>
+										void run(
+											() => add(version.id, version.local),
+											"Arrangement selected",
+										)
+									}
+								>
+									{picking ? <Plus /> : null}
+									{action(version.local)}
+								</Button>
+							)}
+						</div>
 					</div>
+					{/* Voting is secondary: a quiet line under the version it rates. */}
+					{version.mine ? null : !version.local && account !== "local" ? (
+						<div className="flex items-center gap-1 text-muted-foreground sm:pl-12">
+							<fieldset className="flex items-center">
+								<legend className="float-left mr-0.5 text-xs text-muted-foreground">
+									Useful?
+								</legend>
+								{([1, -1] as const).map((value) => (
+									<Button
+										key={value}
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										aria-label={value === 1 ? "Useful" : "Not useful"}
+										aria-pressed={version.myVote === value}
+										className="text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
+										onClick={() =>
+											void run(async () => {
+												await api("/api/publications", {
+													action: "vote",
+													id: version.id,
+													value: version.myVote === value ? 0 : value,
+												});
+												await versions.refetch();
+											})
+										}
+									>
+										{value === 1 ? <ThumbsUp /> : <ThumbsDown />}
+									</Button>
+								))}
+							</fieldset>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										aria-label="More actions"
+									>
+										<MoreHorizontal />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuItem onSelect={() => setReport(version.id)}>
+										<Flag /> Report a problem
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					) : null}
 					{report === version.id ? (
 						<form
 							className="flex gap-2"
@@ -664,7 +736,8 @@ function ArrangementChoices({
 				</Button>
 			) : null}
 			{preview ? (
-				<div className="max-h-96 overflow-auto rounded-md border p-3">
+				// Indented to the versions' column, at the player's phone size.
+				<div className="max-h-96 overflow-auto sm:ml-12 sm:rounded-md sm:border sm:p-3 max-sm:max-h-none max-sm:border-t max-sm:pt-3">
 					{detail.isFetching && !localPreview ? (
 						<output>Loading preview…</output>
 					) : null}
@@ -684,7 +757,7 @@ function ArrangementChoices({
 									Original source
 								</a>
 							) : null}
-							<SongSheet content={data.content} />
+							<SongSheet content={data.content} fontSize={narrow ? 17 : 20} />
 						</>
 					) : null}
 				</div>

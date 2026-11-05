@@ -15,7 +15,7 @@ function Community() {
 			<PageHeader pageTitle title="Catalogue" />
 			<PageBody
 				title="Catalogue"
-				description="Arrangements shared by other players. Save one to get your own private copy."
+				description="Arrangements players have published, yours included. Save one to get your own private copy."
 			>
 				<CatalogueSearch initialQuery={q} publicOnly />
 				<CatalogueAdmin />

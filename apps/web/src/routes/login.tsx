@@ -10,7 +10,7 @@ import {
 import { Input } from "@chords/ui/components/input";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Music } from "lucide-react";
+import { Eye, EyeOff, Music } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
@@ -142,6 +142,7 @@ function Login() {
 	);
 	const authenticating = mode === "signin" || mode === "signup";
 	const [busy, setBusy] = useState(false);
+	const [reveal, setReveal] = useState(false);
 	const [captcha, setCaptcha] = useState("");
 	const [attempt, setAttempt] = useState(0);
 	const needsCaptcha = mode === "signup" && !!TURNSTILE_SITE_KEY;
@@ -244,14 +245,20 @@ function Login() {
 					>
 						<FieldGroup>
 							{/* Phones get a small taste of the chord sheet the desktop panel shows. */}
-							<div className="order-last rounded-xl border bg-card px-4 py-3 lg:hidden">
+							<figure className="order-last rounded-xl border bg-card px-4 py-3 lg:hidden">
+								<figcaption className="mb-2 flex items-baseline justify-between gap-3">
+									<span className="text-sm font-semibold">Amazing Grace</span>
+									<span className="text-[13px] text-muted-foreground">
+										Key G · Verse 1
+									</span>
+								</figcaption>
 								<SongSheet
 									fontSize={15}
 									content={
 										"A[G]mazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me"
 									}
 								/>
-							</div>
+							</figure>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">
 									{
@@ -295,16 +302,30 @@ function Login() {
 							{authenticating || mode === "reset" ? (
 								<Field>
 									<FieldLabel htmlFor="password">Password</FieldLabel>
-									<Input
-										id="password"
-										name="password"
-										type="password"
-										required
-										minLength={10}
-										autoComplete={
-											mode !== "signin" ? "new-password" : "current-password"
-										}
-									/>
+									<div className="relative">
+										<Input
+											id="password"
+											name="password"
+											type={reveal ? "text" : "password"}
+											required
+											minLength={10}
+											className="pr-10"
+											autoComplete={
+												mode !== "signin" ? "new-password" : "current-password"
+											}
+										/>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon-sm"
+											className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+											aria-label={reveal ? "Hide password" : "Show password"}
+											aria-pressed={reveal}
+											onClick={() => setReveal((value) => !value)}
+										>
+											{reveal ? <EyeOff /> : <Eye />}
+										</Button>
+									</div>
 									{mode === "signup" ? (
 										<FieldDescription>
 											Must be at least 10 characters long.

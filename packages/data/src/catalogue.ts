@@ -61,6 +61,8 @@ export type CatalogueSummary = {
 	record_id: string;
 	song_id: string;
 	data: Arrangement["data"];
+	/** Major or minor, read from the sheet's first chord; list pages omit the sheet itself. */
+	mode?: "major" | "minor";
 	score: number;
 	upvotes: number;
 	downvotes: number;
@@ -73,6 +75,9 @@ export type CatalogueGroup = {
 	relevance: number;
 	count: number;
 	artists: string;
+	/** Key and mode of one public version, for the row's key tile. */
+	key?: string;
+	mode?: "major" | "minor";
 };
 export type CataloguePage = {
 	groups: CatalogueGroup[];

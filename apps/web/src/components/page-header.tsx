@@ -92,24 +92,37 @@ export function PageHeader({
 	);
 }
 
+/**
+ * The two content widths. Reading pages (lists, settings, the song sheet) keep a
+ * comfortable line length; workspaces (the song and setlist editors) take the room
+ * their side-by-side panes need.
+ */
+export const pageWidth = {
+	reading: "max-w-4xl",
+	workspace: "max-w-7xl",
+} as const;
+
 /** Shared content column for top-level pages, with an optional page intro. */
 export function PageBody({
 	title,
 	description,
 	actions,
 	className,
+	width = "reading",
 	children,
 }: {
 	title?: React.ReactNode;
 	description?: React.ReactNode;
 	actions?: React.ReactNode;
 	className?: string;
+	width?: keyof typeof pageWidth;
 	children: React.ReactNode;
 }) {
 	return (
 		<div
 			className={cn(
-				"mx-auto w-full max-w-4xl space-y-6 px-4 pt-6 pb-10 md:px-8 md:pt-8",
+				"mx-auto w-full space-y-6 px-4 pt-6 pb-10 md:px-8 md:pt-8",
+				pageWidth[width],
 				className,
 			)}
 		>
@@ -118,11 +131,17 @@ export function PageBody({
 					<div className="min-w-0 flex-1 basis-64 space-y-1">
 						<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 						{description ? (
-							<p className="text-sm text-muted-foreground">{description}</p>
+							// A readable measure, whatever the page width.
+							<p className="max-w-[68ch] text-[15px] text-muted-foreground">
+								{description}
+							</p>
 						) : null}
 					</div>
 					{actions ? (
-						<div className="flex flex-wrap items-center gap-2">{actions}</div>
+						// Phones always put the page's actions on their own row, under the intro.
+						<div className="flex flex-wrap items-center gap-2 max-sm:w-full">
+							{actions}
+						</div>
 					) : null}
 				</div>
 			) : null}
