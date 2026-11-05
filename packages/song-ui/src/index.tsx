@@ -23,7 +23,10 @@ export function SongSheet({
 	onChord,
 	height,
 	onFit,
+	columnEms = COLUMN_EMS,
 }: {
+	/** The narrowest a column may get, in em; stage allows slightly narrower columns. */
+	columnEms?: number;
 	/** Room the columns have before the page scrolls; sections split only to stay inside it. */
 	height?: number;
 	/** Reports the text size and column count actually shown, when they differ from the request. */
@@ -145,7 +148,7 @@ export function SongSheet({
 			// Each column needs 18em. Text shrinks (down to 14px) to fit the chosen count,
 			// and only a sheet too narrow even then drops a column.
 			const needed = (count: number) =>
-				count * COLUMN_EMS + (count - 1) * GAP_EMS;
+				count * columnEms + (count - 1) * GAP_EMS;
 			let count = Math.min(columns, pieces.length || 1);
 			// Never below 18px (or most of the chosen size): fewer columns read better than tiny text.
 			const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
@@ -172,7 +175,7 @@ export function SongSheet({
 		const observer = new ResizeObserver(measure);
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, [columns, pieces, fontSize, chords, height]);
+	}, [columns, pieces, fontSize, chords, height, columnEms]);
 	const shownColumns = columns > 1 ? layout.columns : 1;
 	const shownSize = shownColumns > 1 ? layout.size : fontSize;
 	useEffect(() => {

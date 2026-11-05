@@ -315,15 +315,13 @@ export function SetlistEditor({
 								}}
 								className="-mx-2 w-[calc(100%+1rem)] rounded-md border border-transparent bg-transparent px-2 py-0.5 text-2xl font-semibold tracking-tight outline-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:border-solid focus-visible:ring-[3px] focus-visible:ring-ring/50"
 							/>
-							<div className="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm text-muted-foreground">
+							{/* The date button's own padding is the only space before the separator. */}
+							<div className="flex flex-wrap items-center gap-y-2 text-sm text-muted-foreground">
 								<SetlistDate
 									value={list.data.date}
 									onChange={(date) => update({ ...list.data, date })}
 								/>
-								<span aria-hidden className="-ml-1.5">
-									·
-								</span>
-								<span>{songCount}</span>
+								<span>· {songCount}</span>
 							</div>
 						</div>
 						{entries.length ? (

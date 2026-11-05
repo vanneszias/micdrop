@@ -107,7 +107,7 @@ export function CapoSelect({
 								<span
 									className={
 										OPEN_SHAPES.has(shapes)
-											? "ml-auto pl-6 text-xs font-medium text-foreground"
+											? "ml-auto pl-6 text-xs text-muted-foreground after:ml-1.5 after:rounded after:bg-chord after:px-1 after:text-[10px] after:text-chord-foreground after:content-['open']"
 											: "ml-auto pl-6 text-xs text-muted-foreground"
 									}
 								>

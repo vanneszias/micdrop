@@ -347,7 +347,7 @@ export function Player({
 				>
 					<Maximize2 /> <span className="max-sm:hidden">Stage</span>
 				</Button>
-				<OverflowMenu label="More song actions">
+				<OverflowMenu label="More song actions" variant="outline">
 					<DropdownMenuItem onSelect={() => exportSheet(shown)}>
 						<Download /> Export ChordPro
 					</DropdownMenuItem>
@@ -638,7 +638,11 @@ export function Player({
 						<aside
 							data-print="hide"
 							aria-label="Chord diagrams"
-							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10 xl:block"
+							className={cn(
+								"diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10",
+								// Several columns need the width; their diagrams go under the sheet.
+								columns === 1 && "xl:block",
+							)}
 						>
 							<ChordDiagrams
 								content={shown.data.content}
@@ -652,7 +656,10 @@ export function Player({
 			{diagrams && !lyricsOnly ? (
 				<div
 					data-print="hide"
-					className="shrink-0 border-t bg-card/50 py-3 xl:hidden"
+					className={cn(
+						"shrink-0 border-t bg-card/50 py-3",
+						columns === 1 && "xl:hidden",
+					)}
 				>
 					<div className="mx-auto max-w-[800px] px-6 max-sm:px-4">
 						{narrow ? (
@@ -722,7 +729,7 @@ export function Player({
 							<Button
 								variant="outline"
 								size="sm"
-								className="font-mono tabular-nums sm:hidden"
+								className="tabular-nums sm:hidden"
 								aria-label={`Scroll speed ${(speed / 25).toFixed(1)}×`}
 							>
 								<Gauge /> {(speed / 25).toFixed(1)}×

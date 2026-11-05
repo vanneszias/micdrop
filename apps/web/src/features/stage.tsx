@@ -206,7 +206,11 @@ export function Stage({
 			<Button
 				variant="ghost"
 				size="icon-sm"
-				className="fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-50 hover:opacity-100 focus-visible:opacity-100 max-sm:hidden"
+				className={cn(
+					"fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-50 transition-opacity hover:opacity-100 focus-visible:opacity-100 max-sm:hidden",
+					// Only while the controls are hidden; otherwise their Exit is the one way out.
+					visible && "pointer-events-none !opacity-0",
+				)}
 				aria-label="Exit stage mode (Esc)"
 				title="Exit stage mode (Esc)"
 				onClick={onExit}
@@ -215,7 +219,7 @@ export function Stage({
 			</Button>
 			<section
 				ref={scroller}
-				className="min-h-0 flex-1 overflow-auto px-5 focus-visible:outline-none sm:px-12"
+				className="min-h-0 flex-1 overflow-auto px-5 focus-visible:outline-none max-sm:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] sm:px-12"
 				// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus and scroll the chord sheet.
 				tabIndex={0}
 				aria-label="Chord sheet"

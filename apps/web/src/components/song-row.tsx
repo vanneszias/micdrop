@@ -122,7 +122,9 @@ export function OverflowMenu({
 	align = "end",
 	onCloseAutoFocus,
 	size = "icon-sm",
+	variant = "ghost",
 }: {
+	variant?: "ghost" | "outline";
 	label: string;
 	children: ReactNode;
 	align?: "start" | "end";
@@ -133,10 +135,14 @@ export function OverflowMenu({
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<Button
-					variant="ghost"
+					variant={variant}
 					size={size}
 					aria-label={label}
-					className="text-muted-foreground hover:text-foreground"
+					className={
+						variant === "ghost"
+							? "text-muted-foreground hover:text-foreground"
+							: undefined
+					}
 				>
 					<MoreHorizontal />
 				</Button>

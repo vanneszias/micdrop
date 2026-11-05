@@ -242,7 +242,12 @@ export function CatalogueSearch({
 					{catalogue.error.message} Your saved songs remain available.
 				</p>
 			) : null}
-			{!groups.length && !catalogue.isFetching ? (
+			{!groups.length && !catalogue.isFetching && ownMatches.length ? (
+				// Your repertoire matched, so the empty public result is a quiet note, not an error.
+				<p className="text-sm text-muted-foreground">
+					No public arrangements match “{debounced.trim()}”.
+				</p>
+			) : !groups.length && !catalogue.isFetching ? (
 				<Empty
 					className={
 						chooseGroup
@@ -352,7 +357,7 @@ export function CatalogueSearch({
 									{[group.artists || "Unknown artist"]
 										.filter(Boolean)
 										.join(" · ")}
-									{group.count ? (
+									{group.count > 1 ? (
 										// Phones keep the row to status and artist.
 										<span
 											className={
@@ -517,6 +522,7 @@ function ArrangementChoices({
 					id: song.id,
 					data: song.data,
 					mode: undefined,
+					mine: false,
 					local: song,
 					saved: false,
 					score: 0,
@@ -534,6 +540,10 @@ function ArrangementChoices({
 								song.owner === owner &&
 								(song.id === p.record_id ||
 									song.data.copiedFrom === p.record_id),
+						),
+						// The player's own published arrangement: nothing to vote on.
+						mine: arrangements.some(
+							(song) => song.id === p.record_id && song.owner === account,
 						),
 						score: p.score,
 						myVote: p.myVote,
@@ -611,7 +621,11 @@ function ArrangementChoices({
 						</div>
 					</div>
 					{/* Voting is secondary: a quiet line under the version it rates. */}
-					{!version.local && account !== "local" ? (
+					{version.mine ? (
+						<p className="pl-12 text-xs text-muted-foreground">
+							Your published arrangement
+						</p>
+					) : !version.local && account !== "local" ? (
 						<div className="flex items-center gap-1 pl-12 text-muted-foreground">
 							<fieldset className="flex items-center">
 								<legend className="float-left mr-0.5 text-xs text-muted-foreground">

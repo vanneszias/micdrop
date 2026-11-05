@@ -59,10 +59,13 @@ import {
 	CircleHelp,
 	Columns2,
 	Eye,
+	Heading,
 	Info,
+	Music,
 	Pencil,
 	Plus,
 	SlidersHorizontal,
+	StickyNote,
 	Wand2,
 	WrapText,
 } from "lucide-react";
@@ -657,6 +660,13 @@ export function Editor({
 											key={label}
 											onSelect={() => insert(value)}
 										>
+											{label === "Chord" ? (
+												<Music />
+											) : label === "Section" ? (
+												<Heading />
+											) : (
+												<StickyNote />
+											)}
 											{label}
 										</DropdownMenuItem>
 									))}
