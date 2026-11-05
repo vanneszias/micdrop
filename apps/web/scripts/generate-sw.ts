@@ -5,7 +5,8 @@ const { count, size, warnings } = await generateSW({
   swDest: 'dist/client/sw.js',
   globPatterns: ['**/*.{js,css,svg,html,woff2,riv,wasm}'],
   navigateFallback: '/offline.html',
-  navigateFallbackDenylist: [/^\/api\//],
+  // The offline shell leaves out administration, so those pages always come from the server.
+  navigateFallbackDenylist: [/^\/api\//, /^\/admin(\/|$)/],
   cleanupOutdatedCaches: true,
   clientsClaim: true,
   skipWaiting: false,
