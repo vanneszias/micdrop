@@ -19,7 +19,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppBandsRouteImport } from './routes/_app/bands'
 import { Route as AppCommunityRouteImport } from './routes/_app/community'
-import { Route as AppSetlistsRouteImport } from './routes/_app/setlists'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiAdminRouteImport } from './routes/api/admin'
 import { Route as ApiBandsRouteImport } from './routes/api/bands'
 import { Route as ApiImportRouteImport } from './routes/api/import'
@@ -99,9 +99,9 @@ const AppCommunityRoute = AppCommunityRouteImport.update({
   path: '/community',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSetlistsRoute = AppSetlistsRouteImport.update({
-  id: '/setlists',
-  path: '/setlists',
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiAdminRoute = ApiAdminRouteImport.update({
@@ -170,14 +170,14 @@ const AppInviteTokenRoute = AppInviteTokenRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppSetlistsIndexRoute = AppSetlistsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppSetlistsRoute,
+  id: '/setlists/',
+  path: '/setlists/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSetlistsIdRoute = AppSetlistsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppSetlistsRoute,
+  id: '/setlists/$id',
+  path: '/setlists/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSetlistsImportRoute = AppSetlistsImportRouteImport.update({
   id: '/setlists_/import',
@@ -260,7 +260,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AppAdminRouteWithChildren
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
-  '/setlists': typeof AppSetlistsRouteWithChildren
+  '/settings': typeof AppSettingsRoute
   '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
@@ -299,6 +299,7 @@ export interface FileRoutesByTo {
   '/.well-known/$': typeof DotwellKnownSplatRoute
   '/bands': typeof AppBandsRoute
   '/community': typeof AppCommunityRoute
+  '/settings': typeof AppSettingsRoute
   '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
@@ -341,7 +342,7 @@ export interface FileRoutesById {
   '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/bands': typeof AppBandsRoute
   '/_app/community': typeof AppCommunityRoute
-  '/_app/setlists': typeof AppSetlistsRouteWithChildren
+  '/_app/settings': typeof AppSettingsRoute
   '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
@@ -385,7 +386,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/bands'
     | '/community'
-    | '/setlists'
+    | '/settings'
     | '/api/admin'
     | '/api/bands'
     | '/api/import'
@@ -424,6 +425,7 @@ export interface FileRouteTypes {
     | '/.well-known/$'
     | '/bands'
     | '/community'
+    | '/settings'
     | '/api/admin'
     | '/api/bands'
     | '/api/import'
@@ -465,7 +467,7 @@ export interface FileRouteTypes {
     | '/_app/admin'
     | '/_app/bands'
     | '/_app/community'
-    | '/_app/setlists'
+    | '/_app/settings'
     | '/api/admin'
     | '/api/bands'
     | '/api/import'
@@ -588,11 +590,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCommunityRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/setlists': {
-      id: '/_app/setlists'
-      path: '/setlists'
-      fullPath: '/setlists'
-      preLoaderRoute: typeof AppSetlistsRouteImport
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/admin': {
@@ -688,17 +690,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/setlists/': {
       id: '/_app/setlists/'
-      path: '/'
+      path: '/setlists'
       fullPath: '/setlists/'
       preLoaderRoute: typeof AppSetlistsIndexRouteImport
-      parentRoute: typeof AppSetlistsRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/setlists/$id': {
       id: '/_app/setlists/$id'
-      path: '/$id'
+      path: '/setlists/$id'
       fullPath: '/setlists/$id'
       preLoaderRoute: typeof AppSetlistsIdRouteImport
-      parentRoute: typeof AppSetlistsRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/setlists_/import': {
       id: '/_app/setlists_/import'
@@ -831,30 +833,18 @@ const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
   AppAdminRouteChildren,
 )
 
-interface AppSetlistsRouteChildren {
-  AppSetlistsIdRoute: typeof AppSetlistsIdRoute
-  AppSetlistsIndexRoute: typeof AppSetlistsIndexRoute
-}
-
-const AppSetlistsRouteChildren: AppSetlistsRouteChildren = {
-  AppSetlistsIdRoute: AppSetlistsIdRoute,
-  AppSetlistsIndexRoute: AppSetlistsIndexRoute,
-}
-
-const AppSetlistsRouteWithChildren = AppSetlistsRoute._addFileChildren(
-  AppSetlistsRouteChildren,
-)
-
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
   AppBandsRoute: typeof AppBandsRoute
   AppCommunityRoute: typeof AppCommunityRoute
-  AppSetlistsRoute: typeof AppSetlistsRouteWithChildren
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppInviteTokenRoute: typeof AppInviteTokenRoute
+  AppSetlistsIdRoute: typeof AppSetlistsIdRoute
   AppSetlistsImportRoute: typeof AppSetlistsImportRoute
   AppSharedTokenRoute: typeof AppSharedTokenRoute
   AppSongsNewRoute: typeof AppSongsNewRoute
+  AppSetlistsIndexRoute: typeof AppSetlistsIndexRoute
   AppSongsIndexRoute: typeof AppSongsIndexRoute
   AppSongsIdEditRoute: typeof AppSongsIdEditRoute
   AppSongsIdIndexRoute: typeof AppSongsIdIndexRoute
@@ -864,12 +854,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRouteWithChildren,
   AppBandsRoute: AppBandsRoute,
   AppCommunityRoute: AppCommunityRoute,
-  AppSetlistsRoute: AppSetlistsRouteWithChildren,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppInviteTokenRoute: AppInviteTokenRoute,
+  AppSetlistsIdRoute: AppSetlistsIdRoute,
   AppSetlistsImportRoute: AppSetlistsImportRoute,
   AppSharedTokenRoute: AppSharedTokenRoute,
   AppSongsNewRoute: AppSongsNewRoute,
+  AppSetlistsIndexRoute: AppSetlistsIndexRoute,
   AppSongsIndexRoute: AppSongsIndexRoute,
   AppSongsIdEditRoute: AppSongsIdEditRoute,
   AppSongsIdIndexRoute: AppSongsIdIndexRoute,
