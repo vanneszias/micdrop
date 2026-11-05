@@ -49,7 +49,7 @@ export default defineConfig({
 			workbox: {
 				navigateFallback: "/offline.html",
 				globPatterns: ["**/*.{js,css,svg,png,ico,html,woff2}"],
-				navigateFallbackDenylist: [/^\/api\//],
+				navigateFallbackDenylist: [/^\/api\//, /^\/admin(\/|$)/],
 			},
 		}),
 	],
