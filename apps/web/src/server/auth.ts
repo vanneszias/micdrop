@@ -1,15 +1,28 @@
 import { env, waitUntil } from "cloudflare:workers";
 import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
+import { passkey } from "@better-auth/passkey";
 import { validateSourceUrl } from "@chords/imports";
 import { captureException, logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
-import { isAPIError } from "better-auth/api";
-import { admin, captcha, jwt, organization } from "better-auth/plugins";
+import { APIError, isAPIError } from "better-auth/api";
+import {
+	admin,
+	captcha,
+	jwt,
+	organization,
+	twoFactor,
+} from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
+import { deleteAccountStatements } from "./account";
 import { auditStatement, BAN_HIDDEN, SIGNUP_BURST } from "./admin";
-import { authEmail, sendEmail } from "./email";
+import {
+	type AuthEmailKind,
+	authEmail,
+	sendEmail,
+	VERIFICATION_EXPIRES_IN,
+} from "./email";
 import { HttpError } from "./http-error";
 import { reachedBandLimit } from "./quotas";
 
@@ -53,10 +66,47 @@ export function getAuth() {
 		},
 		emailVerification: {
 			sendOnSignUp: true,
-			expiresIn: 3600,
+			expiresIn: VERIFICATION_EXPIRES_IN,
 			// Existing accounts can keep signing in while they verify their address.
 			sendVerificationEmail: async ({ user, url }) => {
-				queueAuthEmail(user.email, "verification", url);
+				// Only a fresh sign-up gets the welcome; a resend or a new address gets a plain request.
+				const fresh =
+					!user.emailVerified &&
+					Date.now() - new Date(user.createdAt).getTime() < 3_600_000;
+				queueAuthEmail(user.email, fresh ? "welcome" : "verify", url);
+			},
+		},
+		user: {
+			changeEmail: {
+				enabled: true,
+				// A verified address approves the move first; the new one is then verified itself.
+				sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+					queueAuthEmail(user.email, "change", url, { newEmail });
+				},
+			},
+			deleteUser: {
+				enabled: true,
+				// Removes the account with its songs, setlists and grants in one batch; Better Auth's
+				// own delete that follows finds nothing left.
+				beforeDelete: async (user) => {
+					if (isAdminRole((user as { role?: string | null }).role))
+						throw new APIError("FORBIDDEN", {
+							message: "Administrator accounts can't be deleted from settings.",
+						});
+					try {
+						await env.DB.batch(await deleteAccountStatements(user.id));
+					} catch (error) {
+						if (error instanceof HttpError)
+							throw new APIError(
+								error.status === 409 ? "CONFLICT" : "BAD_REQUEST",
+								{
+									message: error.message,
+								},
+							);
+						throw error;
+					}
+					logger.info("user.deleted_self", { userId: user.id });
+				},
 			},
 		},
 		// Cloudflare sets cf-connecting-ip itself; x-forwarded-for can be supplied by the client.
@@ -71,6 +121,8 @@ export function getAuth() {
 				"/sign-in/email": { window: 60, max: 10 },
 				"/request-password-reset": { window: 60, max: 3 },
 				"/send-verification-email": { window: 60, max: 3 },
+				"/change-email": { window: 3600, max: 5 },
+				"/passkey/verify-authentication": { window: 60, max: 10 },
 				"/oauth2/register": { window: 3600, max: 20 },
 			},
 		},
@@ -144,6 +196,10 @@ export function getAuth() {
 				: []) as []),
 			// Roles are granted by hand in SQL; there is no self-promotion endpoint.
 			admin(),
+			// Authenticator-app codes with backup codes. They guard password sign-in; Google and
+			// passkeys bring their own second factor.
+			twoFactor({ issuer: "Mic Drop" }),
+			passkey({ rpName: "Mic Drop" }),
 			jwt(),
 			mcp({
 				resource: mcpResource(),
@@ -169,15 +225,18 @@ export function getAuth() {
 }
 function queueAuthEmail(
 	to: string,
-	kind: "verification" | "reset",
+	kind: AuthEmailKind,
 	url: string,
+	details?: { newEmail?: string },
 ) {
 	// Keep delivery alive after the response without revealing account existence through latency.
 	waitUntil(
-		sendEmail(env.EMAIL, { to, ...authEmail(kind, url) }).catch((error) => {
-			captureException(error, { tags: { operation: "auth.email", kind } });
-			logger.error("auth.email_failed", { kind });
-		}),
+		sendEmail(env.EMAIL, { to, ...authEmail(kind, url, details) }).catch(
+			(error) => {
+				captureException(error, { tags: { operation: "auth.email", kind } });
+				logger.error("auth.email_failed", { kind });
+			},
+		),
 	);
 }
 export async function requireUser(request: Request) {

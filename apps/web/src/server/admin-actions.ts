@@ -1,11 +1,13 @@
 import { env } from "cloudflare:workers";
 import { logger } from "@sentry/cloudflare";
 import { z } from "zod";
+import { deleteAccountStatements, sendVerificationReminder } from "./account";
 import {
 	auditStatement,
 	BAN_HIDDEN,
 	deleteRecordsStatements,
 	revokeOAuthStatements,
+	UNVERIFIED_USERS,
 } from "./admin";
 import { getAuth, HttpError, isAdminRole } from "./auth";
 
@@ -19,6 +21,15 @@ export const AdminAction = z.discriminatedUnion("action", [
 	}),
 	z.object({ action: z.literal("unban"), userId: z.string().min(1) }),
 	z.object({ action: z.literal("sign_out"), userId: z.string().min(1) }),
+	z.object({
+		action: z.literal("resend_verification"),
+		userId: z.string().min(1),
+	}),
+	/** Reminds unverified accounts in batches; pass the returned `next` until it is null. */
+	z.object({
+		action: z.literal("remind_unverified"),
+		after: z.string().default(""),
+	}),
 	z.object({
 		action: z.literal("disable_client"),
 		clientId: z.string().min(1),
@@ -48,10 +59,31 @@ export async function runAdminAction(
 	if (input.action === "revoke_share") return revokeShare(adminId, input.ref);
 	if (input.action === "delete_band") return deleteBand(adminId, input);
 	if (input.action === "delete_user") return deleteUser(adminId, input);
-	const target = await env.DB.prepare("SELECT id,role FROM user WHERE id=?")
+	if (input.action === "remind_unverified")
+		return remindUnverified(adminId, input.after);
+	const target = await env.DB.prepare(
+		"SELECT id,role,email,emailVerified FROM user WHERE id=?",
+	)
 		.bind(input.userId)
-		.first<{ id: string; role: string | null }>();
+		.first<{
+			id: string;
+			role: string | null;
+			email: string;
+			emailVerified: number;
+		}>();
 	if (!target) throw new HttpError(404, "This account does not exist.");
+	if (input.action === "resend_verification") {
+		if (target.emailVerified)
+			throw new HttpError(400, "This email address is already verified.");
+		await sendVerificationReminder(target.email);
+		await auditStatement(
+			adminId,
+			"resend_verification",
+			"user",
+			target.id,
+		).run();
+		return { ok: true };
+	}
 	const auth = getAuth();
 	const headers = request.headers;
 	if (input.action === "ban") {
@@ -200,51 +232,45 @@ async function deleteUser(
 			403,
 			"Remove the administrator role in SQL before deleting this account.",
 		);
-	const { results: soleOwned } = await env.DB.prepare(
-		`SELECT o.name FROM member m JOIN organization o ON o.id=m.organizationId
-		WHERE m.userId=?1 AND ','||m.role||',' LIKE '%,owner,%'
-		AND NOT EXISTS(SELECT 1 FROM member x WHERE x.organizationId=o.id AND x.userId!=?1 AND ','||x.role||',' LIKE '%,owner,%')`,
-	)
-		.bind(user.id)
-		.all<{ name: string }>();
-	if (soleOwned.length)
-		throw new HttpError(
-			409,
-			`Delete these bands first; this account is their only owner: ${soleOwned.map((band) => band.name).join(", ")}.`,
-		);
-	// Catalogue moderation history references the account, and it must not be erased.
-	if (
-		await env.DB.prepare("SELECT 1 FROM catalogue_actions WHERE user_id=?")
-			.bind(user.id)
-			.first()
-	)
-		throw new HttpError(
-			409,
-			"This account has catalogue moderation history. Ban it instead.",
-		);
-	const own = (sql: string) => env.DB.prepare(sql).bind(user.id);
-	const clients = "SELECT clientId FROM oauthClient WHERE userId=?1";
 	await env.DB.batch([
-		...deleteRecordsStatements(user.id),
-		own("DELETE FROM votes WHERE user_id=?1"),
-		own("DELETE FROM catalogue_reports WHERE user_id=?1"),
-		own("DELETE FROM operations WHERE user_id=?1"),
-		own("DELETE FROM catalogue_admins WHERE user_id=?1"),
-		own("DELETE FROM invitation WHERE inviterId=?1"),
-		own(
-			`DELETE FROM oauthAccessToken WHERE userId=?1 OR clientId IN (${clients})`,
-		),
-		own(
-			`DELETE FROM oauthRefreshToken WHERE userId=?1 OR clientId IN (${clients})`,
-		),
-		own(`DELETE FROM oauthConsent WHERE userId=?1 OR clientId IN (${clients})`),
-		own("DELETE FROM oauthClient WHERE userId=?1"),
-		// Sessions, accounts, memberships, imports and share links cascade.
-		own("DELETE FROM user WHERE id=?1"),
+		...(await deleteAccountStatements(user.id)),
 		auditStatement(adminId, "delete_user", "user", user.id, {
 			name: user.name,
 			email: user.email,
 		}),
 	]);
 	return { ok: true };
+}
+
+/** Accounts reminded per request, which keeps one request well inside Workers' subrequest limit. */
+const REMINDER_BATCH = 50;
+
+async function remindUnverified(adminId: string, after: string) {
+	const { results } = await env.DB.prepare(
+		`SELECT id,email ${UNVERIFIED_USERS} AND id>? ORDER BY id LIMIT ?`,
+	)
+		.bind(after, REMINDER_BATCH)
+		.all<{ id: string; email: string }>();
+	let sent = 0;
+	const failed: string[] = [];
+	for (const user of results) {
+		try {
+			await sendVerificationReminder(user.email);
+			sent++;
+		} catch (error) {
+			failed.push(user.id);
+			logger.error("verification_reminder.failed", {
+				userId: user.id,
+				message: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+	if (results.length)
+		await auditStatement(adminId, "remind_unverified", "user", "*", {
+			sent,
+			failed,
+		}).run();
+	const next =
+		results.length === REMINDER_BATCH ? results[results.length - 1].id : null;
+	return { sent, failed: failed.length, next };
 }

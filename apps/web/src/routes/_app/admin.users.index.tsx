@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { SearchInput } from "#/components/search-input";
 import { isAdmin, Rows, useAdmin, when } from "#/features/admin";
+import { RemindUnverified } from "#/features/admin-actions";
 
 const Search = z.object({
 	q: z.string().catch("").default(""),
@@ -19,7 +20,10 @@ const Search = z.object({
 		.enum(["created", "seen", "records", "imports"])
 		.catch("created")
 		.default("created"),
-	filter: z.enum(["all", "banned", "admin"]).catch("all").default("all"),
+	filter: z
+		.enum(["all", "banned", "admin", "unverified"])
+		.catch("all")
+		.default("all"),
 	offset: z.number().int().min(0).catch(0).default(0),
 });
 
@@ -61,6 +65,7 @@ function Users() {
 	const { data, error, isFetching } = useAdmin<{
 		users: UserRow[];
 		next: number | null;
+		unverified: number;
 	}>({
 		view: "users",
 		query: search.q,
@@ -98,6 +103,7 @@ function Users() {
 						<SelectItem value="all">All accounts</SelectItem>
 						<SelectItem value="banned">Banned</SelectItem>
 						<SelectItem value="admin">Administrators</SelectItem>
+						<SelectItem value="unverified">Unverified email</SelectItem>
 					</SelectContent>
 				</Select>
 				<Select
@@ -123,6 +129,16 @@ function Users() {
 					</SelectContent>
 				</Select>
 			</div>
+			{search.filter === "unverified" && data ? (
+				<div className="flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm">
+					<p className="flex-1 text-muted-foreground">
+						{data.unverified} unbanned{" "}
+						{data.unverified === 1 ? "account hasn't" : "accounts haven't"}{" "}
+						verified their email address.
+					</p>
+					<RemindUnverified count={data.unverified} />
+				</div>
+			) : null}
 			{error ? (
 				<p role="alert" className="text-sm text-destructive">
 					{error.message}
