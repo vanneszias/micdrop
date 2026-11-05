@@ -105,7 +105,13 @@ No Cloudflare resources are created or deployed by the local setup commands.
 
 ## Transactional email
 
-Better Auth sends a welcome email with a verification link on email signup and handles verification resends and password recovery. The sign-in page offers **Forgot password?** and **Resend verification email**; signed-in users can choose **Verify email address** from their account menu. Verification is available without blocking existing accounts from signing in. Verification and reset links expire after one hour. Reset links are single use, and resetting a password revokes existing sessions.
+Better Auth sends a welcome email with a verification link on email signup and handles verification resends and password recovery. The sign-in page offers **Forgot password?** and **Resend verification email**; signed-in users can choose **Verify email address** from their account menu. Verification is available without blocking existing accounts from signing in. Verification and email-change links expire after 24 hours, reset links after one hour. Reset links are single use, and resetting a password revokes existing sessions.
+
+Accounts created before email delivery was enabled can be reminded from **Administration → Users**: filter on **Unverified email** and choose **Email … unverified accounts**. Each unbanned, unverified account receives a verification link valid for 7 days; the server sends in batches of 50 and records each batch in the audit log. A single account can be reminded from its detail page with **Resend verification**.
+
+## Account settings
+
+Signed-in users manage their own account under **Settings**: name, email address (a verified address approves the change before the new one is confirmed), password (Google-only accounts get an emailed link to set one), Google linking, passkeys, authenticator-app two-factor authentication with backup codes, signed-in devices, and deleting their account. Deleting an account removes its personal library in one batch and is refused while the account is a band's only owner. Two-factor codes guard password sign-in; Google and passkey sign-in rely on their own second factor. Passkeys use the host of `BETTER_AUTH_URL` as their relying party, so a passkey made on one Preview does not work on another.
 
 The server uses Cloudflare Email Service through the `EMAIL` binding, with `welcome@micdrop.day` as its allowed sender. The binding is configured for production and Workers Previews; sending must be enabled for `micdrop.day` in the target Cloudflare account before deployment. No email API key is needed. Preview emails contain links to their preview's auth URL.
 

@@ -43,6 +43,7 @@ type Target = {
 	email: string;
 	role: string | null;
 	banned: number | null;
+	emailVerified?: number;
 };
 
 function Confirm({
@@ -105,6 +106,24 @@ export function AccountActions({ target }: { target: Target }) {
 				action="Impersonate"
 				onConfirm={() => void run(() => impersonate(target.id))}
 			/>
+			{target.emailVerified === 0 && !target.banned ? (
+				<Confirm
+					trigger={
+						<Button size="sm" variant="outline" disabled={busy}>
+							Resend verification
+						</Button>
+					}
+					title={`Email ${target.name} a verification link?`}
+					description={`Sends a link to ${target.email} that stays valid for 7 days.`}
+					action="Send link"
+					onConfirm={() =>
+						void act(
+							{ action: "resend_verification" },
+							"Verification link sent",
+						)
+					}
+				/>
+			) : null}
 			<Confirm
 				trigger={
 					<Button size="sm" variant="outline" disabled={busy}>
@@ -218,5 +237,54 @@ export function AccountActions({ target }: { target: Target }) {
 				/>
 			)}
 		</div>
+	);
+}
+
+/**
+ * Emails every unverified, unbanned account a verification link valid for 7 days. The server
+ * sends in batches; this keeps asking for the next one until all are done.
+ */
+export function RemindUnverified({ count }: { count: number }) {
+	const { run, busy } = useApp();
+	const queryClient = useQueryClient();
+	const [progress, setProgress] = useState<string>();
+	return (
+		<Confirm
+			trigger={
+				<Button size="sm" variant="outline" disabled={busy || !count}>
+					{busy && progress ? <Spinner /> : null}
+					{progress ??
+						`Email ${count} unverified ${count === 1 ? "account" : "accounts"}`}
+				</Button>
+			}
+			title={`Email ${count} unverified ${count === 1 ? "account" : "accounts"}?`}
+			description="Each gets a link to confirm their address, valid for 7 days. Banned accounts are skipped. Running this again sends the email again."
+			action="Send emails"
+			onConfirm={() =>
+				void run(async () => {
+					let sent = 0;
+					let failed = 0;
+					let after = "";
+					for (;;) {
+						setProgress(`Sent ${sent} of ${count}…`);
+						const batch = await api<{
+							sent: number;
+							failed: number;
+							next: string | null;
+						}>("/api/admin", { action: "remind_unverified", after });
+						sent += batch.sent;
+						failed += batch.failed;
+						if (!batch.next) break;
+						after = batch.next;
+					}
+					setProgress(undefined);
+					await queryClient.invalidateQueries({ queryKey: ["admin"] });
+					if (failed)
+						throw new Error(
+							`Sent ${sent} emails; ${failed} could not be delivered. Check the logs, then send again.`,
+						);
+				}, "Verification emails sent").finally(() => setProgress(undefined))
+			}
+		/>
 	);
 }
