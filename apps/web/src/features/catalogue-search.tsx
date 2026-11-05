@@ -25,6 +25,7 @@ import {
 	EmptyTitle,
 } from "@chords/ui/components/empty";
 import { Input } from "@chords/ui/components/input";
+import { cn } from "@chords/ui/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -43,6 +44,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
+import { KeyBadge, rowTarget, SongList, SongRow } from "#/components/song-row";
 import { api, canEditRole } from "#/lib/songs";
 import { useApp } from "./app-context";
 
@@ -54,7 +56,10 @@ export function CatalogueSearch({
 	chooseGroup,
 	excludeId,
 	inSet,
+	compact = false,
 }: {
+	/** Narrow side panel: skips the source explanation under the search field. */
+	compact?: boolean;
 	onSelect?: (song: Arrangement) => Promise<void>;
 	initialQuery?: string;
 	publicOnly?: boolean;
@@ -182,6 +187,7 @@ export function CatalogueSearch({
 			<p
 				className="text-xs text-muted-foreground"
 				hidden={
+					compact ||
 					(!groups.length && !catalogue.isFetching) ||
 					(publicOnly && !!debounced.trim())
 				}
@@ -200,33 +206,28 @@ export function CatalogueSearch({
 					>
 						Already in your repertoire
 					</h2>
-					<ul className="divide-y rounded-lg border">
+					<SongList>
 						{ownMatches.map((song) => (
-							<li key={song.id}>
-								<Link
-									to="/songs/$id"
-									params={{ id: song.id }}
-									className="flex items-center gap-3 p-3 hover:bg-accent/40"
-								>
-									<Badge
-										variant="secondary"
-										className="min-w-7 justify-center font-mono text-xs"
+							<SongRow
+								key={song.id}
+								leading={<KeyBadge>{song.data.key}</KeyBadge>}
+								title={song.data.title}
+								meta={song.data.artist || "Unknown artist"}
+								main={(content) => (
+									<Link
+										to="/songs/$id"
+										params={{ id: song.id }}
+										className={rowTarget}
 									>
-										{song.data.key}
-									</Badge>
-									<span className="min-w-0 flex-1">
-										<span className="block truncate text-sm font-medium">
-											{song.data.title}
-										</span>
-										<span className="block truncate text-xs text-muted-foreground">
-											{song.data.artist || "Unknown artist"}
-										</span>
-									</span>
-									<ChevronRight className="size-4 text-muted-foreground" />
-								</Link>
-							</li>
+										{content}
+									</Link>
+								)}
+								trailing={
+									<ChevronRight className="pointer-events-none size-4 text-muted-foreground" />
+								}
+							/>
 						))}
-					</ul>
+					</SongList>
 					<h2 className="pt-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Public catalogue
 					</h2>
@@ -291,104 +292,117 @@ export function CatalogueSearch({
 					) : null}
 				</Empty>
 			) : null}
-			<ul
+			<SongList
 				hidden={!groups.length}
-				className={`divide-y rounded-lg border ${chooseGroup ? "max-h-80 overflow-y-auto" : ""}`}
+				className={chooseGroup ? "max-h-80 overflow-y-auto" : undefined}
 			>
-				{groups.map((group) => (
-					<li key={group.id} className="p-3">
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								className="group/row flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-								aria-expanded={selected === group.id}
-								onClick={() =>
-									setSelected(selected === group.id ? undefined : group.id)
-								}
-							>
-								<span className="min-w-0 flex-1">
-									<span className="flex items-center gap-2 text-sm font-medium">
-										{group.title}
-										{publicOnly &&
-										selected !== group.id &&
-										arrangements.some(
-											(song) =>
-												song.owner === owner && songGroup(song) === group.id,
-										) ? (
-											<Badge variant="secondary" className="font-normal">
-												<Check /> In repertoire
-											</Badge>
-										) : null}
-										{inSet &&
-										group.local.some((song) => inSet.includes(song.id)) ? (
-											<Badge variant="secondary" className="font-normal">
-												<Check /> In set
-											</Badge>
-										) : null}
-									</span>
-									<span className="block text-xs text-muted-foreground">
-										{[
-											group.artists || "Unknown artist",
-											group.local.some((song) => song.owner === owner)
-												? "In your repertoire"
-												: null,
-											group.count
-												? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
-												: null,
-										]
-											.filter(Boolean)
-											.join(" · ")}
-									</span>
-								</span>
-								<ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-aria-expanded/row:rotate-180" />
-							</button>
-							{onSelect && group.local.some((song) => song.owner === owner) ? (
-								<Button
+				{groups.map((group) => {
+					const own = group.local
+						.filter((song) => song.owner === owner)
+						.sort(
+							(a, b) => Number(!!b.data.preferred) - Number(!!a.data.preferred),
+						);
+					const inRepertoire =
+						own.length > 0 ||
+						arrangements.some(
+							(song) => song.owner === owner && songGroup(song) === group.id,
+						);
+					const placed =
+						!!inSet && group.local.some((song) => inSet.includes(song.id));
+					const open = selected === group.id;
+					return (
+						<SongRow
+							key={group.id}
+							leading={
+								own[0] ? (
+									<KeyBadge>{own[0].data.key}</KeyBadge>
+								) : (
+									<KeyBadge className="bg-secondary text-muted-foreground">
+										<Globe className="size-4" />
+									</KeyBadge>
+								)
+							}
+							title={group.title}
+							badges={
+								placed ? (
+									<Badge variant="secondary" className="shrink-0 font-normal">
+										<Check /> In set
+									</Badge>
+								) : publicOnly && inRepertoire && !open ? (
+									<Badge variant="secondary" className="shrink-0 font-normal">
+										<Check />
+										<span className="max-sm:sr-only">In repertoire</span>
+									</Badge>
+								) : null
+							}
+							meta={[
+								group.artists || "Unknown artist",
+								!publicOnly && own.length ? "In your repertoire" : null,
+								group.count
+									? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
+									: null,
+							]
+								.filter(Boolean)
+								.join(" · ")}
+							main={(content) => (
+								<button
 									type="button"
-									size="sm"
-									// Songs already in the set get a quiet "add again" so duplicates stay deliberate.
-									variant="outline"
-									className="min-w-28"
-									disabled={busy || !editable}
-									onClick={() => {
-										const preferred = [...group.local]
-											.filter((song) => song.owner === owner)
-											.sort(
-												(a, b) =>
-													Number(!!b.data.preferred) -
-													Number(!!a.data.preferred),
-											)[0];
-										void run(() => select(preferred), "Arrangement selected");
-									}}
+									className={rowTarget}
+									aria-expanded={open}
+									onClick={() => setSelected(open ? undefined : group.id)}
 								>
-									<Plus />{" "}
-									{inSet && group.local.some((song) => inSet.includes(song.id))
-										? "Add again"
-										: "Add"}
-								</Button>
+									{content}
+								</button>
+							)}
+							trailing={
+								<>
+									{onSelect && own[0] && !placed ? (
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											disabled={busy || !editable}
+											onClick={() =>
+												void run(() => select(own[0]), "Added to the set")
+											}
+										>
+											<Plus /> Add
+										</Button>
+									) : null}
+									{chooseGroup ? (
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											onClick={() => chooseGroup(group)}
+										>
+											Use song group
+										</Button>
+									) : null}
+									<ChevronDown
+										aria-hidden
+										className={cn(
+											"pointer-events-none size-4 text-muted-foreground transition-transform",
+											open && "rotate-180",
+										)}
+									/>
+								</>
+							}
+						>
+							{open ? (
+								<div className="px-3 pb-3 sm:px-4">
+									<ArrangementChoices
+										group={group}
+										onSelect={select}
+										busy={busy}
+										picking={!!onSelect}
+									/>
+								</div>
 							) : null}
-							{chooseGroup ? (
-								<Button
-									type="button"
-									size="sm"
-									variant="outline"
-									onClick={() => chooseGroup(group)}
-								>
-									Use song group
-								</Button>
-							) : null}
-						</div>
-						{selected === group.id ? (
-							<ArrangementChoices
-								group={group}
-								onSelect={select}
-								busy={busy}
-								picking={!!onSelect}
-							/>
-						) : null}
-					</li>
-				))}
-			</ul>
+						</SongRow>
+					);
+				})}
+			</SongList>
 			{catalogue.hasNextPage && online ? (
 				<Button
 					variant="outline"

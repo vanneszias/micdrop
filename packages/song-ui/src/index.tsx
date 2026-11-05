@@ -1,6 +1,16 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Sheet tokens and SVG strings are stateless ordered positions.
-import { type Accidental, sheetChords, sheetLines } from "@chords/song-core";
-import { useEffect, useMemo, useState } from "react";
+import {
+	type Accidental,
+	balanceColumns,
+	type SheetLine,
+	sheetChords,
+	sheetLines,
+} from "@chords/song-core";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+// Measuring runs in the browser only; the server renders the first guess.
+const useBrowserLayoutEffect =
+	typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function SongSheet({
 	content,
@@ -9,13 +19,17 @@ export function SongSheet({
 	columns = 1,
 	chords = true,
 	accidental,
+	onChord,
 }: {
 	content: string;
 	semitones?: number;
 	fontSize?: number;
+	/** Up to this many columns; fewer when the sheet is too narrow for them. */
 	columns?: number;
 	chords?: boolean;
 	accidental?: Accidental;
+	/** Makes each chord a button, e.g. to show its diagram. */
+	onChord?: (chord: string) => void;
 }) {
 	const lines = useMemo(
 		() => sheetLines(content, semitones, accidental),
@@ -49,13 +63,26 @@ export function SongSheet({
 									pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
 								}
 							>
-								<span
-									className={
-										pair.chord ? "sheet-chord" : "sheet-chord sheet-chord-empty"
-									}
-								>
-									{pair.chord || "\u200b"}
-								</span>
+								{pair.chord && onChord ? (
+									<button
+										type="button"
+										className="sheet-chord"
+										aria-label={`${pair.chord} chord diagram`}
+										onClick={() => onChord(pair.chord as string)}
+									>
+										{pair.chord}
+									</button>
+								) : (
+									<span
+										className={
+											pair.chord
+												? "sheet-chord"
+												: "sheet-chord sheet-chord-empty"
+										}
+									>
+										{pair.chord || "\u200b"}
+									</span>
+								)}
 								<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
 							</span>
 						))}
@@ -67,24 +94,95 @@ export function SongSheet({
 	const blocks: { line: (typeof lines)[number]; index: number }[][] = [];
 	lines.forEach((line, index) => {
 		if (line.type === "section" || !blocks.length) blocks.push([]);
-		blocks[blocks.length - 1].push({ line, index });
+		const block = blocks[blocks.length - 1];
+		// Blank lines at the top of a section only push it down; headings carry the spacing.
+		if (line.type === "blank" && !block.length) return;
+		block.push({ line, index });
 	});
+	for (let i = blocks.length - 1; i >= 0; i--)
+		if (!blocks[i].length) blocks.splice(i, 1);
+	const root = useRef<HTMLDivElement>(null);
+	// Columns need at least 18em each; a narrower sheet uses fewer.
+	const [fit, setFit] = useState(columns);
+	const [starts, setStarts] = useState<number[]>(() =>
+		balanceColumns(blocks.map(estimateHeight), columns),
+	);
+	const shown = Math.min(fit, columns, blocks.length || 1);
+	useBrowserLayoutEffect(() => {
+		const element = root.current;
+		if (!element || columns <= 1) return;
+		const measure = () => {
+			const width = element.clientWidth;
+			const em = Number.parseFloat(getComputedStyle(element).fontSize) || 16;
+			const count = Math.max(
+				1,
+				Math.min(columns, Math.floor((width + 2.5 * em) / (20.5 * em))),
+			);
+			setFit(count);
+			// Every column has the same width, so a block's height does not depend on its column.
+			const heights = [
+				...element.querySelectorAll<HTMLElement>(":scope .sheet-block"),
+			].map((block) => block.offsetHeight);
+			const next = balanceColumns(heights, count);
+			setStarts((previous) =>
+				previous.join() === next.join() ? previous : next,
+			);
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [columns, lines, fontSize, chords, shown]);
+	const renderBlock = (block: (typeof blocks)[number]) => (
+		<div key={`block-${block[0].index}`} className="sheet-block">
+			{block.map(({ line, index }) => renderLine(line, index))}
+		</div>
+	);
+	if (shown <= 1)
+		return (
+			<div ref={root} className="song-sheet" style={{ fontSize }}>
+				{blocks.map(renderBlock)}
+			</div>
+		);
+	const groups = (
+		starts.length === shown
+			? starts
+			: balanceColumns(blocks.map(estimateHeight), shown)
+	).map((start, i, all) => blocks.slice(start, all[i + 1] ?? blocks.length));
 	return (
 		<div
-			className="song-sheet"
+			ref={root}
+			className="song-sheet sheet-columns"
 			style={{
 				fontSize,
-				columnCount: columns,
-				columnWidth: columns > 1 ? "20em" : undefined,
-				columnGap: "2em",
+				gridTemplateColumns: `repeat(${shown}, minmax(0, 1fr))`,
 			}}
 		>
-			{blocks.map((block) => (
-				<div key={`block-${block[0].index}`} className="sheet-block">
-					{block.map(({ line, index }) => renderLine(line, index))}
+			{groups.map((group, i) => (
+				<div
+					key={`column-${group[0]?.[0].index ?? i}`}
+					className="sheet-column"
+				>
+					{group.map(renderBlock)}
 				</div>
 			))}
 		</div>
+	);
+}
+
+/** A first guess at a section's height, in lines, before the browser can measure it. */
+function estimateHeight(block: { line: SheetLine }[]) {
+	return block.reduce(
+		(sum, { line }) =>
+			sum +
+			(line.type === "blank"
+				? 0.3
+				: line.type === "lyrics"
+					? line.tokens.some((token) => token.chord)
+						? 2.2
+						: 1.3
+					: 1.4),
+		0,
 	);
 }
 
@@ -144,16 +242,11 @@ export function ChordDiagrams({
 	semitones?: number;
 	accidental?: Accidental;
 }) {
-	const [database, setDatabase] = useState<GuitarData | null>(null);
+	const database = useGuitarDatabase();
 	const chords = useMemo(
 		() => sheetChords(content, semitones, accidental),
 		[content, semitones, accidental],
 	);
-	useEffect(() => {
-		void import("@tombatossals/chords-db/lib/guitar.json").then((module) =>
-			setDatabase(module.default),
-		);
-	}, []);
 	if (!database) return <p className="muted">Loading guitar shapes…</p>;
 	return (
 		<div className="chord-diagrams">
@@ -163,6 +256,29 @@ export function ChordDiagrams({
 		</div>
 	);
 }
+let guitarDatabase: Promise<GuitarData> | undefined;
+function useGuitarDatabase() {
+	const [database, setDatabase] = useState<GuitarData | null>(null);
+	useEffect(() => {
+		guitarDatabase ??= import("@tombatossals/chords-db/lib/guitar.json").then(
+			(module) => module.default as GuitarData,
+		);
+		let active = true;
+		void guitarDatabase.then((value) => active && setDatabase(value));
+		return () => {
+			active = false;
+		};
+	}, []);
+	return database;
+}
+
+/** One chord's guitar diagram on its own, e.g. enlarged in a sheet. */
+export function ChordDiagram({ chord }: { chord: string }) {
+	const database = useGuitarDatabase();
+	if (!database) return <p className="muted">Loading guitar shapes…</p>;
+	return <GuitarDiagram key={chord} chord={chord} database={database} />;
+}
+
 /**
  * A barre shape with no open strings reads as a nut chord when drawn from fret 1.
  * Start the grid at its lowest fret instead, so it gets a "2fr" position label.
@@ -180,6 +296,9 @@ function fromLowestFret(shape: Fingering | undefined): Fingering | undefined {
 		barres: shape.barres.map((fret) => fret - shift),
 	};
 }
+
+// Strings sit 14 apart; a radius of 6 keeps dots on neighbouring strings from touching.
+const DOT = 6;
 
 function GuitarDiagram({
 	chord,
@@ -267,18 +386,18 @@ function GuitarDiagram({
 					return (
 						<g key={`barre-${fret}`}>
 							<rect
-								x={from - 7}
-								y={6.5 + fret * 19}
-								width={to - from + 14}
-								height="14"
-								rx="7"
+								x={from - DOT}
+								y={13.5 + fret * 19 - DOT}
+								width={to - from + DOT * 2}
+								height={DOT * 2}
+								rx={DOT}
 								className="diagram-barre"
 							/>
 							<text
 								x={(from + to) / 2}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="9.5"
+								fontSize="8.5"
 								fontWeight="600"
 								fill="white"
 							>
@@ -297,13 +416,13 @@ function GuitarDiagram({
 								className="diagram-dot"
 								cx={15 + i * 14}
 								cy={13.5 + fret * 19}
-								r="7"
+								r={DOT}
 							/>
 							<text
 								x={15 + i * 14}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="9.5"
+								fontSize="8.5"
 								fontWeight="600"
 								fill="white"
 							>

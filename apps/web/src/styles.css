@@ -156,3 +156,15 @@
 .sheet-block:first-child > .sheet-section:first-child, .sheet-block:first-child > .sheet-space:first-child + .sheet-section, .sheet-block:first-child:has(> .sheet-space:only-child) + .sheet-block > .sheet-section:first-child { margin-top: 0; }
 .diagram-rail .chord-diagrams { flex-wrap: wrap; overflow: visible; gap: .5rem; }
 .diagram-rail .diagram, .diagram-rail .diagram-missing { width: 112px; }
+/* Balanced columns: each column starts on a section, so headings line up across the top. */
+.sheet-columns { display: grid; column-gap: 2.5em; align-items: start; }
+.sheet-column { min-width: 0; }
+.sheet-column + .sheet-column { border-left: 1px solid var(--border); padding-left: 1.25em; margin-left: -1.25em; }
+/* Chord chips that open a diagram keep the chip look. */
+button.sheet-chord { border: 0; cursor: pointer; text-align: left; transition: background-color .15s, box-shadow .15s; }
+button.sheet-chord:hover { box-shadow: 0 0 0 1px var(--chord-foreground) inset; }
+button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* A tapped chord, enlarged in its own sheet. */
+.chord-sheet .diagram, .chord-sheet .diagram-missing { width: min(15rem, 70vw); font-size: 15px; }
+.chord-sheet .diagram strong { display: none; }
+.chord-sheet .diagram small { font-size: 13px; }

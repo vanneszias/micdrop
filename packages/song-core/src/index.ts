@@ -318,3 +318,48 @@ export const EXAMPLE = `{title: Evening rehearsal}
 {end_of_chorus}
 
 {comment: Repeat chorus, then end on D}`;
+
+/**
+ * Splits consecutive sections into at most `columns` groups so a multi-column sheet ends
+ * evenly and every column starts on a section heading. Sections never split and keep
+ * their order. The tallest group is as short as possible; among equal choices the
+ * groups are as even as possible, then earlier groups are fuller. Returns the start
+ * index of each group.
+ */
+export function balanceColumns(heights: number[], columns: number): number[] {
+	const count = Math.min(Math.max(1, Math.floor(columns)), heights.length);
+	if (count <= 1) return [0];
+	const prefix = [0];
+	for (const height of heights)
+		prefix.push(prefix[prefix.length - 1] + Math.max(0, height));
+	const n = heights.length;
+	let best: { starts: number[]; tallest: number; spread: number } | undefined;
+	// Sheets have a few dozen sections and at most three columns, so try every split.
+	const visit = (starts: number[]) => {
+		if (starts.length === count) {
+			const sizes = starts.map(
+				(start, i) => prefix[starts[i + 1] ?? n] - prefix[start],
+			);
+			const tallest = Math.max(...sizes);
+			const spread = sizes.reduce((sum, size) => sum + size * size, 0);
+			const better =
+				!best ||
+				tallest < best.tallest - 1e-9 ||
+				(Math.abs(tallest - best.tallest) <= 1e-9 &&
+					(spread < best.spread - 1e-9 ||
+						(Math.abs(spread - best.spread) <= 1e-9 &&
+							starts.some(
+								(start, i) =>
+									start > (best?.starts[i] ?? 0) &&
+									starts.slice(0, i).every((s, j) => s === best?.starts[j]),
+							))));
+			if (better) best = { starts: [...starts], tallest, spread };
+			return;
+		}
+		const from = starts[starts.length - 1] + 1;
+		for (let start = from; start <= n - (count - starts.length); start++)
+			visit([...starts, start]);
+	};
+	visit([0]);
+	return best?.starts ?? [0];
+}

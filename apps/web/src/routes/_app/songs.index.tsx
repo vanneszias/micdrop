@@ -3,17 +3,13 @@ import {
 	arrangementFingerprint,
 	copyArrangement,
 } from "@chords/data";
-import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
 } from "@chords/ui/components/dropdown-menu";
 import {
 	Empty,
@@ -23,12 +19,6 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@chords/ui/components/empty";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableRow,
-} from "@chords/ui/components/table";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	Archive,
@@ -38,7 +28,6 @@ import {
 	FolderInput,
 	Globe,
 	Lock,
-	MoreHorizontal,
 	Music,
 	Pencil,
 	PencilLine,
@@ -52,6 +41,13 @@ import { z } from "zod";
 import { LibraryChip } from "#/components/app-sidebar";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
+import {
+	KeyBadge,
+	OverflowMenu,
+	rowTarget,
+	SongList,
+	SongRow,
+} from "#/components/song-row";
 import { useApp } from "#/features/app-context";
 import { ShareDialog } from "#/features/share-dialog";
 import {
@@ -135,206 +131,176 @@ function Songs() {
 					/>
 				) : null}
 				{shown.length ? (
-					<div className="rounded-lg border">
-						<Table>
-							<TableBody>
-								{shown.map((song) => (
-									<TableRow key={song.id} className="relative h-15">
-										<TableCell className="w-px pl-4">
-											<Badge
-												variant="secondary"
-												className="min-w-8 justify-center font-mono text-xs"
+					<SongList>
+						{shown.map((song) => (
+							<SongRow
+								key={song.id}
+								leading={<KeyBadge>{song.data.key}</KeyBadge>}
+								title={song.data.title}
+								meta={[
+									song.data.artist || "Unknown artist",
+									song.data.arrangementName,
+								]
+									.filter(Boolean)
+									.join(" · ")}
+								main={(content) => (
+									<Link
+										to="/songs/$id"
+										params={{ id: song.id }}
+										className={rowTarget}
+									>
+										{content}
+									</Link>
+								)}
+								trailing={
+									<>
+										<span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+											{song.data.draft ? (
+												<PencilLine className="size-4" />
+											) : song.data.visibility === "public" ? (
+												<Globe className="size-4" />
+											) : (
+												<Lock className="size-4" />
+											)}
+											<span className="max-sm:sr-only">
+												{song.data.draft
+													? "Draft"
+													: song.data.visibility === "public"
+														? "Public"
+														: "Private"}
+											</span>
+										</span>
+										<OverflowMenu label={`Actions for ${song.data.title}`}>
+											<DropdownMenuItem asChild>
+												<Link to="/songs/$id/edit" params={{ id: song.id }}>
+													<Pencil /> Edit
+												</Link>
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() =>
+													void run(
+														() =>
+															save(
+																freshArrangement(owner, {
+																	...song.data,
+																	arrangementName: `${song.data.arrangementName || "Standard"} (copy)`,
+																	visibility: "private",
+																	songId: song.data.songId || song.id,
+																	copiedFrom: song.id,
+																}),
+															),
+														"Copied",
+													)
+												}
 											>
-												{song.data.key}
-											</Badge>
-										</TableCell>
-										<TableCell className="w-full max-w-0">
-											<Link
-												to="/songs/$id"
-												params={{ id: song.id }}
-												className="block truncate font-medium after:absolute after:inset-0 hover:underline"
-											>
-												{song.data.title}
-											</Link>
-											<div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-												<span className="truncate">
-													{[
-														song.data.artist || "Unknown artist",
-														song.data.arrangementName,
-													]
-														.filter(Boolean)
-														.join(" · ")}
-												</span>
-											</div>
-										</TableCell>
-										<TableCell className="w-px text-right">
-											<Badge
-												variant="outline"
-												className="font-normal text-muted-foreground max-sm:border-transparent max-sm:px-1"
-											>
-												{song.data.draft ? (
-													<PencilLine />
-												) : song.data.visibility === "public" ? (
-													<Globe />
-												) : (
-													<Lock />
-												)}
-												<span className="max-sm:sr-only">
-													{song.data.draft
-														? "Draft"
-														: song.data.visibility === "public"
-															? "Public"
-															: "Private"}
-												</span>
-											</Badge>
-										</TableCell>
-										<TableCell className="relative z-[1] w-px pr-2 text-right">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="size-10"
-														aria-label={`Actions for ${song.data.title}`}
-													>
-														<MoreHorizontal />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem asChild>
-														<Link to="/songs/$id/edit" params={{ id: song.id }}>
-															<Pencil /> Edit
-														</Link>
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														onClick={() =>
-															void run(
-																() =>
-																	save(
-																		freshArrangement(owner, {
-																			...song.data,
-																			arrangementName: `${song.data.arrangementName || "Standard"} (copy)`,
-																			visibility: "private",
-																			songId: song.data.songId || song.id,
-																			copiedFrom: song.id,
-																		}),
-																	),
-																"Copied",
-															)
+												<CopyPlus /> Duplicate
+											</DropdownMenuItem>
+											<DropdownMenuItem onClick={() => exportSheet(song)}>
+												<Download /> Export ChordPro
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												disabled={
+													account === "local" ||
+													!movable ||
+													!!song.data.reviewRequired
+												}
+												onClick={() =>
+													void run(async () => {
+														if (
+															song.data.copiedFrom &&
+															song.data.sourceContentHash ===
+																(await arrangementFingerprint(
+																	song.data.content,
+																))
+														) {
+															toast.info(
+																"This arrangement is already public. Your unchanged copy stays private.",
+															);
+															return;
 														}
-													>
-														<CopyPlus /> Duplicate
-													</DropdownMenuItem>
-													<DropdownMenuItem onClick={() => exportSheet(song)}>
-														<Download /> Export ChordPro
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														disabled={
-															account === "local" ||
-															!movable ||
-															!!song.data.reviewRequired
-														}
-														onClick={() =>
-															void run(async () => {
-																if (
-																	song.data.copiedFrom &&
-																	song.data.sourceContentHash ===
-																		(await arrangementFingerprint(
-																			song.data.content,
-																		))
-																) {
-																	toast.info(
-																		"This arrangement is already public. Your unchanged copy stays private.",
-																	);
-																	return;
+														await save({
+															...song,
+															data: {
+																...song.data,
+																visibility: "public",
+																draft: false,
+															},
+														});
+														toast.success("Publication saved");
+													})
+												}
+											>
+												<Globe /> Publish
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												disabled={account === "local"}
+												onClick={() => setSharing(song)}
+											>
+												<Share2 /> Share link
+											</DropdownMenuItem>
+											{targets.length ? (
+												<DropdownMenuSub>
+													<DropdownMenuSubTrigger>
+														<FolderInput /> Copy to
+													</DropdownMenuSubTrigger>
+													<DropdownMenuSubContent>
+														{targets.map((target) => (
+															<DropdownMenuItem
+																key={target.id}
+																onClick={() =>
+																	void run(
+																		() =>
+																			save(copyArrangement(song, target.id)),
+																		`Copied to ${target.name}`,
+																	)
 																}
-																await save({
-																	...song,
-																	data: {
-																		...song.data,
-																		visibility: "public",
-																		draft: false,
-																	},
-																});
-																toast.success("Publication saved");
-															})
-														}
-													>
-														<Globe /> Publish
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														disabled={account === "local"}
-														onClick={() => setSharing(song)}
-													>
-														<Share2 /> Share link
-													</DropdownMenuItem>
-													{targets.length ? (
-														<DropdownMenuSub>
-															<DropdownMenuSubTrigger>
-																<FolderInput /> Copy to
-															</DropdownMenuSubTrigger>
-															<DropdownMenuSubContent>
-																{targets.map((target) => (
-																	<DropdownMenuItem
-																		key={target.id}
-																		onClick={() =>
-																			void run(
-																				() =>
-																					save(
-																						copyArrangement(song, target.id),
-																					),
-																				`Copied to ${target.name}`,
-																			)
-																		}
-																	>
-																		{target.name}
-																	</DropdownMenuItem>
-																))}
-															</DropdownMenuSubContent>
-														</DropdownMenuSub>
-													) : null}
-													{targets.length && movable ? (
-														<DropdownMenuSub>
-															<DropdownMenuSubTrigger>
-																<ArrowRightLeft /> Move to
-															</DropdownMenuSubTrigger>
-															<DropdownMenuSubContent>
-																{targets.map((target) => (
-																	<DropdownMenuItem
-																		key={target.id}
-																		onClick={() =>
-																			void run(
-																				() => move(song, target),
-																				`Moved to ${target.name}`,
-																			)
-																		}
-																	>
-																		{target.name}
-																	</DropdownMenuItem>
-																))}
-															</DropdownMenuSubContent>
-														</DropdownMenuSub>
-													) : null}
-													<DropdownMenuSeparator />
-													<DropdownMenuItem
-														variant="destructive"
-														onClick={() =>
-															void run(
-																() => save({ ...song, archived: true }),
-																"Archived",
-															)
-														}
-													>
-														<Archive /> Archive
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</div>
+															>
+																{target.name}
+															</DropdownMenuItem>
+														))}
+													</DropdownMenuSubContent>
+												</DropdownMenuSub>
+											) : null}
+											{targets.length && movable ? (
+												<DropdownMenuSub>
+													<DropdownMenuSubTrigger>
+														<ArrowRightLeft /> Move to
+													</DropdownMenuSubTrigger>
+													<DropdownMenuSubContent>
+														{targets.map((target) => (
+															<DropdownMenuItem
+																key={target.id}
+																onClick={() =>
+																	void run(
+																		() => move(song, target),
+																		`Moved to ${target.name}`,
+																	)
+																}
+															>
+																{target.name}
+															</DropdownMenuItem>
+														))}
+													</DropdownMenuSubContent>
+												</DropdownMenuSub>
+											) : null}
+											<DropdownMenuSeparator />
+											<DropdownMenuItem
+												variant="destructive"
+												onClick={() =>
+													void run(
+														() => save({ ...song, archived: true }),
+														"Archived",
+													)
+												}
+											>
+												<Archive /> Archive
+											</DropdownMenuItem>
+										</OverflowMenu>
+									</>
+								}
+							/>
+						))}
+					</SongList>
 				) : (
 					<Empty className="border border-dashed">
 						<EmptyHeader>

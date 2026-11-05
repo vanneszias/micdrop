@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	balanceColumns,
 	displayTranspose,
 	exportChordPro,
 	keyAccidental,
@@ -151,4 +152,24 @@ test("stripMetadata keeps everything but record-owned directives", () => {
 	expect(
 		stripMetadata("{title: A}\n{artist: B}\n{key: G}\n{tempo: 72}\n\n[G]Line"),
 	).toBe("{tempo: 72}\n\n[G]Line");
+});
+
+describe("balanced columns", () => {
+	test("splits sections so the tallest column is as short as possible", () => {
+		// Verse, chorus, verse, chorus, bridge: [6, 4, 6, 4, 2] splits 10 | 12 → 10 | 10 | 2 is worse.
+		expect(balanceColumns([6, 4, 6, 4, 2], 2)).toEqual([0, 2]);
+		expect(balanceColumns([6, 4, 6, 4, 2], 3)).toEqual([0, 2, 3]);
+	});
+	test("keeps one long section whole instead of splitting it", () => {
+		expect(balanceColumns([2, 20, 2], 2)).toEqual([0, 2]);
+	});
+	test("never makes more columns than sections, and one column starts at zero", () => {
+		expect(balanceColumns([5, 5], 3)).toEqual([0, 1]);
+		expect(balanceColumns([5, 5, 5], 1)).toEqual([0]);
+		expect(balanceColumns([], 2)).toEqual([0]);
+	});
+	test("prefers fuller early columns on a tie", () => {
+		expect(balanceColumns([3, 3, 3, 3], 2)).toEqual([0, 2]);
+		expect(balanceColumns([4, 2, 2], 2)).toEqual([0, 1]);
+	});
 });

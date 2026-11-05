@@ -25,6 +25,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@chords/ui/components/select";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@chords/ui/components/sheet";
 import { Switch } from "@chords/ui/components/switch";
 import { Textarea } from "@chords/ui/components/textarea";
 import { Toggle } from "@chords/ui/components/toggle";
@@ -47,6 +54,7 @@ import {
 	Eye,
 	Info,
 	Pencil,
+	SlidersHorizontal,
 	Wand2,
 	WrapText,
 } from "lucide-react";
@@ -57,6 +65,7 @@ import {
 	useEffect,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
 import { ChordProTextarea } from "#/components/chordpro-textarea";
@@ -116,6 +125,24 @@ const snippets = [
 	["Section", "\n{start_of_chorus: Chorus}\n\n{end_of_chorus}\n"],
 	["Note", "\n{comment: Play softly}\n"],
 ] as const;
+
+/** The song page's saved text size and lyrics-only choice, so the preview matches it. */
+function readerPreferences(account: string): {
+	fontSize?: number;
+	lyricsOnly?: boolean;
+} {
+	try {
+		const value = JSON.parse(
+			localStorage.getItem(`chords:player:${account}`) || "{}",
+		);
+		return {
+			fontSize: typeof value.fontSize === "number" ? value.fontSize : undefined,
+			lyricsOnly: value.lyricsOnly === true,
+		};
+	} catch {
+		return {};
+	}
+}
 
 export function Editor({
 	arrangement,
@@ -184,9 +211,20 @@ export function Editor({
 
 	const [saved, setSaved] = useState(true);
 	const [wrapLines, setWrapLines] = useState(true);
+	const wide = useSyncExternalStore(
+		(change) => {
+			const media = window.matchMedia("(min-width: 1024px)");
+			media.addEventListener("change", change);
+			return () => media.removeEventListener("change", change);
+		},
+		() => window.matchMedia("(min-width: 1024px)").matches,
+		() => true,
+	);
+	// Phones open the details sheet first only when a new import needs checking.
 	const [detailsOpen, setDetailsOpen] = useState(
 		() => !!arrangement.data.reviewRequired,
 	);
+	const [reader] = useState(() => readerPreferences(account));
 	// Side-by-side preview needs room; on small screens it starts hidden below the editor.
 	const [preview, setPreview] = useState(
 		() =>
@@ -239,6 +277,258 @@ export function Editor({
 			element?.setSelectionRange(start + value.length, start + value.length);
 		});
 	}
+	const details = (
+		<div className="space-y-4">
+			<div className="grid grid-cols-2 gap-3 lg:grid-cols-12">
+				<Field className="col-span-2 lg:col-span-3">
+					<FieldLabel htmlFor="title">Title</FieldLabel>
+					<Input
+						id="title"
+						value={draft.data.title}
+						onChange={(event) => update("title", event.target.value)}
+					/>
+				</Field>
+				<Field className="lg:col-span-2">
+					<FieldLabel htmlFor="artist">Artist</FieldLabel>
+					<Input
+						id="artist"
+						value={draft.data.artist}
+						onChange={(event) => update("artist", event.target.value)}
+					/>
+				</Field>
+				<Field className="lg:col-span-2">
+					<FieldLabel>Key</FieldLabel>
+					<KeySelect
+						value={draft.data.key}
+						onChange={(key) => update("key", key)}
+					/>
+				</Field>
+				<Field className="lg:col-span-2">
+					<FieldLabel>Capo</FieldLabel>
+					<CapoSelect
+						value={draft.data.sourceCapo}
+						onChange={(capo) => update("sourceCapo", capo)}
+					/>
+				</Field>
+				<Field className="lg:col-span-3">
+					<FieldLabel htmlFor="publication-state">
+						Visibility
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Info
+									className="size-3.5 text-muted-foreground"
+									aria-label="About visibility"
+								/>
+							</TooltipTrigger>
+							<TooltipContent className="max-w-64">
+								{draft.data.reviewRequired
+									? "Nothing is published until you save."
+									: state === "draft"
+										? "Drafts work in setlists. Visitors keep seeing the last published version."
+										: state === "public"
+											? "Saved edits, including notes in the sheet, are visible to everyone."
+											: "Only you or this band can see this arrangement."}
+								{account === "local"
+									? " Sign in to publish or sync; until then it stays on this device."
+									: ""}
+							</TooltipContent>
+						</Tooltip>
+					</FieldLabel>
+					<Select
+						value={state}
+						onValueChange={(value) => {
+							setState(value);
+							setSaved(false);
+							setDraft((previous) => ({
+								...previous,
+								data: {
+									...previous.data,
+									visibility: value === "private" ? "private" : "public",
+									draft: previous.data.reviewRequired || value === "draft",
+								},
+							}));
+						}}
+					>
+						<SelectTrigger
+							id="publication-state"
+							aria-label="Visibility"
+							className="w-full"
+						>
+							<SelectValue>
+								{visibilityOptions.find(([value]) => value === state)?.[1]}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							{visibilityOptions.map(([value, label, hint]) => (
+								<SelectItem key={value} value={value}>
+									{label}
+									<span className="text-muted-foreground">{hint}</span>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</Field>
+			</div>
+			<div>
+				<EditorSection
+					title="More options"
+					summary={[
+						draft.data.arrangementName || "Standard version",
+						draft.data.songId && draft.data.songId !== draft.id
+							? "linked to a catalogue song"
+							: "own song",
+						draft.data.performanceKey &&
+						draft.data.performanceKey !== draft.data.key
+							? `you play in ${draft.data.performanceKey}`
+							: null,
+					]
+						.filter(Boolean)
+						.join(" · ")}
+					defaultOpen={
+						draft.data.reviewRequired && draft.data.title !== "Untitled song"
+					}
+				>
+					<div className="space-y-6">
+						<div className="grid gap-3 sm:grid-cols-2">
+							<Field>
+								<FieldLabel htmlFor="arrangement-name">Version</FieldLabel>
+								<Input
+									id="arrangement-name"
+									placeholder="Acoustic, live, full band…"
+									value={draft.data.arrangementName || ""}
+									onChange={(event) =>
+										update("arrangementName", event.target.value)
+									}
+								/>
+							</Field>
+							<Field>
+								<FieldLabel htmlFor="public-description">
+									Description
+								</FieldLabel>
+								<Input
+									id="public-description"
+									placeholder="Shown in the public catalogue"
+									value={draft.data.description || ""}
+									onChange={(event) =>
+										update("description", event.target.value)
+									}
+								/>
+							</Field>
+						</div>
+						<div className="space-y-3 border-t pt-6">
+							<h3 className="text-sm font-semibold">Catalogue</h3>
+							<p className="text-xs text-muted-foreground">
+								If this is another version of a song that already exists, link
+								it so both versions are grouped together.
+							</p>
+							<CatalogueSearch
+								initialQuery={
+									draft.data.title === "Untitled song" ? "" : draft.data.title
+								}
+								excludeId={draft.id}
+								chooseGroup={(group) => {
+									update("songId", group.id);
+									toast.success(`Grouped under ${group.title}`);
+								}}
+								onSelect={async (source) => {
+									if (source.id === draft.id) return;
+									setFinishing(true);
+									try {
+										await persist(draft);
+										const existing = arrangements.find(
+											(song) =>
+												song.owner === owner &&
+												(song.id === source.id ||
+													song.data.copiedFrom === source.id),
+										);
+										const copy = existing || copyArrangement(source, owner);
+										await saveMany([
+											copy,
+											...(draft.data.reviewRequired
+												? [{ ...draft, archived: true }]
+												: []),
+										]);
+										await navigate({
+											to: "/songs/$id",
+											params: { id: copy.id },
+										});
+									} finally {
+										setFinishing(false);
+									}
+								}}
+							/>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={() => update("songId", draft.id)}
+							>
+								This is a different song
+							</Button>
+						</div>
+						<div className="space-y-3 border-t pt-6">
+							<h3 className="text-sm font-semibold">
+								Just for me{" "}
+								<span className="font-normal text-muted-foreground">
+									· private to you
+								</span>
+							</h3>
+							<div className="grid gap-3 sm:grid-cols-2">
+								<Field>
+									<FieldLabel>My key</FieldLabel>
+									<KeySelect
+										value={draft.data.performanceKey || draft.data.key}
+										onChange={(key) => update("performanceKey", key)}
+									/>
+								</Field>
+								<Field>
+									<FieldLabel>My capo</FieldLabel>
+									<CapoSelect
+										value={draft.data.performanceCapo ?? draft.data.sourceCapo}
+										onChange={(capo) => update("performanceCapo", capo)}
+									/>
+								</Field>
+								<Field className="sm:col-span-2">
+									<FieldLabel htmlFor="private-notes">
+										Rehearsal notes
+									</FieldLabel>
+									<Textarea
+										id="private-notes"
+										placeholder="Only you see these"
+										value={draft.data.privateNotes || ""}
+										onChange={(event) =>
+											update("privateNotes", event.target.value)
+										}
+									/>
+								</Field>
+								<label
+									htmlFor="preferred-arrangement"
+									className="flex items-center gap-3 text-sm sm:col-span-2"
+								>
+									<Switch
+										id="preferred-arrangement"
+										checked={!!draft.data.preferred}
+										onCheckedChange={(preferred) =>
+											update("preferred", preferred)
+										}
+									/>
+									Use this version by default when adding the song to a setlist
+								</label>
+							</div>
+						</div>
+					</div>
+				</EditorSection>
+			</div>
+		</div>
+	);
+	const summary = [
+		draft.data.artist || "No artist",
+		`Key ${draft.data.key}`,
+		draft.data.sourceCapo ? `Capo ${draft.data.sourceCapo}` : null,
+		visibilityOptions.find(([value]) => value === state)?.[1],
+	]
+		.filter(Boolean)
+		.join(" · ");
 	return (
 		<>
 			<PageHeader
@@ -287,293 +577,46 @@ export function Editor({
 				</Button>
 			</PageHeader>
 			<div className="w-full space-y-4 p-4">
-				{/* Phones fold the song details into one summary row so the sheet leads. */}
-				<button
-					type="button"
-					className="flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm lg:hidden"
-					aria-expanded={detailsOpen}
-					onClick={() => setDetailsOpen((open) => !open)}
-				>
-					<span className="font-medium">Details</span>
-					<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-						{[
-							draft.data.artist || "No artist",
-							`Key ${draft.data.key}`,
-							draft.data.sourceCapo ? `Capo ${draft.data.sourceCapo}` : null,
-							visibilityOptions.find(([value]) => value === state)?.[1],
-						]
-							.filter(Boolean)
-							.join(" · ")}
-					</span>
-					<ChevronRight
-						className={cn(
-							"size-4 text-muted-foreground transition-transform",
-							detailsOpen && "rotate-90",
-						)}
-					/>
-				</button>
-				<div
-					className={cn(
-						"grid grid-cols-2 gap-3 lg:grid-cols-12",
-						!detailsOpen && "max-lg:hidden",
-					)}
-				>
-					<Field className="col-span-2 lg:col-span-3">
-						<FieldLabel htmlFor="title">Title</FieldLabel>
-						<Input
-							id="title"
-							value={draft.data.title}
-							onChange={(event) => update("title", event.target.value)}
-						/>
-					</Field>
-					<Field className="lg:col-span-2">
-						<FieldLabel htmlFor="artist">Artist</FieldLabel>
-						<Input
-							id="artist"
-							value={draft.data.artist}
-							onChange={(event) => update("artist", event.target.value)}
-						/>
-					</Field>
-					<Field className="lg:col-span-2">
-						<FieldLabel>Key</FieldLabel>
-						<KeySelect
-							value={draft.data.key}
-							onChange={(key) => update("key", key)}
-						/>
-					</Field>
-					<Field className="lg:col-span-2">
-						<FieldLabel>Capo</FieldLabel>
-						<CapoSelect
-							value={draft.data.sourceCapo}
-							onChange={(capo) => update("sourceCapo", capo)}
-						/>
-					</Field>
-					<Field className="lg:col-span-3">
-						<FieldLabel htmlFor="publication-state">
-							Visibility
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Info
-										className="size-3.5 text-muted-foreground"
-										aria-label="About visibility"
-									/>
-								</TooltipTrigger>
-								<TooltipContent className="max-w-64">
-									{draft.data.reviewRequired
-										? "Nothing is published until you save."
-										: state === "draft"
-											? "Drafts work in setlists. Visitors keep seeing the last published version."
-											: state === "public"
-												? "Saved edits, including notes in the sheet, are visible to everyone."
-												: "Only you or this band can see this arrangement."}
-									{account === "local"
-										? " Sign in to publish or sync; until then it stays on this device."
-										: ""}
-								</TooltipContent>
-							</Tooltip>
-						</FieldLabel>
-						<Select
-							value={state}
-							onValueChange={(value) => {
-								setState(value);
-								setSaved(false);
-								setDraft((previous) => ({
-									...previous,
-									data: {
-										...previous.data,
-										visibility: value === "private" ? "private" : "public",
-										draft: previous.data.reviewRequired || value === "draft",
-									},
-								}));
-							}}
+				{wide ? details : null}
+				{wide ? null : (
+					<Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+						<SheetContent
+							side="bottom"
+							className="max-h-[90svh] gap-0 overflow-y-auto rounded-t-2xl"
+							// Opening shows the fields; the keyboard comes up only when one is tapped.
+							onOpenAutoFocus={(event) => event.preventDefault()}
 						>
-							<SelectTrigger
-								id="publication-state"
-								aria-label="Visibility"
-								className="w-full"
-							>
-								<SelectValue>
-									{visibilityOptions.find(([value]) => value === state)?.[1]}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{visibilityOptions.map(([value, label, hint]) => (
-									<SelectItem key={value} value={value}>
-										{label}
-										<span className="text-muted-foreground">{hint}</span>
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</Field>
-				</div>
-				<div className={cn(!detailsOpen && "max-lg:hidden")}>
-					<EditorSection
-						title="More options"
-						summary={[
-							draft.data.arrangementName || "Standard version",
-							draft.data.songId && draft.data.songId !== draft.id
-								? "linked to a catalogue song"
-								: "own song",
-							draft.data.performanceKey &&
-							draft.data.performanceKey !== draft.data.key
-								? `you play in ${draft.data.performanceKey}`
-								: null,
-						]
-							.filter(Boolean)
-							.join(" · ")}
-						defaultOpen={
-							draft.data.reviewRequired && draft.data.title !== "Untitled song"
-						}
+							<SheetHeader>
+								<SheetTitle>Song details</SheetTitle>
+								<SheetDescription>{summary}</SheetDescription>
+							</SheetHeader>
+							<div className="px-4 pb-6">{details}</div>
+						</SheetContent>
+					</Sheet>
+				)}
+				<div className="flex items-center gap-2 lg:hidden">
+					<ToggleGroup
+						type="single"
+						variant="outline"
+						className="flex-1"
+						value={preview ? "preview" : "edit"}
+						onValueChange={(value) => value && setPreview(value === "preview")}
 					>
-						<div className="space-y-6">
-							<div className="grid gap-3 sm:grid-cols-2">
-								<Field>
-									<FieldLabel htmlFor="arrangement-name">Version</FieldLabel>
-									<Input
-										id="arrangement-name"
-										placeholder="Acoustic, live, full band…"
-										value={draft.data.arrangementName || ""}
-										onChange={(event) =>
-											update("arrangementName", event.target.value)
-										}
-									/>
-								</Field>
-								<Field>
-									<FieldLabel htmlFor="public-description">
-										Description
-									</FieldLabel>
-									<Input
-										id="public-description"
-										placeholder="Shown in the public catalogue"
-										value={draft.data.description || ""}
-										onChange={(event) =>
-											update("description", event.target.value)
-										}
-									/>
-								</Field>
-							</div>
-							<div className="space-y-3 border-t pt-6">
-								<h3 className="text-sm font-semibold">Catalogue</h3>
-								<p className="text-xs text-muted-foreground">
-									If this is another version of a song that already exists, link
-									it so both versions are grouped together.
-								</p>
-								<CatalogueSearch
-									initialQuery={
-										draft.data.title === "Untitled song" ? "" : draft.data.title
-									}
-									excludeId={draft.id}
-									chooseGroup={(group) => {
-										update("songId", group.id);
-										toast.success(`Grouped under ${group.title}`);
-									}}
-									onSelect={async (source) => {
-										if (source.id === draft.id) return;
-										setFinishing(true);
-										try {
-											await persist(draft);
-											const existing = arrangements.find(
-												(song) =>
-													song.owner === owner &&
-													(song.id === source.id ||
-														song.data.copiedFrom === source.id),
-											);
-											const copy = existing || copyArrangement(source, owner);
-											await saveMany([
-												copy,
-												...(draft.data.reviewRequired
-													? [{ ...draft, archived: true }]
-													: []),
-											]);
-											await navigate({
-												to: "/songs/$id",
-												params: { id: copy.id },
-											});
-										} finally {
-											setFinishing(false);
-										}
-									}}
-								/>
-								<Button
-									type="button"
-									size="sm"
-									variant="outline"
-									onClick={() => update("songId", draft.id)}
-								>
-									This is a different song
-								</Button>
-							</div>
-							<div className="space-y-3 border-t pt-6">
-								<h3 className="text-sm font-semibold">
-									Just for me{" "}
-									<span className="font-normal text-muted-foreground">
-										· private to you
-									</span>
-								</h3>
-								<div className="grid gap-3 sm:grid-cols-2">
-									<Field>
-										<FieldLabel>My key</FieldLabel>
-										<KeySelect
-											value={draft.data.performanceKey || draft.data.key}
-											onChange={(key) => update("performanceKey", key)}
-										/>
-									</Field>
-									<Field>
-										<FieldLabel>My capo</FieldLabel>
-										<CapoSelect
-											value={
-												draft.data.performanceCapo ?? draft.data.sourceCapo
-											}
-											onChange={(capo) => update("performanceCapo", capo)}
-										/>
-									</Field>
-									<Field className="sm:col-span-2">
-										<FieldLabel htmlFor="private-notes">
-											Rehearsal notes
-										</FieldLabel>
-										<Textarea
-											id="private-notes"
-											placeholder="Only you see these"
-											value={draft.data.privateNotes || ""}
-											onChange={(event) =>
-												update("privateNotes", event.target.value)
-											}
-										/>
-									</Field>
-									<label
-										htmlFor="preferred-arrangement"
-										className="flex items-center gap-3 text-sm sm:col-span-2"
-									>
-										<Switch
-											id="preferred-arrangement"
-											checked={!!draft.data.preferred}
-											onCheckedChange={(preferred) =>
-												update("preferred", preferred)
-											}
-										/>
-										Use this version by default when adding the song to a
-										setlist
-									</label>
-								</div>
-							</div>
-						</div>
-					</EditorSection>
+						<ToggleGroupItem value="edit" className="flex-1">
+							<Pencil /> Edit
+						</ToggleGroupItem>
+						<ToggleGroupItem value="preview" className="flex-1">
+							<Eye /> Preview
+						</ToggleGroupItem>
+					</ToggleGroup>
+					<Button
+						variant="outline"
+						onClick={() => setDetailsOpen(true)}
+						aria-label={`Song details: ${summary}`}
+					>
+						<SlidersHorizontal /> Details
+					</Button>
 				</div>
-				<ToggleGroup
-					type="single"
-					variant="outline"
-					className="w-full lg:hidden"
-					value={preview ? "preview" : "edit"}
-					onValueChange={(value) => value && setPreview(value === "preview")}
-				>
-					<ToggleGroupItem value="edit" className="flex-1">
-						<Pencil /> Edit
-					</ToggleGroupItem>
-					<ToggleGroupItem value="preview" className="flex-1">
-						<Eye /> Preview
-					</ToggleGroupItem>
-				</ToggleGroup>
 				<div className={preview ? "grid gap-4 lg:grid-cols-2" : ""}>
 					{/* On small screens the preview replaces the source instead of stacking under it. */}
 					<div className={cn("space-y-2", preview && "max-lg:hidden")}>
@@ -671,18 +714,23 @@ export function Editor({
 						) : null}
 					</div>
 					{preview ? (
-						<div className="min-w-0 rounded-lg border bg-card/40 p-4 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
-							<header className="mb-5">
-								<p className="text-xl font-semibold tracking-tight">
+						<div className="min-w-0 rounded-lg border bg-card/40 px-5 py-6 sm:px-6 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
+							<header className="mb-5 sm:mb-7">
+								<p className="text-2xl font-semibold tracking-tight sm:text-3xl">
 									{draft.data.title || "Untitled song"}
 								</p>
-								<p className="text-sm text-muted-foreground">
+								<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
 									{[draft.data.artist, `Key ${draft.data.key}`]
 										.filter(Boolean)
 										.join(" · ")}
 								</p>
 							</header>
-							<SongSheet content={content} fontSize={20} />
+							{/* Same size and options as the song page, so the preview is what you will play. */}
+							<SongSheet
+								content={content}
+								fontSize={reader.fontSize ?? (wide ? 23 : 17)}
+								chords={!reader.lyricsOnly}
+							/>
 						</div>
 					) : null}
 				</div>

@@ -4,11 +4,13 @@ import {
 	KEYS,
 	keyAccidental,
 	keyDistance,
+	sheetChords,
 	shiftKey,
 } from "@chords/song-core";
 import { ChordDiagrams, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import { ButtonGroup } from "@chords/ui/components/button-group";
+import { DropdownMenuItem } from "@chords/ui/components/dropdown-menu";
 import { Label } from "@chords/ui/components/label";
 import {
 	Popover,
@@ -32,7 +34,6 @@ import {
 	Gauge,
 	Guitar,
 	Maximize2,
-	Minimize2,
 	Minus,
 	Pause,
 	Pencil,
@@ -46,7 +47,9 @@ import { z } from "zod";
 import { IconTip } from "#/components/icon-tip";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
+import { OverflowMenu } from "#/components/song-row";
 import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
+import { ChordSheet, Stage } from "#/features/stage";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
@@ -180,6 +183,8 @@ export function Player({
 	const delta = displayTranspose(shown.data.key, key, shapes ? capo : 0);
 	// Spell chords for the key they are shown in, so Ab shows Db rather than C#.
 	const accidental = keyAccidental(shiftKey(shown.data.key, delta));
+	// Stage mode swaps the scrolling element, so autoscroll rebinds when it changes.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
 	useEffect(() => {
 		if (!scrolling) return;
 		let frame: number;
@@ -222,7 +227,7 @@ export function Player({
 			clearTimeout(resume);
 			for (const name of events) element?.removeEventListener(name, hold);
 		};
-	}, [scrolling, speed]);
+	}, [scrolling, speed, stage]);
 	useEffect(() => {
 		const pause = () => {
 			if (document.hidden) setScrolling(false);
@@ -249,93 +254,88 @@ export function Player({
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [next, previous]);
+	const enterStage = () => {
+		// Stage mode hides the app around the sheet: full screen, no sidebar.
+		setOpen(false);
+		setStage(true);
+		void document.documentElement.requestFullscreen?.().catch(() => {});
+	};
 	const leaveStage = () => {
 		if (document.fullscreenElement) void document.exitFullscreen();
 		setStage(false);
 		setOpen(true);
 	};
+	const [chord, setChord] = useState<string>();
+	const songChords = sheetChords(shown.data.content, delta, accidental);
+	if (stage)
+		return (
+			<Stage
+				scroller={sheet}
+				title={shown.data.title}
+				meta={[
+					`Key ${key}`,
+					lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
+				]
+					.filter(Boolean)
+					.join(" · ")}
+				notes={notes}
+				content={shown.data.content}
+				semitones={delta}
+				accidental={accidental}
+				chords={!lyricsOnly}
+				baseSize={fontSize}
+				scrolling={scrolling}
+				onScrolling={setScrolling}
+				previous={previous}
+				next={next}
+				previousTitle={previousTitle}
+				nextTitle={nextTitle}
+				onExit={leaveStage}
+			/>
+		);
 	return (
-		<div
-			className={cn(
-				"flex h-svh flex-col",
-				stage
-					? "fixed inset-0 z-40 bg-background"
-					: "md:h-[calc(100svh-1.5rem)]",
-			)}
-		>
-			{stage ? (
+		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
+			<PageHeader
+				back
+				headingInBody
+				crumbs={[
+					playing
+						? { label: "Setlists", to: "/setlists" }
+						: { label: "Repertoire", to: "/songs" },
+				]}
+				title={
+					playing ? <SetlistSheet title={shown.data.title} /> : shown.data.title
+				}
+			>
+				{actions}
+				{readOnly ? null : (
+					<Button variant="outline" size="sm" asChild>
+						<Link
+							to="/songs/$id/edit"
+							params={{ id: arrangement.id }}
+							aria-label="Edit"
+						>
+							<Pencil /> <span className="max-sm:hidden">Edit</span>
+						</Link>
+					</Button>
+				)}
 				<Button
-					variant="secondary"
+					variant="outline"
 					size="sm"
-					className="fixed top-3 right-3 z-50 shadow-sm"
-					onClick={leaveStage}
+					aria-label="Stage mode"
+					onClick={enterStage}
 				>
-					<Minimize2 /> Exit stage
+					<Maximize2 /> <span className="max-sm:hidden">Stage</span>
 				</Button>
-			) : null}
-			<div className={stage ? "hidden" : "contents"}>
-				<PageHeader
-					back
-					headingInBody
-					crumbs={[
-						playing
-							? { label: "Setlists", to: "/setlists" }
-							: { label: "Repertoire", to: "/songs" },
-					]}
-					title={
-						playing ? (
-							<SetlistSheet title={shown.data.title} />
-						) : (
-							shown.data.title
-						)
-					}
-				>
-					{actions}
-					{readOnly ? null : (
-						<Button variant="outline" size="sm" asChild>
-							<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
-								<Pencil /> <span className="max-sm:sr-only">Edit</span>
-							</Link>
-						</Button>
-					)}
-					<IconTip label={stage ? "Leave stage mode" : "Stage mode"}>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="max-sm:hidden"
-							aria-label={stage ? "Leave stage mode" : "Stage mode"}
-							aria-pressed={stage}
-							onClick={() => {
-								// Stage mode hides the app around the sheet: full screen, no sidebar.
-								if (stage) return leaveStage();
-								setOpen(false);
-								setStage(true);
-								void document.documentElement
-									.requestFullscreen?.()
-									.catch(() => {});
-							}}
-						>
-							{stage ? <Minimize2 /> : <Maximize2 />}
-						</Button>
-					</IconTip>
-					<IconTip label="Print">
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label="Print"
-							onClick={() => window.print()}
-						>
-							<Printer />
-						</Button>
-					</IconTip>
-				</PageHeader>
-			</div>
+				<OverflowMenu label="More song actions">
+					<DropdownMenuItem onSelect={() => window.print()}>
+						<Printer /> Print
+					</DropdownMenuItem>
+				</OverflowMenu>
+			</PageHeader>
 			<div
 				data-print="hide"
-				className={cn(
-					"flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0",
-					stage && "hidden",
-				)}
+				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0"
 			>
 				<div className="flex items-center gap-2 max-sm:hidden">
 					<ButtonGroup aria-label="Key">
@@ -569,10 +569,10 @@ export function Player({
 							content={shown.data.content}
 							semitones={delta}
 							accidental={accidental}
-							// Stage mode trades the hidden controls for larger text.
-							fontSize={stage ? fontSize + 4 : fontSize}
+							fontSize={fontSize}
 							columns={columns}
 							chords={!lyricsOnly}
+							onChord={setChord}
 						/>
 					</article>
 					{diagrams && !lyricsOnly ? (
@@ -605,23 +605,9 @@ export function Player({
 					</div>
 				</div>
 			) : null}
-			{nextTitle && !diagrams ? (
-				<button
-					type="button"
-					data-print="hide"
-					onClick={next}
-					className="flex shrink-0 items-center gap-2 border-t px-4 py-2 text-left text-xs text-muted-foreground sm:hidden"
-				>
-					Up next
-					<span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-						{nextTitle}
-					</span>
-					<ChevronRight className="size-4" />
-				</button>
-			) : null}
 			<footer
 				data-print="hide"
-				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2"
+				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2 max-sm:grid-cols-[auto_auto_minmax(0,1fr)] max-sm:px-2"
 			>
 				<Button
 					variant="ghost"
@@ -699,12 +685,10 @@ export function Player({
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
-					<span className={cn("truncate", !diagrams && "max-sm:hidden")}>
-						{nextTitle && !diagrams ? (
+					<span className="truncate">
+						{nextTitle ? (
 							<>
-								<span className="text-muted-foreground max-sm:hidden">
-									Next:{" "}
-								</span>
+								<span className="text-muted-foreground">Next </span>
 								{nextTitle}
 							</>
 						) : (
@@ -714,6 +698,12 @@ export function Player({
 					<ChevronRight />
 				</Button>
 			</footer>
+			<ChordSheet
+				chord={chord}
+				chords={songChords}
+				onChord={setChord}
+				onClose={() => setChord(undefined)}
+			/>
 		</div>
 	);
 }
