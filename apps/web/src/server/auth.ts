@@ -3,7 +3,7 @@ import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
 import { passkey } from "@better-auth/passkey";
 import { validateSourceUrl } from "@chords/imports";
-import { logger } from "@sentry/cloudflare";
+import { captureException, logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { APIError, isAPIError } from "better-auth/api";
 import {

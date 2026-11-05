@@ -22,8 +22,9 @@ export default defineConfig({
 			manifest: {
 				name: "Mic Drop",
 				short_name: "Mic Drop",
-				theme_color: "#0a0a0a",
-				background_color: "#0a0a0a",
+				description: "Your chord sheets, in your key. Works offline.",
+				theme_color: "#141210",
+				background_color: "#141210",
 				display: "standalone",
 				start_url: "/",
 				icons: [
@@ -33,11 +34,19 @@ export default defineConfig({
 						type: "image/svg+xml",
 						purpose: "any",
 					},
+					{ src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+					{ src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+					{
+						src: "/icon-maskable-512.png",
+						sizes: "512x512",
+						type: "image/png",
+						purpose: "maskable",
+					},
 				],
 			},
 			workbox: {
 				navigateFallback: "/offline.html",
-				globPatterns: ["**/*.{js,css,svg,html,woff2}"],
+				globPatterns: ["**/*.{js,css,svg,png,ico,html,woff2}"],
 				navigateFallbackDenylist: [/^\/api\//],
 			},
 		}),

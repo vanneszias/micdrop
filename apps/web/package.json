@@ -21,6 +21,7 @@
     "@better-auth/mcp": "^1.7.14",
     "@better-auth/oauth-provider": "^1.7.14",
     "@better-auth/passkey": "1.7.14",
+    "@cf-wasm/og": "^0.5.0",
     "@chords/data": "workspace:*",
     "@chords/imports": "workspace:*",
     "@chords/song-core": "workspace:*",

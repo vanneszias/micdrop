@@ -24,6 +24,7 @@ import { Route as ApiAdminRouteImport } from './routes/api/admin'
 import { Route as ApiBandsRouteImport } from './routes/api/bands'
 import { Route as ApiImportRouteImport } from './routes/api/import'
 import { Route as ApiImportPdfRouteImport } from './routes/api/import-pdf'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as ApiPublicationsRouteImport } from './routes/api/publications'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSharesRouteImport } from './routes/api/shares'
@@ -122,6 +123,11 @@ const ApiImportRoute = ApiImportRouteImport.update({
 const ApiImportPdfRoute = ApiImportPdfRouteImport.update({
   id: '/api/import-pdf',
   path: '/api/import-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicationsRoute = ApiPublicationsRouteImport.update({
@@ -265,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
+  '/api/og': typeof ApiOgRoute
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRoute
@@ -304,6 +311,7 @@ export interface FileRoutesByTo {
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
+  '/api/og': typeof ApiOgRoute
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/api/bands': typeof ApiBandsRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
+  '/api/og': typeof ApiOgRoute
   '/api/publications': typeof ApiPublicationsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/shares': typeof ApiSharesRoute
@@ -391,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
+    | '/api/og'
     | '/api/publications'
     | '/api/search'
     | '/api/shares'
@@ -430,6 +440,7 @@ export interface FileRouteTypes {
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
+    | '/api/og'
     | '/api/publications'
     | '/api/search'
     | '/api/shares'
@@ -472,6 +483,7 @@ export interface FileRouteTypes {
     | '/api/bands'
     | '/api/import'
     | '/api/import-pdf'
+    | '/api/og'
     | '/api/publications'
     | '/api/search'
     | '/api/shares'
@@ -511,6 +523,7 @@ export interface RootRouteChildren {
   ApiBandsRoute: typeof ApiBandsRoute
   ApiImportRoute: typeof ApiImportRoute
   ApiImportPdfRoute: typeof ApiImportPdfRouteWithChildren
+  ApiOgRoute: typeof ApiOgRoute
   ApiPublicationsRoute: typeof ApiPublicationsRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSharesRoute: typeof ApiSharesRoute
@@ -623,6 +636,13 @@ declare module '@tanstack/react-router' {
       path: '/api/import-pdf'
       fullPath: '/api/import-pdf'
       preLoaderRoute: typeof ApiImportPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/publications': {
@@ -892,6 +912,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBandsRoute: ApiBandsRoute,
   ApiImportRoute: ApiImportRoute,
   ApiImportPdfRoute: ApiImportPdfRouteWithChildren,
+  ApiOgRoute: ApiOgRoute,
   ApiPublicationsRoute: ApiPublicationsRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSharesRoute: ApiSharesRoute,

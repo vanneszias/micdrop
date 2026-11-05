@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { authEmail, sendEmail } from "./email";
 import { localSql } from "./test-db";
 
-test("auth mail contains text and escaped HTML links, uses the Mic Drop sender, and propagates delivery errors", async () => {
+test("auth mail is branded, contains text and escaped HTML links, uses the Mic Drop sender, and propagates delivery errors", async () => {
 	const expected = {
 		welcome: ["Welcome", "24 hours"],
 		verify: ["Confirm", "24 hours"],
@@ -21,6 +21,9 @@ test("auth mail contains text and escaped HTML links, uses the Mic Drop sender, 
 		expect(template.html).toContain("&#38;callbackURL=&#34;quoted&#34;");
 		expect(template.text).toContain(`expires in ${expiry}`);
 		expect(template.subject).toContain(subject);
+		// Branded layout: the logo and footer come from the deployment that sent the link.
+		expect(template.html).toContain('src="https://micdrop.day/icon-192.png"');
+		expect(template.html).toContain("Your chord sheets, in your key.");
 		if (kind === "change") {
 			expect(template.text).toContain("<new@chords.test>");
 			expect(template.html).toContain("&#60;new@chords.test&#62;");

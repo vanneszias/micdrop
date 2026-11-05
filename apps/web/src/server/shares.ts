@@ -204,3 +204,44 @@ export async function acceptInvite(userId: string, id: string) {
 		.run();
 	return { bandId: link.target };
 }
+
+export type ShareCard = { label: string; title: string; description: string };
+
+/** The card every page without a share token previews with. */
+export const DEFAULT_CARD: ShareCard = {
+	label: "Chord sheets",
+	title: "Your chord sheets, in your key.",
+	description:
+		"Import, transpose and play your songbook with your band. Works offline.",
+};
+
+/** What a link preview shows for a share token, or nothing once the link is gone. */
+export async function shareCard(id: string): Promise<ShareCard | undefined> {
+	const share = await resolveShare(id).catch((error) => {
+		if (error instanceof HttpError && error.status === 404) return undefined;
+		throw error;
+	});
+	if (!share) return undefined;
+	if (share.kind === "invite")
+		return {
+			label: "Band invite",
+			title: `Join ${share.band.name} on Mic Drop`,
+			description: `${share.inviter} invited you to the band as ${share.role === "editor" ? "an editor" : "a viewer"}.`,
+		};
+	if (share.kind === "song") {
+		const { title, artist, key } = share.record.data;
+		return {
+			label: "Shared song",
+			title,
+			description:
+				[artist, key && `Key of ${key}`].filter(Boolean).join(" · ") ||
+				"A chord sheet on Mic Drop",
+		};
+	}
+	const count = share.record.data.entries.length;
+	return {
+		label: "Shared setlist",
+		title: share.record.data.title,
+		description: `${count} ${count === 1 ? "song" : "songs"} on Mic Drop`,
+	};
+}
