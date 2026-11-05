@@ -4,8 +4,11 @@ import {
 	defaultStreamHandler,
 } from "@tanstack/react-start/server";
 import { createServerEntry } from "@tanstack/react-start/server-entry";
+import { withSocialMeta } from "#/server/social";
 
-const fetch = createStartHandler(defaultStreamHandler);
+const startHandler = createStartHandler(defaultStreamHandler);
+const fetch: typeof startHandler = async (request, ...rest) =>
+	withSocialMeta(request, await startHandler(request, ...rest));
 const serverEntry = createServerEntry({ fetch }) as ExportedHandler<Env>;
 
 export default withSentry<Env>(
