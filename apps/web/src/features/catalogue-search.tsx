@@ -7,6 +7,7 @@ import {
 	searchRelevance,
 	songGroup,
 } from "@chords/data";
+import { keyLabel } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
 import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
@@ -337,7 +338,7 @@ export function CatalogueSearch({
 							meta={[
 								group.artists || "Unknown artist",
 								group.count
-									? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
+									? `${group.count} ${group.count === 1 ? "version" : "versions"}`
 									: null,
 							]
 								.filter(Boolean)
@@ -354,7 +355,7 @@ export function CatalogueSearch({
 							)}
 							trailing={
 								<>
-									{onSelect && own[0] && !placed ? (
+									{onSelect && own[0] && !placed && !open ? (
 										<Button
 											type="button"
 											size="sm"
@@ -478,10 +479,12 @@ function ArrangementChoices({
 	};
 	const action = (localSong?: Arrangement) =>
 		localSong?.owner === owner
-			? "Add this version"
+			? "Add"
 			: localSong
-				? "Copy to band and add"
-				: "Save arrangement";
+				? "Copy and add"
+				: picking
+					? "Add"
+					: "Save";
 	return (
 		<div className="mt-3 space-y-3 border-t pt-3">
 			{versions.isPending && online && group.count > 0 ? (
@@ -492,6 +495,7 @@ function ArrangementChoices({
 				...local.map((song) => ({
 					id: song.id,
 					data: song.data,
+					mode: undefined,
 					local: song,
 					saved: false,
 					score: 0,
@@ -502,6 +506,7 @@ function ArrangementChoices({
 					.map((p) => ({
 						id: p.id,
 						data: p.data,
+						mode: p.mode,
 						local: undefined,
 						saved: arrangements.some(
 							(song) =>
@@ -514,23 +519,24 @@ function ArrangementChoices({
 					})),
 			].map((version, index) => (
 				<div key={version.id} className="space-y-2">
-					<div className="flex flex-wrap items-center gap-2">
-						<div className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
-							<span className="flex items-center gap-2 font-medium">
-								<Badge
-									variant="secondary"
-									className="min-w-7 justify-center font-mono text-xs"
-								>
-									{displayKey(version.data)}
-								</Badge>
-								{version.data.arrangementName || "Standard version"}
+					<div className="flex items-center gap-3">
+						<KeyBadge>
+							{version.mode
+								? keyLabel(version.data.key, version.mode)
+								: displayKey(version.data)}
+						</KeyBadge>
+						<div className="min-w-0 flex-1">
+							<span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+								<span className="truncate">
+									{version.data.arrangementName || "Standard version"}
+								</span>
 								{version.saved && !picking ? (
-									<Badge variant="secondary" className="font-normal">
+									<Badge variant="secondary" className="shrink-0 font-normal">
 										<Check /> In repertoire
 									</Badge>
 								) : null}
 							</span>
-							<p className="text-xs text-muted-foreground empty:hidden">
+							<p className="truncate text-[13px] text-muted-foreground empty:hidden">
 								{[
 									version.local
 										? version.local.owner === owner
@@ -553,87 +559,92 @@ function ArrangementChoices({
 									.join(" · ")}
 							</p>
 						</div>
-						<Button
-							type="button"
-							size="sm"
-							variant="ghost"
-							aria-expanded={preview === version.id}
-							onClick={() =>
-								setPreview(preview === version.id ? undefined : version.id)
-							}
-						>
-							<Eye />
-							{preview === version.id ? "Hide" : "Preview"}
-						</Button>
-						{account === "local" ? (
-							<Button size="sm" variant="outline" asChild>
-								<Link to="/login">Sign in to save</Link>
-							</Button>
-						) : version.saved && !picking ? null : (
+						<div className="flex shrink-0 items-center gap-1.5">
 							<Button
 								type="button"
 								size="sm"
-								disabled={busy || !editable}
+								variant="ghost"
+								aria-expanded={preview === version.id}
 								onClick={() =>
-									void run(
-										() => add(version.id, version.local),
-										"Arrangement selected",
-									)
+									setPreview(preview === version.id ? undefined : version.id)
 								}
 							>
-								{action(version.local)}
+								<Eye />
+								<span className="max-sm:sr-only">
+									{preview === version.id ? "Hide" : "Preview"}
+								</span>
 							</Button>
-						)}
-						{!version.local && account !== "local" ? (
-							<>
-								<fieldset className="flex items-center">
-									<legend className="float-left mr-1 text-xs text-muted-foreground">
-										Useful?
-									</legend>
-									{([1, -1] as const).map((value) => (
-										<Button
-											key={value}
-											type="button"
-											size="icon-sm"
-											variant="ghost"
-											aria-label={value === 1 ? "Useful" : "Not useful"}
-											aria-pressed={version.myVote === value}
-											className="text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
-											onClick={() =>
-												void run(async () => {
-													await api("/api/publications", {
-														action: "vote",
-														id: version.id,
-														value: version.myVote === value ? 0 : value,
-													});
-													await versions.refetch();
-												})
-											}
-										>
-											{value === 1 ? <ThumbsUp /> : <ThumbsDown />}
-										</Button>
-									))}
-								</fieldset>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											type="button"
-											size="icon-sm"
-											variant="ghost"
-											aria-label="More actions"
-										>
-											<MoreHorizontal />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end">
-										<DropdownMenuItem onSelect={() => setReport(version.id)}>
-											<Flag /> Report a problem
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</>
-						) : null}
+							{account === "local" ? (
+								<Button size="sm" variant="outline" asChild>
+									<Link to="/login">Sign in to save</Link>
+								</Button>
+							) : version.saved && !picking ? null : (
+								<Button
+									type="button"
+									size="sm"
+									disabled={busy || !editable}
+									onClick={() =>
+										void run(
+											() => add(version.id, version.local),
+											"Arrangement selected",
+										)
+									}
+								>
+									{action(version.local)}
+								</Button>
+							)}
+						</div>
 					</div>
+					{/* Voting is secondary: a quiet line under the version it rates. */}
+					{!version.local && account !== "local" ? (
+						<div className="flex items-center gap-1 pl-12 text-muted-foreground">
+							<fieldset className="flex items-center">
+								<legend className="float-left mr-0.5 text-xs text-muted-foreground">
+									Useful?
+								</legend>
+								{([1, -1] as const).map((value) => (
+									<Button
+										key={value}
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										aria-label={value === 1 ? "Useful" : "Not useful"}
+										aria-pressed={version.myVote === value}
+										className="text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
+										onClick={() =>
+											void run(async () => {
+												await api("/api/publications", {
+													action: "vote",
+													id: version.id,
+													value: version.myVote === value ? 0 : value,
+												});
+												await versions.refetch();
+											})
+										}
+									>
+										{value === 1 ? <ThumbsUp /> : <ThumbsDown />}
+									</Button>
+								))}
+							</fieldset>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										aria-label="More actions"
+									>
+										<MoreHorizontal />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuItem onSelect={() => setReport(version.id)}>
+										<Flag /> Report a problem
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					) : null}
 					{report === version.id ? (
 						<form
 							className="flex gap-2"

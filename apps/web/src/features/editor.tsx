@@ -11,6 +11,12 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@chords/ui/components/collapsible";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@chords/ui/components/dropdown-menu";
 import { Field, FieldLabel } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
 import {
@@ -48,12 +54,14 @@ import { cn } from "@chords/ui/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	Check,
+	ChevronDown,
 	ChevronRight,
 	CircleHelp,
 	Columns2,
 	Eye,
 	Info,
 	Pencil,
+	Plus,
 	SlidersHorizontal,
 	Wand2,
 	WrapText,
@@ -622,17 +630,38 @@ export function Editor({
 				<div className={preview ? "grid gap-4 lg:grid-cols-2" : ""}>
 					{/* On small screens the preview replaces the source instead of stacking under it. */}
 					<div className={cn("space-y-2", preview && "max-lg:hidden")}>
-						<div className="flex items-center gap-1 overflow-x-auto [&>*]:shrink-0">
-							{snippets.map(([label, value]) => (
-								<Button
-									key={label}
-									variant="outline"
-									size="sm"
-									onClick={() => insert(value)}
-								>
-									{label}
-								</Button>
-							))}
+						<div className="flex items-center gap-1">
+							{/* Phones fold the snippets into one menu so the toolbar fits on a line. */}
+							<div className="flex items-center gap-1 max-sm:hidden">
+								{snippets.map(([label, value]) => (
+									<Button
+										key={label}
+										variant="outline"
+										size="sm"
+										onClick={() => insert(value)}
+									>
+										{label}
+									</Button>
+								))}
+							</div>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" size="sm" className="sm:hidden">
+										<Plus /> Insert
+										<ChevronDown className="text-muted-foreground" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="start">
+									{snippets.map(([label, value]) => (
+										<DropdownMenuItem
+											key={label}
+											onSelect={() => insert(value)}
+										>
+											{label}
+										</DropdownMenuItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
 							<Button
 								variant="outline"
 								size="sm"

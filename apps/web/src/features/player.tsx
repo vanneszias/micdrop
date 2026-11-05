@@ -33,6 +33,7 @@ import {
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	Download,
 	Gauge,
 	Guitar,
 	Maximize2,
@@ -52,6 +53,7 @@ import { PageHeader } from "#/components/page-header";
 import { OverflowMenu } from "#/components/song-row";
 import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
 import { ChordSheet, Stage } from "#/features/stage";
+import { exportSheet } from "#/lib/songs";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
@@ -270,6 +272,20 @@ export function Player({
 		setOpen(true);
 	};
 	const [chord, setChord] = useState<string>();
+	const [fit, setFit] = useState<{ size: number; columns: number }>();
+	// Sections split across columns only when whole ones would run past the screen.
+	const [sheetHeight, setSheetHeight] = useState<number>();
+	// Leaving stage mode mounts a new scroller, so the observer rebinds.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
+	useEffect(() => {
+		const element = sheet.current;
+		if (!element) return;
+		const observer = new ResizeObserver(() =>
+			setSheetHeight(Math.max(240, element.clientHeight - 180)),
+		);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [stage]);
 	const songChords = sheetChords(shown.data.content, delta, accidental);
 	if (stage)
 		return (
@@ -332,6 +348,9 @@ export function Player({
 					<Maximize2 /> <span className="max-sm:hidden">Stage</span>
 				</Button>
 				<OverflowMenu label="More song actions">
+					<DropdownMenuItem onSelect={() => exportSheet(shown)}>
+						<Download /> Export ChordPro
+					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => window.print()}>
 						<Printer /> Print
 					</DropdownMenuItem>
@@ -486,7 +505,14 @@ export function Player({
 							</ToggleGroup>
 						</div>
 						<div className="space-y-2">
-							<Label>Text size · {fontSize}px</Label>
+							<Label>
+								Text size · {fontSize}px
+								{fit && fit.size < fontSize ? (
+									<span className="font-normal text-muted-foreground">
+										(shown at {fit.size}px to fit {fit.columns} columns)
+									</span>
+								) : null}
+							</Label>
 							<Slider
 								min={14}
 								max={40}
@@ -582,6 +608,8 @@ export function Player({
 							columns={columns}
 							chords={!lyricsOnly}
 							onChord={setChord}
+							onFit={setFit}
+							height={sheetHeight}
 						/>
 					</article>
 					{diagrams && !lyricsOnly ? (
@@ -616,7 +644,7 @@ export function Player({
 			) : null}
 			<footer
 				data-print="hide"
-				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2 max-sm:grid-cols-[auto_auto_minmax(0,1fr)] max-sm:px-2"
+				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2 max-sm:px-2"
 			>
 				<Button
 					variant="ghost"
@@ -697,8 +725,10 @@ export function Player({
 					<span className="truncate">
 						{nextTitle ? (
 							<>
-								<span className="text-muted-foreground">Next </span>
-								{nextTitle}
+								<span className="text-muted-foreground max-sm:text-foreground">
+									Next
+								</span>
+								<span className="max-sm:hidden"> {nextTitle}</span>
 							</>
 						) : (
 							"Next"

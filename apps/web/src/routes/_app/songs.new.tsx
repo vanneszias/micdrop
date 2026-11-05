@@ -93,7 +93,8 @@ function NewSong() {
 	return (
 		<>
 			<PageHeader
-				pageTitle
+				back
+				headingInBody
 				title="Add song"
 				crumbs={[{ label: "Repertoire", to: "/songs" }]}
 			/>
@@ -138,7 +139,7 @@ function NewSong() {
 									onChange={(event) => setText(event.target.value)}
 								/>
 								<FieldDescription>
-									Plain text or ChordPro. You can review it before playing.
+									Plain text with chords above the words, or ChordPro.
 								</FieldDescription>
 							</Field>
 							<Button

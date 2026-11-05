@@ -1,4 +1,4 @@
-import { type Accidental, balanceSheet } from "@chords/song-core";
+import { type Accidental, sheetColumns } from "@chords/song-core";
 import { ChordDiagram, measurePieces, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
@@ -90,7 +90,11 @@ export function Stage({
 	const { width, height } = useViewport();
 	const measurer = useRef<HTMLDivElement>(null);
 	const header = useRef<HTMLElement>(null);
-	const [layout, setLayout] = useState({ size: baseSize, columns: 1 });
+	const [layout, setLayout] = useState({
+		size: baseSize,
+		columns: 1,
+		room: 0,
+	});
 	const [adjust, setAdjust] = useState(0);
 	// The measurer's DOM changes with the song and settings, so they re-run the fit.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
@@ -114,19 +118,11 @@ export function Stage({
 				...piece,
 				height: (piece.height * size) / REFERENCE,
 			}));
-			const heights = pieces.map((piece) => piece.height);
-			const starts = balanceSheet(pieces, columns);
-			return Math.max(
-				...starts.map((start, i) =>
-					heights
-						.slice(start, starts[i + 1] ?? heights.length)
-						.reduce((sum, value) => sum + value, 0),
-				),
-			);
+			return sheetColumns(pieces, columns, room).tallest;
 		};
 		const allowed = (columns: number, size: number) =>
 			columns === 1 || columnWidth(columns, size) >= COLUMN_EMS * size;
-		let best: { size: number; columns: number } | undefined;
+		let best: { size: number; columns: number; room: number } | undefined;
 		for (let columns = 1; columns <= 3; columns++) {
 			if (!allowed(columns, minimum)) break;
 			// Heights grow with size, so the largest fitting size is found by bisection.
@@ -139,13 +135,13 @@ export function Stage({
 					low = middle;
 				else high = middle;
 			}
-			if (!best || low > best.size) best = { size: low, columns };
+			if (!best || low > best.size) best = { size: low, columns, room };
 		}
 		if (!best) {
 			// Too long to fit: keep it readable, in as many columns as the width allows.
 			let columns = 1;
 			while (columns < 3 && allowed(columns + 1, minimum)) columns++;
-			best = { size: minimum, columns };
+			best = { size: minimum, columns, room };
 		}
 		setLayout(best);
 	}, [width, height, content, semitones, accidental, chords, baseSize, notes]);
@@ -187,12 +183,8 @@ export function Stage({
 				// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus and scroll the chord sheet.
 				tabIndex={0}
 				aria-label="Chord sheet"
-				onClick={() => {
-					if (visible) {
-						clearTimeout(timer.current);
-						setVisible(false);
-					} else wake();
-				}}
+				// A tap always brings the controls back; they hide again on their own.
+				onClick={wake}
 				onKeyDown={() => {}}
 			>
 				<header
@@ -211,6 +203,7 @@ export function Stage({
 					accidental={accidental}
 					fontSize={size}
 					columns={layout.columns}
+					height={layout.room * 0.96 || undefined}
 					chords={chords}
 				/>
 				<div className="h-20" />

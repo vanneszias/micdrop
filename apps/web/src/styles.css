@@ -109,8 +109,10 @@
 .sheet-pair { display: inline-flex; flex-direction: column; white-space: pre; min-width: 0; }
 /* A chord wider than its syllable leaves a gap inside the word; bridge it with a hairline. */
 .sheet-pair-joined .sheet-lyric { display: flex; }
-.sheet-pair-joined .sheet-lyric::after { content: ''; flex: 1; align-self: center; height: 1px; margin-top: .15em; background: linear-gradient(currentColor, currentColor) center / calc(100% - .5em) 100% no-repeat; opacity: .35; }
-.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: .78em; font-weight: 700; line-height: 1.45; padding: .05em .35em; margin: 0 .5em .05em -.35em; border-radius: .3em; }
+.sheet-pair-joined .sheet-lyric::after { content: ''; flex: 1; align-self: center; height: 1px; margin-top: .15em; background: linear-gradient(currentColor, currentColor) center / calc(100% - .4em) 100% no-repeat; opacity: .6; }
+.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: .78em; font-weight: 700; line-height: 1.45; padding: .05em .35em; margin: 0 .3em .05em -.35em; border-radius: .3em; }
+/* A line's first chord lines up with the lyric edge instead of hanging outside it. */
+.sheet-line > .sheet-word:first-child > .sheet-pair:first-child > .sheet-chord { margin-left: 0; }
 
 .sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
 .sheet-lyric { min-height: 1.3em; line-height: 1.3; }

@@ -406,6 +406,38 @@ export function balanceSheet(
 	);
 }
 
+/**
+ * Lays sheet pieces out in columns. Whole sections are kept together whenever they fit
+ * in `height` (or when no height is given), because a performer reads a section best in
+ * one place; only a sheet that would otherwise need scrolling splits a section.
+ */
+export function sheetColumns(
+	pieces: { height: number; start: boolean }[],
+	columns: number,
+	height?: number,
+): { starts: number[]; tallest: number } {
+	const heights = pieces.map((piece) => piece.height);
+	const total = heights.reduce((sum, value) => sum + value, 0);
+	const tallest = (starts: number[]) =>
+		Math.max(
+			0,
+			...starts.map((start, i) =>
+				heights
+					.slice(start, starts[i + 1] ?? heights.length)
+					.reduce((sum, value) => sum + value, 0),
+			),
+		);
+	const whole = balanceColumns(
+		heights,
+		Math.min(columns, pieces.filter((piece) => piece.start).length || 1),
+		pieces.map((piece) => (piece.start ? 0 : total * 10)),
+	);
+	if (height === undefined || tallest(whole) <= height)
+		return { starts: whole, tallest: tallest(whole) };
+	const split = balanceSheet(pieces, columns);
+	return { starts: split, tallest: tallest(split) };
+}
+
 export type Mode = "major" | "minor";
 
 /**

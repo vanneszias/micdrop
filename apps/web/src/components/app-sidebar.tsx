@@ -219,7 +219,7 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 										</span>
 										<span className="truncate">{title}</span>
 										{entry.key ? (
-											<span className="ml-auto font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+											<span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
 												{entry.keyName}
 											</span>
 										) : null}

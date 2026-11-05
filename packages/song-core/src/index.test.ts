@@ -10,6 +10,7 @@ import {
 	modeAccidental,
 	normalizeSheet,
 	sheetChords,
+	sheetColumns,
 	sheetLines,
 	sheetMetadata,
 	shiftKey,
@@ -248,5 +249,33 @@ describe("balanced sheets", () => {
 	});
 	test("a large break cost keeps whole sections", () => {
 		expect(balanceColumns([8, 4, 4, 12], 2, [0, 0, 100, 0])).toEqual([0, 3]);
+	});
+});
+
+describe("sheet columns", () => {
+	const piece = (height: number, start = false) => ({ height, start });
+	const song = [
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+	];
+	test("keeps whole sections when they fit", () => {
+		expect(sheetColumns(song, 2)).toEqual({ starts: [0, 8], tallest: 16 });
+		expect(sheetColumns(song, 2, 16).starts).toEqual([0, 8]);
+	});
+	test("splits a section only when whole sections would scroll", () => {
+		expect(sheetColumns(song, 2, 14)).toEqual({ starts: [0, 6], tallest: 12 });
+	});
+	test("never makes more columns than sections without needing to", () => {
+		expect(sheetColumns(song.slice(0, 8), 3).starts).toEqual([0, 4]);
 	});
 });

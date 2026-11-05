@@ -2,9 +2,9 @@
 import {
 	type Accidental,
 	balanceColumns,
-	balanceSheet,
 	type SheetLine,
 	sheetChords,
+	sheetColumns,
 	sheetLines,
 } from "@chords/song-core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -21,7 +21,13 @@ export function SongSheet({
 	chords = true,
 	accidental,
 	onChord,
+	height,
+	onFit,
 }: {
+	/** Room the columns have before the page scrolls; sections split only to stay inside it. */
+	height?: number;
+	/** Reports the text size and column count actually shown, when they differ from the request. */
+	onFit?: (fit: { size: number; columns: number }) => void;
 	content: string;
 	semitones?: number;
 	fontSize?: number;
@@ -152,7 +158,7 @@ export function SongSheet({
 			const next = {
 				columns: count,
 				size,
-				starts: balanceSheet(measurePieces(probe), count),
+				starts: sheetColumns(measurePieces(probe), count, height).starts,
 			};
 			setLayout((previous) =>
 				previous.columns === next.columns &&
@@ -166,7 +172,12 @@ export function SongSheet({
 		const observer = new ResizeObserver(measure);
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, [columns, pieces, fontSize, chords]);
+	}, [columns, pieces, fontSize, chords, height]);
+	const shownColumns = columns > 1 ? layout.columns : 1;
+	const shownSize = shownColumns > 1 ? layout.size : fontSize;
+	useEffect(() => {
+		onFit?.({ size: shownSize, columns: shownColumns });
+	}, [onFit, shownSize, shownColumns]);
 	const renderPieces = (slice: Piece[]) => {
 		const groups: Piece[][] = [];
 		for (const piece of slice)
