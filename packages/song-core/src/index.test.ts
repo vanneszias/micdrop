@@ -279,3 +279,22 @@ describe("sheet columns", () => {
 		expect(sheetColumns(song.slice(0, 8), 3).starts).toEqual([0, 4]);
 	});
 });
+
+describe("key spelling", () => {
+	test("sharp keys spell sharps, flat keys flats", () => {
+		for (const key of ["C", "G", "D", "A", "E", "B", "F#"])
+			expect(keyAccidental(key)).toBe("#");
+		for (const key of ["F", "Bb", "Eb", "Ab", "Db"])
+			expect(keyAccidental(key)).toBe("b");
+		expect(keyAccidental("A#")).toBe("b");
+	});
+	test("capo 3 in G shows E shapes with sharps (C#m, not Dbm)", () => {
+		const delta = displayTranspose("G", "G", 3);
+		const accidental = modeAccidental(shiftKey("G", delta));
+		expect(
+			["Em", "Bm", "F#m"].map((chord) =>
+				transposeChord(chord, delta, accidental),
+			),
+		).toEqual(["C#m", "G#m", "D#m"]);
+	});
+});

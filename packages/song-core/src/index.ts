@@ -154,12 +154,15 @@ export type Accidental = "#" | "b";
 
 /** Flat keys spell their chords with flats (Ab, Db, Eb), the rest with sharps. */
 export function keyAccidental(key: string): Accidental {
-	const root =
-		Chord.parse(key)?.normalize().useAccidental("b").toString() ?? key;
-	return ["F", "Bb", "Eb", "Ab", "Db"].some((flat) => root.startsWith(flat))
-		? "b"
-		: "#";
+	// By pitch class: spelling the root with flats first would turn E into Fb (and B into
+	// Cb), which then read as flat keys.
+	const root = key.match(/^[A-G][#b]?/)?.[0];
+	if (!root || !Chord.parse(root)) return "#";
+	return FLAT_KEYS.has(keyDistance("C", root)) ? "b" : "#";
 }
+
+/** F, Bb, Eb, Ab and Db, as semitones above C. */
+const FLAT_KEYS = new Set([5, 10, 3, 8, 1]);
 
 /** The key the displayed chords are in, `semitones` away from `key`. */
 export function shiftKey(key: string, semitones: number): string {

@@ -345,7 +345,7 @@ export function Player({
 					aria-label="Stage mode"
 					onClick={enterStage}
 				>
-					<Maximize2 /> <span className="max-sm:hidden">Stage</span>
+					<Maximize2 /> Stage
 				</Button>
 				<OverflowMenu label="More song actions" variant="outline">
 					<DropdownMenuItem onSelect={() => exportSheet(shown)}>

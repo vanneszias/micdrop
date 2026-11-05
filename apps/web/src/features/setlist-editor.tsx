@@ -44,6 +44,14 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@chords/ui/components/popover";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@chords/ui/components/sheet";
 import { cn } from "@chords/ui/lib/utils";
 import {
 	closestCenter,
@@ -83,7 +91,13 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+	type ReactNode,
+	useEffect,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
@@ -223,6 +237,32 @@ export function SetlistEditor({
 		return () => clearTimeout(timer);
 	});
 	const entries = list.data.entries;
+	const wide = useSyncExternalStore(
+		(change) => {
+			const media = window.matchMedia("(min-width: 1024px)");
+			media.addEventListener("change", change);
+			return () => media.removeEventListener("change", change);
+		},
+		() => window.matchMedia("(min-width: 1024px)").matches,
+		() => true,
+	);
+	const [adding, setAdding] = useState(false);
+	const picker = (
+		<CatalogueSearch
+			compact
+			inSet={entries.map((entry) => entry.arrangementId)}
+			onSelect={async (source) => {
+				const { rows } = addToSetlist(list, source, songs);
+				await persist(saveMany(rows));
+			}}
+		/>
+	);
+	// A brand-new setlist starts with its name selected, ready to type over.
+	const nameField = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		if (list.data.title === "New setlist" && !list.data.entries.length)
+			nameField.current?.select();
+	}, [list.data.title, list.data.entries.length]);
 	const songCount = `${entries.length} ${entries.length === 1 ? "song" : "songs"}`;
 	return (
 		<>
@@ -308,6 +348,7 @@ export function SetlistEditor({
 							</label>
 							<input
 								id="setlist-name"
+								ref={nameField}
 								value={title}
 								onChange={(event) => setTitle(event.target.value)}
 								onBlur={() => {
@@ -467,27 +508,46 @@ export function SetlistEditor({
 							</Empty>
 						)}
 					</section>
-					<section
-						aria-labelledby="add-songs"
-						className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:self-start"
-					>
-						<div className="space-y-1">
-							<h2 id="add-songs" className="text-base font-semibold">
-								Add songs
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								Each song joins the end of the set in your key and capo.
-							</p>
-						</div>
-						<CatalogueSearch
-							compact
-							inSet={entries.map((entry) => entry.arrangementId)}
-							onSelect={async (source) => {
-								const { rows } = addToSetlist(list, source, songs);
-								await persist(saveMany(rows));
-							}}
-						/>
-					</section>
+					{wide ? (
+						<section
+							aria-labelledby="add-songs"
+							className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:self-start"
+						>
+							<div className="space-y-1">
+								<h2 id="add-songs" className="text-base font-semibold">
+									Add songs
+								</h2>
+								<p className="text-sm text-muted-foreground">
+									Each song joins the end of the set in your key and capo.
+								</p>
+							</div>
+							{picker}
+						</section>
+					) : (
+						// Phones keep the set on screen and open the picker in its own sheet.
+						<Sheet open={adding} onOpenChange={setAdding}>
+							<SheetTrigger asChild>
+								<Button variant="outline" className="w-full">
+									<Plus /> Add songs
+								</Button>
+							</SheetTrigger>
+							<SheetContent
+								side="bottom"
+								className="h-[85svh] gap-0 rounded-t-2xl"
+								onOpenAutoFocus={(event) => event.preventDefault()}
+							>
+								<SheetHeader>
+									<SheetTitle>Add songs</SheetTitle>
+									<SheetDescription>
+										Each song joins the end of the set in your key and capo.
+									</SheetDescription>
+								</SheetHeader>
+								<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+									{picker}
+								</div>
+							</SheetContent>
+						</Sheet>
+					)}
 				</div>
 			</PageBody>
 		</>

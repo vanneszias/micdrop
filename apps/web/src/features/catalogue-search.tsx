@@ -716,7 +716,7 @@ function ArrangementChoices({
 				</Button>
 			) : null}
 			{preview ? (
-				<div className="max-h-96 overflow-auto rounded-md border p-3">
+				<div className="max-h-96 overflow-auto rounded-md border p-3 max-sm:-mx-3 max-sm:max-h-none max-sm:rounded-none max-sm:border-x-0 max-sm:px-3">
 					{detail.isFetching && !localPreview ? (
 						<output>Loading preview…</output>
 					) : null}
