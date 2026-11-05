@@ -332,19 +332,33 @@ export function CatalogueSearch({
 										<Check /> In set
 									</Badge>
 								) : inRepertoire && !onSelect && !open ? (
-									<Badge variant="secondary" className="shrink-0 font-normal">
+									// Phones show this on the meta line so long titles keep the room.
+									<Badge
+										variant="secondary"
+										className="shrink-0 font-normal max-sm:hidden"
+									>
 										<Check /> In repertoire
 									</Badge>
 								) : null
 							}
-							meta={[
-								group.artists || "Unknown artist",
-								group.count
-									? `${group.count} ${group.count === 1 ? "version" : "versions"}`
-									: null,
-							]
-								.filter(Boolean)
-								.join(" · ")}
+							meta={
+								<>
+									{inRepertoire && !onSelect && !open ? (
+										<span className="text-foreground/80 sm:hidden">
+											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
+											In repertoire ·{" "}
+										</span>
+									) : null}
+									{[
+										group.artists || "Unknown artist",
+										group.count
+											? `${group.count} ${group.count === 1 ? "version" : "versions"}`
+											: null,
+									]
+										.filter(Boolean)
+										.join(" · ")}
+								</>
+							}
 							main={(content) => (
 								<button
 									type="button"
@@ -534,7 +548,8 @@ function ArrangementChoices({
 								</span>
 								{version.saved && !picking ? (
 									<Badge variant="secondary" className="shrink-0 font-normal">
-										<Check /> In repertoire
+										<Check />
+										<span className="max-sm:sr-only">In repertoire</span>
 									</Badge>
 								) : null}
 							</span>

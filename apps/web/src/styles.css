@@ -170,7 +170,9 @@
 .sheet-column { min-width: 0; }
 .sheet-column + .sheet-column { border-left: 1px solid var(--border); padding-left: 1.25em; margin-left: -1.25em; }
 /* Chord chips that open a diagram keep the chip look. */
-button.sheet-chord { border: 0; cursor: pointer; text-align: left; transition: background-color .15s, box-shadow .15s; }
+button.sheet-chord { position: relative; border: 0; cursor: pointer; text-align: left; transition: background-color .15s, box-shadow .15s; }
+/* A larger invisible tap area, so chords are easy to hit while holding an instrument. */
+button.sheet-chord::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 40px); transform: translate(-50%, -50%); }
 button.sheet-chord:hover { box-shadow: 0 0 0 1px var(--chord-foreground) inset; }
 button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 /* A tapped chord, enlarged in its own sheet. */

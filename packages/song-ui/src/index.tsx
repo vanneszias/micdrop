@@ -147,7 +147,9 @@ export function SongSheet({
 			const needed = (count: number) =>
 				count * COLUMN_EMS + (count - 1) * GAP_EMS;
 			let count = Math.min(columns, pieces.length || 1);
-			while (count > 1 && width / needed(count) < 14) count--;
+			// Never below 18px (or most of the chosen size): fewer columns read better than tiny text.
+			const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
+			while (count > 1 && width / needed(count) < floor) count--;
 			const size =
 				count > 1
 					? Math.min(fontSize, Math.floor(width / needed(count)))

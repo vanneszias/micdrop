@@ -511,14 +511,20 @@ export function Player({
 							</ToggleGroup>
 						</div>
 						<div className="space-y-2">
-							<Label>
-								Text size · {fontSize}px
-								{fit && fit.size < fontSize ? (
-									<span className="font-normal text-muted-foreground">
-										(shown at {fit.size}px to fit {fit.columns} columns)
-									</span>
-								) : null}
-							</Label>
+							<Label>Text size · {fontSize}px</Label>
+							{fit && columns > 1 && fit.columns < columns ? (
+								<p className="text-xs text-muted-foreground">
+									Only{" "}
+									{fit.columns === 1
+										? "one column fits"
+										: `${fit.columns} columns fit`}{" "}
+									at this size and width.
+								</p>
+							) : fit && fit.size < fontSize ? (
+								<p className="text-xs text-muted-foreground">
+									Shown at {fit.size}px so {fit.columns} columns fit.
+								</p>
+							) : null}
 							<Slider
 								min={14}
 								max={40}
