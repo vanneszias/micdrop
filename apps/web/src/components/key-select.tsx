@@ -108,7 +108,7 @@ export function CapoSelect({
 							{shapes ? (
 								// Fixed columns: shape name, then a slot that may hold "open".
 								<span className="ml-auto flex items-center gap-1.5 pl-6 text-xs text-muted-foreground">
-									<span className="w-16 text-right">{shapes} shapes</span>
+									<span className="w-[4.5rem]">{shapes} shapes</span>
 									<span className="w-9">
 										{OPEN_SHAPES.has(shapes) ? (
 											<span className="rounded bg-chord px-1 text-[11px] font-medium text-chord-foreground">

@@ -118,7 +118,8 @@
 /* A line's first chord lines up with the lyric edge instead of hanging outside it. */
 .sheet-line > .sheet-word:first-child > .sheet-pair:first-child > .sheet-chord { margin-left: 0; }
 
-.sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
+/* Placeholder chips on chordless syllables never take width (also over the phone padding). */
+.sheet-chord.sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
 .sheet-lyric { min-height: 1.3em; line-height: 1.3; }
 .sheet-text { margin: 0 0 .15em; white-space: pre-wrap; }
 .sheet-line, .sheet-text, .sheet-note { break-inside: avoid; } .sheet-section { break-after: avoid; }

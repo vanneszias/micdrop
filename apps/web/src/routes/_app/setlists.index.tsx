@@ -111,7 +111,7 @@ function Setlists() {
 		<>
 			<Button variant="outline" size="sm" asChild>
 				<Link to="/setlists/import" aria-label="Import PDF">
-					<FileUp /> <span className="sm:hidden">PDF</span>
+					<FileUp /> <span className="sm:hidden">Import</span>
 					<span className="max-sm:hidden">Import PDF</span>
 				</Link>
 			</Button>
@@ -126,7 +126,7 @@ function Setlists() {
 			<PageBody
 				title="Setlists"
 				description="Put songs in order, set a key for each, then play straight through."
-				actions={<>{setlists.length ? actions : null}</>}
+				actions={setlists.length ? actions : null}
 			>
 				{setlists.length ? (
 					<SongList>

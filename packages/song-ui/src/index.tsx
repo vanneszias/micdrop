@@ -294,15 +294,20 @@ const GAP_EMS = 2.5;
 
 /**
  * Chords hang over the text that follows them and take no width of their own. Where two
- * chords on the same row would touch, the earlier one's syllable is widened just enough,
- * so lyrics only open up where the chords need the room.
+ * chords on the same row would touch, the later chip moves right just enough, so the
+ * lyric keeps its normal spacing. Only when that would move a chord well off its
+ * syllable (more than 1.2em) is the earlier syllable widened instead.
  */
 export function fitChords(root: HTMLElement) {
-	// Half an em between neighbouring chips, so "Am C" never reads as "AmC".
-	const gap = (Number.parseFloat(getComputedStyle(root).fontSize) || 16) * 0.5;
+	const em = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
+	const gap = em * 0.35;
 	for (const line of root.querySelectorAll<HTMLElement>(".sheet-line")) {
 		const pairs = [...line.querySelectorAll<HTMLElement>(".sheet-pair")];
-		for (const pair of pairs) pair.style.minWidth = "";
+		for (const pair of pairs) {
+			pair.style.minWidth = "";
+			const chip = pair.firstElementChild as HTMLElement | null;
+			if (chip) chip.style.translate = "";
+		}
 		let previous: { chip: HTMLElement; pair: HTMLElement } | undefined;
 		for (const pair of pairs) {
 			const chip = pair.firstElementChild as HTMLElement | null;
@@ -311,9 +316,13 @@ export function fitChords(root: HTMLElement) {
 				const before = previous.chip.getBoundingClientRect();
 				const after = chip.getBoundingClientRect();
 				const sameRow = Math.abs(before.top - after.top) < 2;
-				if (sameRow && after.left < before.right + gap) {
-					const width = previous.pair.getBoundingClientRect().width;
-					previous.pair.style.minWidth = `${width + before.right + gap - after.left}px`;
+				const overlap = before.right + gap - after.left;
+				if (sameRow && overlap > 0) {
+					if (overlap <= em * 1.2) chip.style.translate = `${overlap}px 0`;
+					else {
+						const width = previous.pair.getBoundingClientRect().width;
+						previous.pair.style.minWidth = `${width + overlap}px`;
+					}
 				}
 			}
 			previous = { chip, pair };
@@ -570,14 +579,12 @@ function GuitarDiagram({
 					return (
 						<g key={`barre-${fret}`}>
 							<rect
-								// Inset to the outer barred strings, and never past the grid's edges.
-								x={Math.max(13, from - DOT + 2)}
-								y={13.5 + fret * 19 - DOT + 1}
-								width={
-									Math.min(87, to + DOT - 2) - Math.max(13, from - DOT + 2)
-								}
-								height={DOT * 2 - 2}
-								rx={DOT - 1}
+								// From the first to the last barred string, barely past them.
+								x={from - 3}
+								y={13.5 + fret * 19 - 5}
+								width={to - from + 6}
+								height={10}
+								rx={5}
 								className="diagram-barre"
 							/>
 							<text

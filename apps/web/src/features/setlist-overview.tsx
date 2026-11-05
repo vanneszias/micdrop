@@ -49,7 +49,7 @@ export function SetlistSheet({ title }: { title: string }) {
 			<SheetTrigger asChild>
 				<button
 					type="button"
-					className="flex max-w-full min-w-0 flex-col items-start rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					className="flex max-w-full min-w-0 flex-col items-start rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
 					aria-label={`Song ${current + 1} of ${entries.length} in ${list.data.title}, show setlist`}
 				>
 					{/* The sheet below names the song; the bar says where it sits in the set. */}

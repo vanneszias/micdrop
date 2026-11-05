@@ -196,6 +196,17 @@ function BandCard({
 							<Link2 /> Invite link
 						</Button>
 					) : null}
+					{owner ? (
+						// Both ways to add people sit together; the form opens below the members.
+						<Button
+							variant="outline"
+							size="sm"
+							aria-expanded={adding}
+							onClick={() => setAdding(true)}
+						>
+							<UserPlus /> Add existing account
+						</Button>
+					) : null}
 				</CardAction>
 			</CardHeader>
 			<CardContent className="max-sm:px-4">
@@ -244,13 +255,7 @@ function BandCard({
 					))}
 				</div>
 			</CardContent>
-			{owner && !adding ? (
-				<CardFooter className="border-t max-sm:px-4">
-					<Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-						<UserPlus /> Add existing account
-					</Button>
-				</CardFooter>
-			) : null}
+
 			{owner && adding ? (
 				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
 					<div className="space-y-0.5">

@@ -111,7 +111,7 @@ function Songs() {
 							: `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: "Songs you play, each in your own key and capo."
 				}
-				actions={<>{add}</>}
+				actions={add}
 			>
 				{songs.length ? (
 					<SearchInput
@@ -153,20 +153,14 @@ function Songs() {
 									<>
 										<span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
 											{song.data.draft ? (
-												<PencilLine className="size-4 max-[420px]:hidden" />
+												<PencilLine className="size-4" />
 											) : song.data.visibility === "public" ? (
-												<Globe className="size-4 max-[420px]:hidden" />
+												<Globe className="size-4" />
 											) : (
-												<Lock className="size-4 max-[420px]:hidden" />
+												<Lock className="size-4" />
 											)}
-											{/* Narrow phones name only the exceptions; private is the default. */}
-											<span
-												className={
-													!song.data.draft && song.data.visibility !== "public"
-														? "max-[420px]:sr-only"
-														: undefined
-												}
-											>
+											{/* Narrow phones keep the icon for every state; the word is for screen readers. */}
+											<span className="max-[420px]:sr-only">
 												{song.data.draft
 													? "Draft"
 													: song.data.visibility === "public"
