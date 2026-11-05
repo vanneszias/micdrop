@@ -355,7 +355,7 @@ export function Player({
 				crumbs={[
 					playing
 						? { label: "Setlists", to: "/setlists" }
-						: { label: "Repertoire", to: "/songs" },
+						: { label: "Songs", to: "/songs" },
 				]}
 				title={
 					playing ? (
@@ -402,7 +402,7 @@ export function Player({
 						</DropdownMenuItem>
 					)}
 					{readOnly ? null : (
-						// The same core actions as the song's row in Repertoire.
+						// The same core actions as the song's row in Songs.
 						<DropdownMenuItem
 							onSelect={() =>
 								void run(

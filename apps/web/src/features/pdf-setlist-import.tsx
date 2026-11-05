@@ -356,7 +356,7 @@ export function PdfSetlistImport({
 										visibility: "private",
 									});
 									toast.success(
-										"Existing arrangement selected; a private repertoire copy will be used.",
+										"Existing arrangement selected; a private copy will be used.",
 									);
 								}}
 							/>

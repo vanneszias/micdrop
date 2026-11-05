@@ -1,4 +1,4 @@
-# Song catalogue, repertoires, publishing, and setlist search
+# Song catalogue, songs, publishing, and setlist search
 
 Status: product decisions from the planning conversation, implemented in the
 working tree. The implementation phases below describe the delivery slices;
@@ -6,8 +6,8 @@ validation details and operational setup are documented in README.md.
 
 ## Product model
 
-The app has a shared public catalogue. People and bands maintain repertoires
-containing the arrangements they use. A repertoire can contain private material
+The app has a shared public catalogue. People and bands maintain songs
+containing the arrangements they use. A songs list can contain private material
 as well as independent copies of public arrangements.
 
 Public visitors can search and read complete published chord sheets without
@@ -31,25 +31,25 @@ Song content stays in ChordPro. Preserve raw imports and source attribution.
 Copy provenance records where an arrangement came from; it does not subscribe
 the copy to future source updates.
 
-### Repertoire
+### Songs
 
-A personal or band repertoire contains stable, independently owned arrangements.
+A personal or band songs list contains stable, independently owned arrangements.
 Saving a public arrangement creates a private copy immediately. The original
 publisher's subsequent edits or unpublication do not alter or remove that copy.
 
-A repertoire may contain multiple arrangements of one song, such as acoustic and
+A songs list may contain multiple arrangements of one song, such as acoustic and
 full-band versions. Choose one preferred arrangement for the song; a setlist can
 use another. Key, capo, and private rehearsal notes are settings, and changing
 only those settings does not create a separate public arrangement.
 
 ### Setlist
 
-A setlist references its owner's repertoire arrangements. Adding a public
-arrangement automatically saves a private copy to the repertoire and adds that
+A setlist references arrangements from its owner's songs. Adding a public
+arrangement automatically saves a private copy to the songs and adds that
 copy to the setlist. Reuse an existing saved copy of that source rather than
 silently creating another identical copy.
 
-Setlists follow subsequent edits to the repertoire arrangement. Each setlist
+Setlists follow subsequent edits to the arrangement in songs. Each setlist
 entry retains its own performance key and notes. This deliberately allows band
 edits to flow through existing setlists while insulating them from changes by
 the original public publisher.
@@ -68,7 +68,7 @@ the original public publisher.
    visibility before the final save publishes anything. Support visibility
    choices for the reviewed entries.
 6. A new arrangement created in the active library is available in that
-   repertoire; publishing does not move it out of its owner's repertoire.
+   songs list; publishing does not move it out of its owner's songs.
 
 Do not resolve duplicates by forcing users to rename titles or artists. Separate
 song identity from arrangement identity and give versions descriptive labels.
@@ -89,7 +89,7 @@ Treat working-draft state separately from the existence of a public version.
 A public arrangement can have a newer private working draft. Draft mode must
 also be available offline; syncing a draft must not accidentally publish it.
 
-Saving and editing a repertoire copy keeps it private unless explicitly
+Saving and editing a private copy keeps it private unless explicitly
 published. Publishing a changed copy adds another arrangement under the same
 song group. Once published, ordinary saved edits update that publication unless
 the owner enters draft mode.
@@ -116,7 +116,7 @@ Use one search box and one relevance-ranked list of song groups.
 
 For a Band A setlist, include:
 
-- Band A's repertoire, including private and draft arrangements.
+- Band A's songs, including private and draft arrangements.
 - The current user's personal songs, including private material.
 - Published arrangements from the public catalogue.
 
@@ -127,7 +127,7 @@ Match titles and artists first, tolerate typos, and match lyrics and tags at
 lower priority. Search relevant artist/version metadata within each song group
 so a cover can be found by its performing artist.
 
-Boost band repertoire matches among results of comparable relevance. An exact
+Boost band songs matches among results of comparable relevance. An exact
 public match ranks ahead of a weak band match. Within a matching group, preselect
 the band's preferred arrangement, while allowing another version to be chosen.
 
@@ -149,18 +149,18 @@ Keep result summaries light; load the full chord sheet for a preview or save.
    a band-accessible copy and leave the personal original private.
 6. Keep the picker convenient for adding several songs in sequence.
 
-Apply the same catalogue and repertoire concepts to personal setlists.
+Apply the same catalogue and songs concepts to personal setlists.
 
 ## Offline and scale
 
-After syncing, all personal and active-band repertoire arrangements and setlists
+After syncing, all personal and active-band arrangements in songs, and setlists
 are available offline. Drafts are included. Public arrangements become available
 offline when saved. Searching the wider public catalogue requires a connection;
 offline search searches the locally available scope and communicates that limit.
 
 The catalogue must not be downloaded wholesale into IndexedDB. Use server-side
 indexed search, bounded pages of summaries, and on-demand content loading.
-Combine catalogue results with authorised repertoire matches without leaking
+Combine catalogue results with authorised matches in songs without leaking
 private content or showing saved copies as extra song groups.
 
 Prototype typo handling, ranking, and pagination against a large representative
@@ -187,7 +187,7 @@ redirects for merged groups. Record administrative actions for traceability.
 ## Proposed implementation phases
 
 1. **Data foundation and migration.** Introduce explicit song grouping,
-   arrangement/version metadata, repertoire preferences and settings, and
+   arrangement/version metadata, songs preferences and settings, and
    separate working/published revisions. Remove the title-and-artist uniqueness
    restriction that prevents multiple arrangements. Preserve ChordPro and raw
    source records. Implement authorisation and atomic write paths.
@@ -197,7 +197,7 @@ redirects for merged groups. Record administrative actions for traceability.
 3. **Catalogue and setlist search.** Provide anonymous catalogue reading,
    indexed and paginated search, grouping, relevance and band boosting,
    arrangement previews, and copy-and-add actions in the setlist picker.
-4. **Repertoire and offline completion.** Support multiple versions and
+4. **Songs and offline completion.** Support multiple versions and
    preferences, settings inheritance, local search, sync recovery, and full
    personal/active-band offline availability.
 5. **Administration and release validation.** Ship reports and catalogue
@@ -226,7 +226,7 @@ omit offline support or catalogue maintenance from that release.
 2. Covers share one song group and remain distinguishable by artist/version.
 3. A strong public match outranks a weak band match; comparable band matches get
    a boost and their preferred arrangement is selected.
-4. Adding a public arrangement creates one stable private repertoire copy and a
+4. Adding a public arrangement creates one stable private copy and a
    setlist entry atomically. Repeated use reuses the copy.
 5. Original-publisher updates and unpublication leave saved copies unchanged.
 6. Band edits update existing band setlists while per-entry keys and notes stay
@@ -239,7 +239,7 @@ omit offline support or catalogue maintenance from that release.
    bands' private material never appears in the picker.
 10. A reviewed bulk import respects each entry's grouping and visibility before
     publication. No unreviewed extraction is published.
-11. Offline repertoire search, editing, and setlist playback work after sync;
+11. Offline songs search, editing, and setlist playback work after sync;
     reconnecting preserves conflicts and never publishes a draft accidentally.
 12. Reports, hiding, regrouping, and merging work without breaking saved copies
     or setlists. Large-catalogue queries remain bounded and paginated.

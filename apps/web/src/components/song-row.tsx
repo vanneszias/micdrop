@@ -8,7 +8,7 @@ import { cn } from "@chords/ui/lib/utils";
 import { MoreHorizontal } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-/** The list frame every song list shares: Repertoire, Catalogue, setlists and search. */
+/** The list frame every song list shares: Songs, Catalogue, setlists and search. */
 export function SongList({ className, ...props }: ComponentProps<"ul">) {
 	return (
 		<ul
@@ -160,7 +160,7 @@ export function OverflowMenu({
 	);
 }
 
-/** A row's status ("In set", "In repertoire"): one quiet, non-interactive pill. */
+/** A row's status ("In set", "In songs"): one quiet, non-interactive pill. */
 export function StatusBadge({ children }: { children: ReactNode }) {
 	return (
 		<span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 text-[13px] text-secondary-foreground [&_svg]:size-3.5">

@@ -122,7 +122,7 @@ test("PDF imports atomically retain songs, setlist, outbox and original file acr
 	expect(afterFailure.records.has(secondList.id)).toBe(false);
 	expect(afterFailure.getStatus().pending).toBe(2);
 });
-test("a repertoire supports multiple arrangements of the same song and private stable copies", async () => {
+test("the songs list supports multiple arrangements of the same song and private stable copies", async () => {
 	const account = crypto.randomUUID();
 	const store = await open(account);
 	const source = song(account);
@@ -198,7 +198,7 @@ test("setlist additions reuse the exact source, preserve versions, and save atom
 	expect(reopened.records.get(list.id)?.data).toMatchObject(updated.data);
 	expect(reopened.getStatus().pending).toBe(2);
 });
-test("search ranks exact matches over fuzzy repertoire candidates and lyrics", () => {
+test("search ranks exact matches over fuzzy candidates from saved songs and lyrics", () => {
 	const data = song("test").data;
 	expect(searchRelevance({ ...data, title: "Hallelujah" }, "Hallelujah")).toBe(
 		1000,

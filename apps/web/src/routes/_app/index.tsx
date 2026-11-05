@@ -25,7 +25,7 @@ function SectionHeading({ title, to }: { title: string; to: string }) {
 	);
 }
 
-/** Recent songs and setlists, in the same rows as Repertoire and Setlists. */
+/** Recent songs and setlists, in the same rows as Songs and Setlists. */
 function Home() {
 	const { songs, setlists, user } = useApp();
 	const recent = [...songs]

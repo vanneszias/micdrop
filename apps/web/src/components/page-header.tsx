@@ -20,7 +20,7 @@ export function PageHeader({
 	embedded?: boolean;
 	/** The page body shows the title as its heading, so the bar shows a quiet breadcrumb. */
 	pageTitle?: boolean;
-	/** Parent locations shown before the title, e.g. Repertoire › Amazing Grace. */
+	/** Parent locations shown before the title, e.g. Songs › Amazing Grace. */
 	crumbs?: { label: React.ReactNode; to: string }[];
 	/** The page renders its own h1, so the bar's title is plain text. */
 	headingInBody?: boolean;

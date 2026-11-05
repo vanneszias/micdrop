@@ -63,7 +63,7 @@ function Bands() {
 			<PageHeader pageTitle title="Bands" />
 			<PageBody
 				title="Bands"
-				description="Share a repertoire and setlists with the people you play with."
+				description="Share songs and setlists with the people you play with."
 				actions={
 					!signedOut ? (
 						<Dialog open={open} onOpenChange={setOpen}>

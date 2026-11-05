@@ -1,6 +1,6 @@
 # Chords
 
-A shared song catalogue with personal and band repertoires. Discover published arrangements, save independent private copies, build setlists, and play in your own key and capo.
+A shared song catalogue with personal and band songs. Discover published arrangements, save independent private copies, build setlists, and play in your own key and capo.
 
 ## Run locally
 
@@ -38,8 +38,8 @@ Keep existing `.env.local` values when updating configuration. Secrets are read 
 - Bands with owner/editor/viewer permissions. For this initial release, owners add an existing account by email; invitation email delivery is not configured.
 - Public catalogue reading without an account, grouped songs and covers, version previews, typo-tolerant title/artist search, and lower-priority lyrics/tag matches.
 - New arrangements are public after review and final save unless marked private or draft. Normal public edits update on save; draft revisions preserve the last published snapshot.
-- Independent private repertoire copies, multiple arrangements and a preferred version per song, private performance settings and rehearsal notes.
-- Setlist search combines the active repertoire, personal songs, and the public catalogue. Saving and adding a new repertoire copy is atomic locally. Publisher changes never alter saved copies.
+- Independent private copies, multiple arrangements and a preferred version per song, private performance settings and rehearsal notes.
+- Setlist search combines your songs, personal songs, and the public catalogue. Saving and adding a new private copy is atomic locally. Publisher changes never alter saved copies.
 - Reports and catalogue admin tools for hiding entries, moving arrangements and merging song groups. One changeable up/downvote per account.
 - Account-isolated offline storage, durable pending edits, idempotent server writes, revision conflicts with both versions preserved.
 
@@ -147,4 +147,4 @@ cd apps/web && bunx wrangler d1 execute chords --local --file ../../opensong.sql
 
 Chord lines are placed onto their lyric lines by column, as OpenSong lays them out; chords are kept as written, except that the shorthands `X(9)`, `X(4)` and `X2(no3)` become `Xadd9`, `Xsus4` and `Xsus2` so they transpose. Other chord-line text (`x2`, bar lines, notes) becomes ChordPro annotations, and `[V1]`-style headers become verse/chorus/bridge sections. The original XML is kept as each record's raw import. Identical sheets saved under other titles are imported once, with the other titles as tags. Copyright and CCLI notices are shown in the sheet and description. Files without a key use their first chord (or C). Record IDs derive from the owner and file name, so re-running skips songs that already exist and never overwrites edits. The SQL only inserts when the owner account exists. Running it against the production database (`--remote`) publishes the songs immediately.
 
-See [the agreed product plan](docs/catalogue-and-repertoire-plan.md) for the complete model and acceptance scenarios.
+See [the agreed product plan](docs/catalogue-and-songs-plan.md) for the complete model and acceptance scenarios.
