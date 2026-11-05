@@ -141,6 +141,8 @@ export function OverflowMenu({
 					className={cn(
 						variant === "ghost" &&
 							"text-muted-foreground hover:text-foreground",
+						// Phones get a full-size target; the icon stays the same.
+						"max-sm:size-10",
 						className,
 					)}
 				>

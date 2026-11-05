@@ -603,7 +603,7 @@ function KeyCapoPicker({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-8 w-16 justify-between gap-1 px-2 font-normal sm:w-auto sm:min-w-32 sm:gap-1.5 sm:px-2.5"
+					className="h-10 w-16 justify-between gap-1 px-2 font-normal sm:h-8 sm:w-auto sm:min-w-32 sm:gap-1.5 sm:px-2.5"
 					aria-label={`Key and capo for ${name}: ${keyLabel(value, mode)}, ${capo ? `capo ${capo}` : "no capo"}`}
 				>
 					<span className="font-mono font-semibold text-chord-foreground">

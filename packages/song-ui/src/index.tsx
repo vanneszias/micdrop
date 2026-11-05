@@ -65,40 +65,53 @@ export function SongSheet({
 			) : null
 		) : (
 			<div key={`line-${index}`} className="sheet-line">
-				{sheetWords(line.tokens).map((word, w) => (
-					<span key={`${index}-${w}`} className="sheet-word">
-						{word.map((pair, i) => (
-							<span
-								key={i}
-								className={
-									pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
-								}
-							>
-								{pair.chord && onChord ? (
-									<button
-										type="button"
-										className="sheet-chord"
-										aria-label={`${pair.chord} chord diagram`}
-										onClick={() => onChord(pair.chord as string)}
-									>
-										{pair.chord}
-									</button>
-								) : (
-									<span
-										className={
-											pair.chord
-												? "sheet-chord"
-												: "sheet-chord sheet-chord-empty"
-										}
-									>
-										{pair.chord || "\u200b"}
-									</span>
-								)}
-								<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
-							</span>
-						))}
-					</span>
-				))}
+				{(() => {
+					const words = sheetWords(line.tokens);
+					const renderWord = (word: SheetPair[], w: number) => (
+						<span key={`${index}-${w}`} className="sheet-word">
+							{word.map((pair, i) => (
+								<span
+									key={i}
+									className={
+										pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
+									}
+								>
+									{pair.chord && onChord ? (
+										<button
+											type="button"
+											className="sheet-chord"
+											aria-label={`${pair.chord} chord diagram`}
+											onClick={() => onChord(pair.chord as string)}
+										>
+											{pair.chord}
+										</button>
+									) : (
+										<span
+											className={
+												pair.chord
+													? "sheet-chord"
+													: "sheet-chord sheet-chord-empty"
+											}
+										>
+											{pair.chord || "\u200b"}
+										</span>
+									)}
+									<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
+								</span>
+							))}
+						</span>
+					);
+					// The last two words wrap together, so a line never leaves one word alone.
+					if (words.length < 3) return words.map(renderWord);
+					return [
+						...words.slice(0, -2).map(renderWord),
+						<span key={`${index}-tail`} className="sheet-tail">
+							{words
+								.slice(-2)
+								.map((word, i) => renderWord(word, words.length - 2 + i))}
+						</span>,
+					];
+				})()}
 			</div>
 		);
 	// A section is a block; its pieces (the heading with its first line, then one line

@@ -195,3 +195,4 @@ button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offse
 /* aria-pressed: a tooltip trigger replaces the toggle's data-state and data-slot. */
 [aria-pressed='true']:is([data-slot='toggle'], [data-slot='tooltip-trigger']) { background: color-mix(in oklch, var(--brand) 22%, transparent); border-color: color-mix(in oklch, var(--brand) 70%, transparent); color: var(--foreground); }
 [data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { border-color: var(--border) !important; box-shadow: 0 1px 3px oklch(0 0 0 / 0.16); }
+.sheet-tail { display: inline-flex; align-items: flex-end; }

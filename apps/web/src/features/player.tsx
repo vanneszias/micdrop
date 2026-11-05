@@ -782,7 +782,7 @@ export function Player({
 										key={value}
 										variant="outline"
 										size="sm"
-										className="shrink-0 font-mono"
+										className="h-10 min-w-11 shrink-0 font-mono"
 										onClick={() => setChord(value)}
 									>
 										{value}
