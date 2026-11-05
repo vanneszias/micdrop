@@ -16,6 +16,7 @@ import { api, type Band, freshArrangement } from "#/lib/songs";
 type User = {
 	name: string;
 	email: string;
+	emailVerified: boolean;
 	id: string;
 	role?: string | null;
 };

@@ -95,6 +95,13 @@ function AccountMenu({
 						</div>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
+					{user && !user.emailVerified ? (
+						<DropdownMenuItem asChild>
+							<Link to="/login" search={{ action: "verify" }}>
+								Verify email address
+							</Link>
+						</DropdownMenuItem>
+					) : null}
 					{showLibraries && app.bands.length ? (
 						<>
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">

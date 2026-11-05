@@ -21,6 +21,13 @@ import {
 } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/login")({
+	validateSearch: (
+		search: Record<string, unknown>,
+	): { token?: string; error?: string; action?: string } => ({
+		token: typeof search.token === "string" ? search.token : undefined,
+		error: typeof search.error === "string" ? search.error : undefined,
+		action: typeof search.action === "string" ? search.action : undefined,
+	}),
 	head: () => ({ meta: [{ title: "Sign in · Mic Drop" }] }),
 	component: Login,
 });
@@ -116,7 +123,24 @@ function NotesBackground({ className }: { className?: string }) {
 function Login() {
 	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
-	const [mode, setMode] = useState<"signin" | "signup">("signin");
+	const search = Route.useSearch();
+	const [mode, setMode] = useState<
+		"signin" | "signup" | "forgot" | "reset" | "verify"
+	>(
+		search.action === "reset"
+			? "reset"
+			: search.action === "verify" || search.error
+				? "verify"
+				: "signin",
+	);
+	const [notice, setNotice] = useState(
+		search.error
+			? "This email link is invalid or expired. Request a new one."
+			: search.action === "verified"
+				? "Your email address is verified. You can sign in."
+				: "",
+	);
+	const authenticating = mode === "signin" || mode === "signup";
 	const [busy, setBusy] = useState(false);
 	const [captcha, setCaptcha] = useState("");
 	const [attempt, setAttempt] = useState(0);
@@ -128,8 +152,8 @@ function Login() {
 		else await navigate({ href: returnPath() ?? "/songs", replace: true });
 	}, [navigate]);
 	useEffect(() => {
-		if (session) void done();
-	}, [session, done]);
+		if (session && authenticating) void done();
+	}, [session, done, authenticating]);
 	const run = async (action: () => Promise<void>) => {
 		setBusy(true);
 		try {
@@ -158,12 +182,45 @@ function Login() {
 							const email = String(form.get("email"));
 							const password = String(form.get("password"));
 							void run(async () => {
+								setNotice("");
+								if (mode === "forgot" || mode === "verify") {
+									const result =
+										mode === "forgot"
+											? await authClient.requestPasswordReset({
+													email,
+													redirectTo: "/login?action=reset",
+												})
+											: await authClient.sendVerificationEmail({
+													email,
+													callbackURL: "/login?action=verified",
+												});
+									if (result.error) throw new Error(result.error.message);
+									setNotice(
+										"If this address has an eligible account, an email is on its way. Check your inbox and spam folder.",
+									);
+									return;
+								}
+								if (mode === "reset") {
+									if (!search.token || search.error)
+										throw new Error(
+											"This reset link is invalid or expired. Request a new one.",
+										);
+									const result = await authClient.resetPassword({
+										newPassword: password,
+										token: search.token,
+									});
+									if (result.error) throw new Error(result.error.message);
+									// Clear the spent token, and the session revoked by the reset.
+									window.location.replace("/login");
+									return;
+								}
 								const result =
 									mode === "signup"
 										? await authClient.signUp.email({
 												email,
 												password,
 												name: String(form.get("name")),
+												callbackURL: "/login?action=verified",
 												fetchOptions: {
 													headers: { "x-captcha-response": captcha },
 												},
@@ -177,6 +234,10 @@ function Login() {
 									}
 									throw new Error(result.error.message);
 								}
+								if (mode === "signup")
+									toast.success(
+										"Welcome! Check your inbox to verify your email address.",
+									);
 								await done();
 							});
 						}}
@@ -193,12 +254,22 @@ function Login() {
 							</div>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">
-									{mode === "signin"
-										? "Sign in to Mic Drop"
-										: "Create your account"}
+									{
+										{
+											signin: "Sign in to Mic Drop",
+											signup: "Create your account",
+											forgot: "Forgot your password?",
+											reset: "Choose a new password",
+											verify: "Verify your email",
+										}[mode]
+									}
 								</h1>
 								<p className="text-sm text-balance text-muted-foreground">
-									Songs stay on this device. Sign in to sync them.
+									{authenticating
+										? "Songs stay on this device. Sign in to sync them."
+										: mode === "reset"
+											? "Use at least 10 characters for your new password."
+											: "Enter your account email and we’ll send you a link."}
 								</p>
 							</div>
 							{mode === "signup" ? (
@@ -207,93 +278,155 @@ function Login() {
 									<Input id="name" name="name" required autoComplete="name" />
 								</Field>
 							) : null}
-							<Field>
-								<FieldLabel htmlFor="email">Email</FieldLabel>
-								<Input
-									id="email"
-									name="email"
-									type="email"
-									placeholder="you@example.com"
-									required
-									autoComplete="email"
-								/>
-							</Field>
-							<Field>
-								<FieldLabel htmlFor="password">Password</FieldLabel>
-								<Input
-									id="password"
-									name="password"
-									type="password"
-									required
-									minLength={10}
-									autoComplete={
-										mode === "signup" ? "new-password" : "current-password"
-									}
-								/>
-								{mode === "signup" ? (
-									<FieldDescription>
-										Must be at least 10 characters long.
-									</FieldDescription>
-								) : null}
-							</Field>
+							{notice ? <output className="text-sm">{notice}</output> : null}
+							{mode !== "reset" ? (
+								<Field>
+									<FieldLabel htmlFor="email">Email</FieldLabel>
+									<Input
+										id="email"
+										name="email"
+										type="email"
+										placeholder="you@example.com"
+										required
+										autoComplete="email"
+									/>
+								</Field>
+							) : null}
+							{authenticating || mode === "reset" ? (
+								<Field>
+									<FieldLabel htmlFor="password">Password</FieldLabel>
+									<Input
+										id="password"
+										name="password"
+										type="password"
+										required
+										minLength={10}
+										autoComplete={
+											mode !== "signin" ? "new-password" : "current-password"
+										}
+									/>
+									{mode === "signup" ? (
+										<FieldDescription>
+											Must be at least 10 characters long.
+										</FieldDescription>
+									) : null}
+								</Field>
+							) : null}
 							{needsCaptcha ? (
 								<Turnstile key={attempt} onToken={setCaptcha} />
 							) : null}
 							<Field>
 								<Button disabled={busy || (needsCaptcha && !captcha)}>
 									{busy ? <Spinner /> : null}
-									{mode === "signup" ? "Create account" : "Sign in"}
-								</Button>
-							</Field>
-							<FieldSeparator>Or continue with</FieldSeparator>
-							<Field>
-								<Button
-									type="button"
-									variant="outline"
-									disabled={busy}
-									onClick={() =>
-										void run(async () => {
-											const result = await authClient.signIn.social({
-												provider: "google",
-												callbackURL: pendingAuthorization()
-													? window.location.href
-													: (returnPath() ?? "/songs"),
-											});
-											if (result.error)
-												throw new Error(
-													"Google sign-in isn’t configured on the server.",
-												);
-										})
+									{
+										{
+											signin: "Sign in",
+											signup: "Create account",
+											forgot: "Send reset link",
+											reset: "Save new password",
+											verify: "Send verification link",
+										}[mode]
 									}
-								>
-									<svg viewBox="0 0 24 24" aria-hidden="true">
-										<path
-											d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.7 2.2-5.54 2.2-4.4 0-7.84-3.55-7.84-7.95s3.44-7.95 7.84-7.95c2.38 0 4.12.93 5.4 2.13l2.31-2.31C18.78 1.25 16.4 0 12.48 0 5.87 0 .31 5.39.31 12s5.56 12 12.17 12c3.57 0 6.26-1.17 8.37-3.36 2.16-2.16 2.84-5.21 2.84-7.67 0-.76-.05-1.46-.18-2.05z"
-											fill="currentColor"
-										/>
-									</svg>
-									Continue with Google
 								</Button>
-								<FieldDescription className="text-center">
-									{mode === "signin"
-										? "New here? "
-										: "Already have an account? "}
-									<button
-										type="button"
-										className="underline underline-offset-4"
-										onClick={() =>
-											setMode(mode === "signin" ? "signup" : "signin")
-										}
-									>
-										{mode === "signin" ? "Create an account" : "Sign in"}
-									</button>
-								</FieldDescription>
-								<FieldDescription className="text-center text-xs">
-									<Link to="/privacy" className="underline underline-offset-4">
-										How Mic Drop handles your data
-									</Link>
-								</FieldDescription>
 							</Field>
+							{mode === "signin" || !authenticating ? (
+								<FieldDescription className="flex flex-wrap justify-center gap-3">
+									{mode !== "forgot" ? (
+										<button
+											type="button"
+											disabled={busy}
+											className="underline underline-offset-4"
+											onClick={() => {
+												setMode("forgot");
+												setNotice("");
+											}}
+										>
+											Forgot password?
+										</button>
+									) : null}
+									{mode === "signin" ? (
+										<button
+											type="button"
+											disabled={busy}
+											className="underline underline-offset-4"
+											onClick={() => {
+												setMode("verify");
+												setNotice("");
+											}}
+										>
+											Resend verification email
+										</button>
+									) : (
+										<button
+											type="button"
+											disabled={busy}
+											className="underline underline-offset-4"
+											onClick={() => {
+												setMode("signin");
+												setNotice("");
+											}}
+										>
+											Back to sign in
+										</button>
+									)}
+								</FieldDescription>
+							) : null}
+							{authenticating ? (
+								<>
+									<FieldSeparator>Or continue with</FieldSeparator>
+									<Field>
+										<Button
+											type="button"
+											variant="outline"
+											disabled={busy}
+											onClick={() =>
+												void run(async () => {
+													const result = await authClient.signIn.social({
+														provider: "google",
+														callbackURL: pendingAuthorization()
+															? window.location.href
+															: (returnPath() ?? "/songs"),
+													});
+													if (result.error)
+														throw new Error(
+															"Google sign-in isn’t configured on the server.",
+														);
+												})
+											}
+										>
+											<svg viewBox="0 0 24 24" aria-hidden="true">
+												<path
+													d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.7 2.2-5.54 2.2-4.4 0-7.84-3.55-7.84-7.95s3.44-7.95 7.84-7.95c2.38 0 4.12.93 5.4 2.13l2.31-2.31C18.78 1.25 16.4 0 12.48 0 5.87 0 .31 5.39.31 12s5.56 12 12.17 12c3.57 0 6.26-1.17 8.37-3.36 2.16-2.16 2.84-5.21 2.84-7.67 0-.76-.05-1.46-.18-2.05z"
+													fill="currentColor"
+												/>
+											</svg>
+											Continue with Google
+										</Button>
+										<FieldDescription className="text-center">
+											{mode === "signin"
+												? "New here? "
+												: "Already have an account? "}
+											<button
+												type="button"
+												className="underline underline-offset-4"
+												onClick={() =>
+													setMode(mode === "signin" ? "signup" : "signin")
+												}
+											>
+												{mode === "signin" ? "Create an account" : "Sign in"}
+											</button>
+										</FieldDescription>
+										<FieldDescription className="text-center text-xs">
+											<Link
+												to="/privacy"
+												className="underline underline-offset-4"
+											>
+												How Mic Drop handles your data
+											</Link>
+										</FieldDescription>
+									</Field>
+								</>
+							) : null}
 						</FieldGroup>
 					</form>
 				</div>

@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
 import { validateSourceUrl } from "@chords/imports";
@@ -9,6 +9,7 @@ import { admin, captcha, jwt, organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { D1Dialect } from "kysely-d1";
 import { auditStatement, BAN_HIDDEN, SIGNUP_BURST } from "./admin";
+import { authEmail, sendEmail } from "./email";
 import { HttpError } from "./http-error";
 import { reachedBandLimit } from "./quotas";
 
@@ -42,7 +43,22 @@ export function getAuth() {
 		secret,
 		baseURL: process.env.BETTER_AUTH_URL || env.BETTER_AUTH_URL,
 		database: { dialect: new D1Dialect({ database: env.DB }), type: "sqlite" },
-		emailAndPassword: { enabled: true, minPasswordLength: 10 },
+		emailAndPassword: {
+			enabled: true,
+			minPasswordLength: 10,
+			revokeSessionsOnPasswordReset: true,
+			sendResetPassword: async ({ user, url }) => {
+				queueAuthEmail(user.email, "reset", url);
+			},
+		},
+		emailVerification: {
+			sendOnSignUp: true,
+			expiresIn: 3600,
+			// Existing accounts can keep signing in while they verify their address.
+			sendVerificationEmail: async ({ user, url }) => {
+				queueAuthEmail(user.email, "verification", url);
+			},
+		},
 		// Cloudflare sets cf-connecting-ip itself; x-forwarded-for can be supplied by the client.
 		advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
 		rateLimit: {
@@ -53,6 +69,8 @@ export function getAuth() {
 			customRules: {
 				"/sign-up/email": { window: 3600, max: 10 },
 				"/sign-in/email": { window: 60, max: 10 },
+				"/request-password-reset": { window: 60, max: 3 },
+				"/send-verification-email": { window: 60, max: 3 },
 				"/oauth2/register": { window: 3600, max: 20 },
 			},
 		},
@@ -148,6 +166,19 @@ export function getAuth() {
 			},
 		},
 	});
+}
+function queueAuthEmail(
+	to: string,
+	kind: "verification" | "reset",
+	url: string,
+) {
+	// Keep delivery alive after the response without revealing account existence through latency.
+	waitUntil(
+		sendEmail(env.EMAIL, { to, ...authEmail(kind, url) }).catch((error) => {
+			captureException(error, { tags: { operation: "auth.email", kind } });
+			logger.error("auth.email_failed", { kind });
+		}),
+	);
 }
 export async function requireUser(request: Request) {
 	const session = await getAuth().api.getSession({ headers: request.headers });

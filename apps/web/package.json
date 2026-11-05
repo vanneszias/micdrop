@@ -10,7 +10,7 @@
     "build": "vite build && vite build --config vite.offline.config.ts && bun run scripts/generate-sw.ts",
     "preview": "wrangler dev --config dist/server/wrangler.json --port 3000",
     "typecheck": "tsc --noEmit",
-    "cf:typegen": "wrangler types",
+    "cf:typegen": "wrangler types --env-file ../../.env.example --strict-vars false",
     "db:migrate": "wrangler d1 migrations apply chords --local",
     "deploy": "bun run build && wrangler deploy"
   },
