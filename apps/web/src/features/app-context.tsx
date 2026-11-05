@@ -11,6 +11,7 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
+import { reportClientError } from "#/integrations/sentry/client";
 import { api, type Band, freshArrangement } from "#/lib/songs";
 
 type User = {
@@ -162,6 +163,7 @@ export function AppProvider({
 				if (success) toast.success(success);
 				return true;
 			} catch (reason) {
+				reportClientError(reason, "app.action");
 				toast.error(reason instanceof Error ? reason.message : String(reason));
 				return false;
 			} finally {

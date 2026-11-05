@@ -2,7 +2,7 @@ import { env, waitUntil } from "cloudflare:workers";
 import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
 import { validateSourceUrl } from "@chords/imports";
-import { captureException, logger } from "@sentry/cloudflare";
+import { logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { isAPIError } from "better-auth/api";
 import { admin, captcha, jwt, organization } from "better-auth/plugins";
@@ -11,6 +11,7 @@ import { D1Dialect } from "kysely-d1";
 import { auditStatement, BAN_HIDDEN, SIGNUP_BURST } from "./admin";
 import { authEmail, sendEmail } from "./email";
 import { HttpError } from "./http-error";
+import { reportError } from "./observability";
 import { reachedBandLimit } from "./quotas";
 
 export { HttpError } from "./http-error";
@@ -160,8 +161,8 @@ export function getAuth() {
 		onAPIError: {
 			// Better Auth answers its own failures with a 500, so report them before they vanish.
 			onError(error, ctx) {
-				if (isAPIError(error) && error.statusCode < 500) return;
-				captureException(error);
+				const status = isAPIError(error) ? error.statusCode : 500;
+				reportError(error, "auth", status);
 				ctx.logger.error("auth_error", error);
 			},
 		},
@@ -175,7 +176,7 @@ function queueAuthEmail(
 	// Keep delivery alive after the response without revealing account existence through latency.
 	waitUntil(
 		sendEmail(env.EMAIL, { to, ...authEmail(kind, url) }).catch((error) => {
-			captureException(error, { tags: { operation: "auth.email", kind } });
+			reportError(error, `auth.email ${kind}`, 500);
 			logger.error("auth.email_failed", { kind });
 		}),
 	);
@@ -233,27 +234,34 @@ export function endpoint(
 					: request.body.cancel()
 				).catch(() => {});
 			}
-			if (error instanceof HttpError)
+			const path = new URL(request.url).pathname;
+			if (error instanceof HttpError) {
+				reportError(error, `endpoint ${path}`, error.status);
 				return Response.json(
 					{ error: error.message },
 					{ status: error.status },
 				);
+			}
 			// Better Auth's own refusals, such as the band limit, are meant for the user.
-			if (isAPIError(error) && error.statusCode < 500)
+			if (isAPIError(error) && error.statusCode < 500) {
+				reportError(error, `endpoint ${path}`, error.statusCode);
 				return Response.json(
 					{ error: error.message },
 					{ status: error.statusCode },
 				);
-			if (error instanceof Error && error.name === "ZodError")
+			}
+			if (error instanceof Error && error.name === "ZodError") {
+				reportError(error, `endpoint ${path}`, 400);
 				return Response.json(
 					{ error: "Invalid input. Check your changes and try again." },
 					{ status: 400 },
 				);
-			captureException(error);
+			}
+			reportError(error, `endpoint ${path}`, 500);
 			console.error(
 				JSON.stringify({
 					event: "endpoint_error",
-					path: new URL(request.url).pathname,
+					path,
 					message: error instanceof Error ? error.message : String(error),
 				}),
 			);

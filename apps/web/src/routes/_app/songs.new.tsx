@@ -46,6 +46,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
+import { reportClientError } from "#/integrations/sentry/client";
 import { api } from "#/lib/songs";
 
 export const Route = createFileRoute("/_app/songs/new")({ component: NewSong });
@@ -295,7 +296,10 @@ function NewSong() {
 										void file
 											.text()
 											.then((content) => createSong(fromSheet(content)))
-											.catch(() => toast.error("Could not read this file."));
+											.catch((reason) => {
+												reportClientError(reason, "song.file_read");
+												toast.error("Could not read this file.");
+											});
 									}}
 								/>
 							</Field>

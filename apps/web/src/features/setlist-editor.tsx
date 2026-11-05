@@ -109,6 +109,7 @@ import {
 	SongList,
 	SongRow,
 } from "#/components/song-row";
+import { reportClientError } from "#/integrations/sentry/client";
 import { displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 import { CatalogueSearch } from "./catalogue-search";
@@ -151,7 +152,10 @@ export function SetlistEditor({
 	}
 	const save = (row: SongRecord) => persist(store(row));
 	function update(data: Setlist["data"]) {
-		save({ ...list, data }).catch((reason) => toast.error(String(reason)));
+		save({ ...list, data }).catch((reason) => {
+			reportClientError(reason, "setlist.save");
+			toast.error(String(reason));
+		});
 	}
 	function patch(
 		id: string,
@@ -335,7 +339,10 @@ export function SetlistEditor({
 							onClick={() =>
 								save({ ...list, archived: true })
 									.then(() => navigate({ to: "/setlists" }))
-									.catch((reason) => toast.error(String(reason)))
+									.catch((reason) => {
+										reportClientError(reason, "setlist.archive");
+										toast.error(String(reason));
+									})
 							}
 						>
 							<Trash2 /> Delete

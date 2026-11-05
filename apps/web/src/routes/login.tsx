@@ -14,6 +14,7 @@ import { Eye, EyeOff, Music } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
+import { reportClientError } from "#/integrations/sentry/client";
 import {
 	authClient,
 	pendingAuthorization,
@@ -160,6 +161,7 @@ function Login() {
 		try {
 			await action();
 		} catch (error) {
+			reportClientError(error, "auth.sign_in");
 			toast.error(error instanceof Error ? error.message : "Sign-in failed.");
 		} finally {
 			setBusy(false);

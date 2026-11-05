@@ -1,7 +1,15 @@
 import type { Arrangement } from "@chords/data";
 import { exportChordPro, keyLabel, songMode } from "@chords/song-core";
+import { traceClient } from "#/integrations/sentry/client";
 
-export async function api<T>(path: string, body?: unknown): Promise<T> {
+/** Every API request is timed as a client span, so slow endpoints show up in performance data. */
+export function api<T>(path: string, body?: unknown): Promise<T> {
+	return traceClient(`${body ? "POST" : "GET"} ${path}`, "http.client", () =>
+		request<T>(path, body),
+	);
+}
+
+async function request<T>(path: string, body?: unknown): Promise<T> {
 	const response = await fetch(
 		path,
 		body

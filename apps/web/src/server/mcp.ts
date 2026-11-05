@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 import { HttpError } from "./http-error";
 import { importFromUrl } from "./import-page";
+import { reportError } from "./observability";
 import { consumeQuota } from "./quotas";
 import { listRecords, saveOperation } from "./sync";
 
@@ -42,7 +43,10 @@ function tool<A>(
 		try {
 			return result(await run(args));
 		} catch (error) {
-			if (error instanceof HttpError) return failure(error.message);
+			if (error instanceof HttpError) {
+				reportError(error, `mcp.${scope}`, error.status);
+				return failure(error.message);
+			}
 			throw error;
 		}
 	};
