@@ -587,9 +587,7 @@ function ArrangementChoices({
 								}
 							>
 								<Eye />
-								<span className="max-sm:sr-only">
-									{preview === version.id ? "Hide" : "Preview"}
-								</span>
+								{preview === version.id ? "Hide" : "Preview"}
 							</Button>
 							{account === "local" ? (
 								<Button size="sm" variant="outline" asChild>

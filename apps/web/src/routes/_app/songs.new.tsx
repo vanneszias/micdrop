@@ -131,7 +131,7 @@ function NewSong() {
 								<Textarea
 									id="paste"
 									rows={14}
-									className="min-h-56 font-mono placeholder:text-muted-foreground/60 sm:min-h-72"
+									className="min-h-56 font-mono placeholder:text-muted-foreground sm:min-h-72"
 									placeholder={
 										"Example:\n\n[Verse 1]\nG              C          G\nAmazing grace, how sweet the sound\n          Em      D\nThat saved a wretch like me"
 									}

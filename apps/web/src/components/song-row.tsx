@@ -78,7 +78,7 @@ export function SongRow({
 				{badges}
 			</span>
 			{meta ? (
-				<span className="block truncate text-[13px] text-muted-foreground">
+				<span className="block text-[13px] text-muted-foreground max-sm:break-words sm:truncate">
 					{meta}
 				</span>
 			) : null}

@@ -107,8 +107,8 @@ export function Stage({
 		// Leave room for the control pill, so the last line is never under it.
 		const room = height - (header.current?.offsetHeight ?? 56) - 88;
 		// Desktop may go a little under the reading size when that buys even columns.
-		const minimum = narrow ? Math.max(20, baseSize + 3) : 20;
-		const maximum = narrow ? 30 : 52;
+		const minimum = narrow ? Math.max(18, baseSize + 1) : 20;
+		const maximum = narrow ? 24 : 52;
 		const columnWidth = (columns: number, size: number) =>
 			(available - GAP_EMS * size * (columns - 1)) / columns;
 		const sheet = element.querySelector<HTMLElement>(".song-sheet");
@@ -196,7 +196,8 @@ export function Stage({
 	return (
 		<div
 			className={cn(
-				"fixed inset-0 z-40 flex flex-col bg-background",
+				// Phones keep a strip for the controls, so they never sit over a lyric.
+				"fixed inset-0 z-40 flex flex-col bg-background max-sm:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
 				!visible && "cursor-none",
 			)}
 			onPointerMove={(event) => event.pointerType === "mouse" && wake()}

@@ -554,17 +554,25 @@ export function Player({
 						</Toggle>
 					</IconTip>
 				}
-				{arrangement.updatedAt !== shown.updatedAt ? (
+			</div>
+			{arrangement.updatedAt !== shown.updatedAt ? (
+				// A newer revision never hides at the end of a scrolling toolbar.
+				<output
+					data-print="hide"
+					className="flex shrink-0 items-center gap-3 border-b bg-chord/60 px-4 py-2 text-sm sm:justify-center"
+				>
+					<span className="min-w-0 flex-1 sm:flex-none">
+						This song was edited since you opened it.
+					</span>
 					<Button
-						variant="secondary"
 						size="sm"
-						className="ml-auto"
+						variant="outline"
 						onClick={() => setShown(arrangement)}
 					>
 						Load latest version
 					</Button>
-				) : null}
-			</div>
+				</output>
+			) : null}
 			<section
 				ref={sheet}
 				className="print-scroll min-h-0 flex-1 overflow-auto focus-visible:outline-none"
@@ -646,12 +654,32 @@ export function Player({
 					data-print="hide"
 					className="shrink-0 border-t bg-card/50 py-3 xl:hidden"
 				>
-					<div className="mx-auto max-w-[800px] px-6">
-						<ChordDiagrams
-							content={shown.data.content}
-							semitones={delta}
-							accidental={accidental}
-						/>
+					<div className="mx-auto max-w-[800px] px-6 max-sm:px-4">
+						{narrow ? (
+							// Phones get a compact launcher; each chord opens its diagram full size.
+							<div className="flex items-center gap-1.5 overflow-x-auto">
+								<span className="shrink-0 text-xs text-muted-foreground">
+									Diagrams
+								</span>
+								{songChords.map((value) => (
+									<Button
+										key={value}
+										variant="outline"
+										size="sm"
+										className="shrink-0 font-mono"
+										onClick={() => setChord(value)}
+									>
+										{value}
+									</Button>
+								))}
+							</div>
+						) : (
+							<ChordDiagrams
+								content={shown.data.content}
+								semitones={delta}
+								accidental={accidental}
+							/>
+						)}
 					</div>
 				</div>
 			) : null}
