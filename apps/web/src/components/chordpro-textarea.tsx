@@ -50,7 +50,10 @@ export const ChordProTextarea = forwardRef<
 		// One monospace face everywhere; phones stay at 16px (smaller inputs make iOS zoom
 		// in) with slightly tighter tracking so more of each line fits.
 		"px-3 py-2 font-mono text-base leading-relaxed tracking-[-0.03em] sm:tracking-normal md:text-sm",
-		wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre",
+		// A wrapped line continues indented, so it never looks like a new line.
+		wrapLines
+			? "whitespace-pre-wrap break-words [text-indent:2ch_hanging_each-line]"
+			: "whitespace-pre",
 	);
 	return (
 		<div className="relative rounded-md bg-transparent dark:bg-input/30">

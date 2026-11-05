@@ -10,7 +10,7 @@ import {
 import { Input } from "@chords/ui/components/input";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Music } from "lucide-react";
+import { Eye, EyeOff, Music } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
@@ -118,6 +118,7 @@ function Login() {
 	const { data: session } = authClient.useSession();
 	const [mode, setMode] = useState<"signin" | "signup">("signin");
 	const [busy, setBusy] = useState(false);
+	const [reveal, setReveal] = useState(false);
 	const [captcha, setCaptcha] = useState("");
 	const [attempt, setAttempt] = useState(0);
 	const needsCaptcha = mode === "signup" && !!TURNSTILE_SITE_KEY;
@@ -220,16 +221,30 @@ function Login() {
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="password">Password</FieldLabel>
-								<Input
-									id="password"
-									name="password"
-									type="password"
-									required
-									minLength={10}
-									autoComplete={
-										mode === "signup" ? "new-password" : "current-password"
-									}
-								/>
+								<div className="relative">
+									<Input
+										id="password"
+										name="password"
+										type={reveal ? "text" : "password"}
+										required
+										minLength={10}
+										className="pr-10"
+										autoComplete={
+											mode === "signup" ? "new-password" : "current-password"
+										}
+									/>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon-sm"
+										className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+										aria-label={reveal ? "Hide password" : "Show password"}
+										aria-pressed={reveal}
+										onClick={() => setReveal((value) => !value)}
+									>
+										{reveal ? <EyeOff /> : <Eye />}
+									</Button>
+								</div>
 								{mode === "signup" ? (
 									<FieldDescription>
 										Must be at least 10 characters long.

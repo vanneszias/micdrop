@@ -289,18 +289,31 @@ export function Player({
 	}>();
 	// Sections split across columns only when whole ones would run past the screen.
 	const [sheetHeight, setSheetHeight] = useState<number>();
+	// The scroller's width, not the sheet's: one column hugs its text, so it can't say
+	// whether more would fit.
+	const [canvas, setCanvas] = useState<number>();
 	// Leaving stage mode mounts a new scroller, so the observer rebinds.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
 	useEffect(() => {
 		const element = sheet.current;
 		if (!element) return;
-		const observer = new ResizeObserver(() =>
-			setSheetHeight(Math.max(240, element.clientHeight - 180)),
-		);
+		const observer = new ResizeObserver(() => {
+			setSheetHeight(Math.max(240, element.clientHeight - 180));
+			setCanvas(element.clientWidth);
+		});
 		observer.observe(element);
 		return () => observer.disconnect();
 	}, [stage]);
 	const songChords = sheetChords(shown.data.content, delta, accidental);
+	const maxColumns = (() => {
+		if (!canvas) return 3;
+		const rail = diagrams && !lyricsOnly && window.innerWidth >= 1280 ? 328 : 0;
+		const width = canvas - rail - 64;
+		const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
+		let max = 3;
+		while (max > 1 && width / (max * 18 + (max - 1) * 2.5) < floor) max--;
+		return max;
+	})();
 	if (stage)
 		return (
 			<Stage
@@ -578,16 +591,16 @@ export function Player({
 								variant="outline"
 								aria-label="Columns"
 								// Only counts that fit this width at a readable size can be chosen.
-								value={String(Math.min(columns, fit?.max ?? columns))}
+								value={String(Math.min(columns, maxColumns))}
 								onValueChange={(value) => value && setColumns(Number(value))}
 							>
 								{[1, 2, 3].map((value) => (
 									<ToggleGroupItem
 										key={value}
 										value={String(value)}
-										disabled={!!fit && value > fit.max}
+										disabled={value > maxColumns}
 										title={
-											fit && value > fit.max
+											value > maxColumns
 												? "Needs a wider window or smaller text"
 												: undefined
 										}
@@ -596,9 +609,9 @@ export function Player({
 									</ToggleGroupItem>
 								))}
 							</ToggleGroup>
-							{fit && fit.max < 3 ? (
+							{maxColumns < 3 ? (
 								<p className="text-xs text-muted-foreground">
-									{fit.max === 1 ? "More columns need" : "3 columns need"} a
+									{maxColumns === 1 ? "More columns need" : "3 columns need"} a
 									wider window or smaller text.
 								</p>
 							) : null}
