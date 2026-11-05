@@ -114,6 +114,9 @@ import { displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 import { CatalogueSearch } from "./catalogue-search";
 
+/** Setlists created this session, so the editor can select the name for typing. */
+export const freshSetlists = new Set<string>();
+
 export function SetlistEditor({
 	list,
 	getSource,
@@ -260,9 +263,9 @@ export function SetlistEditor({
 	// A brand-new setlist starts with its name selected, ready to type over.
 	const nameField = useRef<HTMLInputElement>(null);
 	useEffect(() => {
-		if (list.data.title === "New setlist" && !list.data.entries.length)
-			nameField.current?.select();
-	}, [list.data.title, list.data.entries.length]);
+		// Only right after "New setlist", not every time an untouched one is opened.
+		if (freshSetlists.delete(list.id)) nameField.current?.select();
+	}, [list.id]);
 	const songCount = `${entries.length} ${entries.length === 1 ? "song" : "songs"}`;
 	return (
 		<>
@@ -501,8 +504,9 @@ export function SetlistEditor({
 									</EmptyMedia>
 									<EmptyTitle>No songs in this set yet</EmptyTitle>
 									<EmptyDescription>
-										Search for songs below and add them in the order you will
-										play them.
+										{wide
+											? "Search on the right and add songs in the order you will play them."
+											: "Tap Add songs below and add them in the order you will play them."}
 									</EmptyDescription>
 								</EmptyHeader>
 							</Empty>

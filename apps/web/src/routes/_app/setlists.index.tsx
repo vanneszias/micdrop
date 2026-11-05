@@ -46,6 +46,7 @@ import {
 	SongRow,
 } from "#/components/song-row";
 import { useApp } from "#/features/app-context";
+import { freshSetlists } from "#/features/setlist-editor";
 import { ShareDialog } from "#/features/share-dialog";
 import { canMoveFrom, destinations, type Library } from "#/lib/songs";
 
@@ -99,6 +100,7 @@ function Setlists() {
 				data: { title: "New setlist", date: "", entries: [] },
 			};
 			await save(row);
+			freshSetlists.add(row.id);
 			await navigate({ to: "/setlists/$id", params: { id: row.id } });
 		});
 	const sorted = [...setlists].sort(
@@ -110,7 +112,7 @@ function Setlists() {
 		<>
 			<Button variant="outline" size="sm" asChild>
 				<Link to="/setlists/import" aria-label="Import PDF">
-					<FileUp /> Import<span className="max-sm:hidden"> PDF</span>
+					<FileUp /> Import PDF
 				</Link>
 			</Button>
 			<Button size="sm" onClick={() => void create()}>

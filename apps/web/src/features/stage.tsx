@@ -207,7 +207,7 @@ export function Stage({
 				variant="ghost"
 				size="icon-sm"
 				className={cn(
-					"fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-50 transition-opacity hover:opacity-100 focus-visible:opacity-100 max-sm:hidden",
+					"fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 max-sm:hidden",
 					// Only while the controls are hidden; otherwise their Exit is the one way out.
 					visible && "pointer-events-none !opacity-0",
 				)}
@@ -219,7 +219,7 @@ export function Stage({
 			</Button>
 			<section
 				ref={scroller}
-				className="min-h-0 flex-1 overflow-auto px-5 focus-visible:outline-none max-sm:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] sm:px-12"
+				className="flex min-h-0 flex-1 flex-col overflow-auto px-5 focus-visible:outline-none max-sm:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] sm:px-12"
 				// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus and scroll the chord sheet.
 				tabIndex={0}
 				aria-label="Chord sheet"
@@ -237,15 +237,18 @@ export function Stage({
 						<p className="basis-full text-sm text-foreground/80">{notes}</p>
 					) : null}
 				</header>
-				<SongSheet
-					content={content}
-					semitones={semitones}
-					accidental={accidental}
-					fontSize={size}
-					columns={layout.columns}
-					height={layout.room * 0.96 || undefined}
-					chords={chords}
-				/>
+				{/* A song shorter than the screen sits in the middle rather than at the top. */}
+				<div className="my-auto">
+					<SongSheet
+						content={content}
+						semitones={semitones}
+						accidental={accidental}
+						fontSize={size}
+						columns={layout.columns}
+						height={layout.room * 0.96 || undefined}
+						chords={chords}
+					/>
+				</div>
 				<div className="h-20" />
 			</section>
 			{/* Off screen at a fixed size: used to find the layout that fits. */}

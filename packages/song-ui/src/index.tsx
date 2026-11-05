@@ -70,7 +70,12 @@ export function SongSheet({
 							<span
 								key={i}
 								className={
-									pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
+									pair.joined
+										? "sheet-pair sheet-pair-joined"
+										: // A chord over a whole word, followed by another word on the line.
+											pair.chord && pair.text.trim() && /\s$/.test(pair.text)
+											? "sheet-pair sheet-pair-word"
+											: "sheet-pair"
 								}
 							>
 								{pair.chord && onChord ? (

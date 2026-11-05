@@ -133,9 +133,9 @@ const syntaxGuide = [
 ] as const;
 
 const snippets = [
-	["Chord", "[D]"],
-	["Section", "\n{start_of_chorus: Chorus}\n\n{end_of_chorus}\n"],
-	["Note", "\n{comment: Play softly}\n"],
+	["Chord", "[D]", Music],
+	["Section", "\n{start_of_chorus: Chorus}\n\n{end_of_chorus}\n", Heading],
+	["Note", "\n{comment: Play softly}\n", StickyNote],
 ] as const;
 
 /** The song page's saved text size and lyrics-only choice, so the preview matches it. */
@@ -636,14 +636,14 @@ export function Editor({
 						<div className="flex items-center gap-1">
 							{/* Phones fold the snippets into one menu so the toolbar fits on a line. */}
 							<div className="flex items-center gap-1 max-sm:hidden">
-								{snippets.map(([label, value]) => (
+								{snippets.map(([label, value, Icon]) => (
 									<Button
 										key={label}
 										variant="outline"
 										size="sm"
 										onClick={() => insert(value)}
 									>
-										{label}
+										<Icon /> {label}
 									</Button>
 								))}
 							</div>
@@ -655,19 +655,12 @@ export function Editor({
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="start">
-									{snippets.map(([label, value]) => (
+									{snippets.map(([label, value, Icon]) => (
 										<DropdownMenuItem
 											key={label}
 											onSelect={() => insert(value)}
 										>
-											{label === "Chord" ? (
-												<Music />
-											) : label === "Section" ? (
-												<Heading />
-											) : (
-												<StickyNote />
-											)}
-											{label}
+											<Icon /> {label}
 										</DropdownMenuItem>
 									))}
 								</DropdownMenuContent>
@@ -680,9 +673,7 @@ export function Editor({
 								}
 							>
 								<Wand2 />
-								<span>
-									Clean up<span className="max-sm:hidden"> pasted chords</span>
-								</span>
+								<span>Clean up</span>
 							</Button>
 							<Popover>
 								<PopoverTrigger asChild>
@@ -695,7 +686,10 @@ export function Editor({
 										<CircleHelp />
 									</Button>
 								</PopoverTrigger>
-								<PopoverContent align="end" className="w-80 space-y-3 text-sm">
+								<PopoverContent
+									align="end"
+									className="w-[26rem] max-w-[calc(100vw-2rem)] space-y-3 text-sm [&_code]:whitespace-nowrap"
+								>
 									<p className="font-medium">ChordPro in short</p>
 									<dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
 										{syntaxGuide.map(([code, meaning]) => (
@@ -755,7 +749,7 @@ export function Editor({
 						) : null}
 					</div>
 					{preview ? (
-						<div className="min-w-0 rounded-lg border bg-card/40 px-5 py-6 sm:px-6 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
+						<div className="min-w-0 rounded-lg border bg-card/40 px-5 py-6 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 sm:px-6 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
 							<header className="mb-5 sm:mb-7">
 								<p className="text-2xl font-semibold tracking-tight sm:text-3xl">
 									{draft.data.title || "Untitled song"}

@@ -108,12 +108,12 @@ function Songs() {
 				description={
 					songs.length
 						? `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
-						: undefined
+						: "Songs you play, each in your own key and capo."
 				}
 				actions={
 					<>
 						<LibraryChip />
-						{songs.length ? add : null}
+						{add}
 					</>
 				}
 			>

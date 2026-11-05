@@ -331,29 +331,8 @@ export function CatalogueSearch({
 								)
 							}
 							title={group.title}
-							badges={
-								placed ? (
-									<Badge variant="secondary" className="shrink-0 font-normal">
-										<Check /> In set
-									</Badge>
-								) : inRepertoire && !onSelect ? (
-									// Phones show this on the meta line so long titles keep the room.
-									<Badge
-										variant="secondary"
-										className="shrink-0 font-normal max-sm:hidden"
-									>
-										<Check /> In repertoire
-									</Badge>
-								) : null
-							}
 							meta={
 								<>
-									{inRepertoire && !onSelect ? (
-										<span className="text-foreground/80 sm:hidden">
-											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
-											In repertoire ·{" "}
-										</span>
-									) : null}
 									{[group.artists || "Unknown artist"]
 										.filter(Boolean)
 										.join(" · ")}
@@ -381,6 +360,16 @@ export function CatalogueSearch({
 							)}
 							trailing={
 								<>
+									{/* Status sits where an action would, on every viewport. */}
+									{placed ? (
+										<Badge variant="secondary" className="font-normal">
+											<Check /> In set
+										</Badge>
+									) : inRepertoire && !onSelect ? (
+										<Badge variant="secondary" className="font-normal">
+											<Check /> In repertoire
+										</Badge>
+									) : null}
 									{onSelect && own[0] && !placed && !open ? (
 										<Button
 											type="button"

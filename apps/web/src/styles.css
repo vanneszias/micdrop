@@ -188,3 +188,9 @@ button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offse
 /* Standalone toggles (Diagrams, wrap) show "on" clearly. */
 /* aria-pressed: a tooltip trigger replaces the toggle's data-state and data-slot. */
 [aria-pressed='true']:is([data-slot='toggle'], [data-slot='tooltip-trigger']) { background: color-mix(in oklch, var(--brand) 22%, transparent); border-color: color-mix(in oklch, var(--brand) 70%, transparent); color: var(--foreground); }
+/* A chord wider than its word leaves a gap before the next word; a faint extender line
+   carries the eye across it, like the hyphen inside split words. */
+.sheet-pair-word .sheet-lyric { display: flex; }
+.sheet-pair-word .sheet-lyric::after { content: ''; flex: 1 1 0; min-width: 0; align-self: center; height: 2px; margin-top: .2em; background: repeating-linear-gradient(to right, currentColor 0 .12em, transparent .12em .4em) center / calc(100% - .5em) 100% no-repeat; opacity: .35; }
+[data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { border-color: var(--border) !important; box-shadow: 0 1px 3px oklch(0 0 0 / 0.16); }
+[data-slot='dialog-description'], [data-slot='alert-dialog-description'] { text-wrap: balance; }
