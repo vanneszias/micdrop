@@ -11,6 +11,7 @@ import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { reportClientError } from "#/integrations/sentry/client";
 import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/consent")({
@@ -52,6 +53,10 @@ function Consent() {
 		);
 		if (data?.url) return window.location.assign(data.url);
 		setBusy(false);
+		reportClientError(
+			new Error(error?.message || "OAuth consent failed"),
+			"oauth.consent",
+		);
 		toast.error(error?.message || "This request expired. Start again.");
 	};
 	return (

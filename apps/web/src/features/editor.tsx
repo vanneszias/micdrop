@@ -82,6 +82,7 @@ import { toast } from "sonner";
 import { ChordProTextarea } from "#/components/chordpro-textarea";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
+import { reportClientError } from "#/integrations/sentry/client";
 import { displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 import { CatalogueSearch } from "./catalogue-search";
@@ -215,6 +216,7 @@ export function Editor({
 				);
 			await navigate({ to: "/songs/$id", params: { id: arrangement.id } });
 		} catch (reason) {
+			reportClientError(reason, "editor.finish");
 			toast.error(String(reason));
 		} finally {
 			setFinishing(false);
@@ -277,7 +279,10 @@ export function Editor({
 					lastSaved.current = snapshot;
 					setSaved(true);
 				})
-				.catch((reason) => toast.error(String(reason)));
+				.catch((reason) => {
+					reportClientError(reason, "editor.autosave");
+					toast.error(String(reason));
+				});
 		}, 700);
 		return () => window.clearTimeout(timer);
 	}, [draft, persist, finishing]);

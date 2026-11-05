@@ -5,9 +5,18 @@ import {
 	PdfSetlist,
 	validatePdf,
 } from "@chords/imports/pdf";
-import { logger } from "@sentry/cloudflare";
+import { logger, startSpan } from "@sentry/cloudflare";
 import { z } from "zod";
 import { HttpError } from "./http-error";
+
+// Failed steps are logged as warnings or errors so the Sentry log alerts can key on them.
+const LOG_LEVEL: Record<string, "info" | "warn" | "error"> = {
+	fetch_failed: "error",
+	crashed: "error",
+	unreadable_response: "warn",
+	not_completed: "warn",
+	invalid_extraction: "warn",
+};
 
 export function logImport(
 	jobId: string,
@@ -17,7 +26,10 @@ export function logImport(
 	console.log(
 		JSON.stringify({ event: `pdf_import.${event}`, jobId, ...fields }),
 	);
-	logger.info(`pdf_import.${event}`, { jobId, ...fields });
+	logger[LOG_LEVEL[event] ?? "info"](`pdf_import.${event}`, {
+		jobId,
+		...fields,
+	});
 }
 
 export function requireKey(apiKey?: string) {
@@ -348,12 +360,21 @@ export async function extractPdf(
 	let response: Response | undefined;
 	for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 		try {
-			response = await send(built.url, {
-				method: "POST",
-				headers: { ...built.headers, "Content-Type": "application/json" },
-				signal: AbortSignal.timeout(480_000),
-				body,
-			});
+			// The provider call dominates an import, so its duration is traced on its own.
+			response = await startSpan(
+				{
+					name: "pdf_import.provider",
+					op: "http.client",
+					attributes: { provider, model, attempt },
+				},
+				() =>
+					send(built.url, {
+						method: "POST",
+						headers: { ...built.headers, "Content-Type": "application/json" },
+						signal: AbortSignal.timeout(480_000),
+						body,
+					}),
+			);
 		} catch (error) {
 			logImport(jobId, "fetch_failed", {
 				provider,

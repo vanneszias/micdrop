@@ -3,7 +3,7 @@ import { cimd } from "@better-auth/cimd";
 import { mcp } from "@better-auth/mcp";
 import { passkey } from "@better-auth/passkey";
 import { validateSourceUrl } from "@chords/imports";
-import { captureException, logger } from "@sentry/cloudflare";
+import { logger } from "@sentry/cloudflare";
 import { betterAuth } from "better-auth";
 import { APIError, isAPIError } from "better-auth/api";
 import {
@@ -24,6 +24,7 @@ import {
 	VERIFICATION_EXPIRES_IN,
 } from "./email";
 import { HttpError } from "./http-error";
+import { reportError } from "./observability";
 import { reachedBandLimit } from "./quotas";
 
 export { HttpError } from "./http-error";
@@ -216,8 +217,8 @@ export function getAuth() {
 		onAPIError: {
 			// Better Auth answers its own failures with a 500, so report them before they vanish.
 			onError(error, ctx) {
-				if (isAPIError(error) && error.statusCode < 500) return;
-				captureException(error);
+				const status = isAPIError(error) ? error.statusCode : 500;
+				reportError(error, "auth", status);
 				ctx.logger.error("auth_error", error);
 			},
 		},
@@ -292,27 +293,34 @@ export function endpoint(
 					: request.body.cancel()
 				).catch(() => {});
 			}
-			if (error instanceof HttpError)
+			const path = new URL(request.url).pathname;
+			if (error instanceof HttpError) {
+				reportError(error, `endpoint ${path}`, error.status);
 				return Response.json(
 					{ error: error.message },
 					{ status: error.status },
 				);
+			}
 			// Better Auth's own refusals, such as the band limit, are meant for the user.
-			if (isAPIError(error) && error.statusCode < 500)
+			if (isAPIError(error) && error.statusCode < 500) {
+				reportError(error, `endpoint ${path}`, error.statusCode);
 				return Response.json(
 					{ error: error.message },
 					{ status: error.statusCode },
 				);
-			if (error instanceof Error && error.name === "ZodError")
+			}
+			if (error instanceof Error && error.name === "ZodError") {
+				reportError(error, `endpoint ${path}`, 400);
 				return Response.json(
 					{ error: "Invalid input. Check your changes and try again." },
 					{ status: 400 },
 				);
-			captureException(error);
+			}
+			reportError(error, `endpoint ${path}`, 500);
 			console.error(
 				JSON.stringify({
 					event: "endpoint_error",
-					path: new URL(request.url).pathname,
+					path,
 					message: error instanceof Error ? error.message : String(error),
 				}),
 			);

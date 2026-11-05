@@ -38,6 +38,7 @@ import { Textarea } from "@chords/ui/components/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { reportClientError } from "#/integrations/sentry/client";
 import { freshArrangement } from "#/lib/songs";
 import { CatalogueSearch } from "./catalogue-search";
 
@@ -116,6 +117,7 @@ export function PdfSetlistImport({
 			}
 			setDraft(normalizePdfSetlist(data));
 		} catch (reason) {
+			reportClientError(reason, "pdf_import.extract");
 			toast.error(reason instanceof Error ? reason.message : String(reason));
 		} finally {
 			setBusy(false);
@@ -189,6 +191,7 @@ export function PdfSetlistImport({
 			toast.success("Songs and setlist saved");
 			await navigate({ to: "/setlists/$id", params: { id: list.id } });
 		} catch (reason) {
+			reportClientError(reason, "setlist.import_save");
 			toast.error(reason instanceof Error ? reason.message : String(reason));
 		} finally {
 			setBusy(false);

@@ -1,6 +1,6 @@
 import { env, waitUntil } from "cloudflare:workers";
-import { captureException } from "@sentry/cloudflare";
 import { HttpError } from "./http-error";
+import { reportError } from "./observability";
 import {
 	extractPdf,
 	logImport,
@@ -53,8 +53,8 @@ export async function startPdfJob(request: Request, userId: string) {
 					error instanceof HttpError
 						? error.message
 						: "The import failed unexpectedly. Try again.";
+				reportError(error, "pdf_import", status);
 				if (!(error instanceof HttpError)) {
-					captureException(error);
 					logImport(id, "crashed", {
 						message: error instanceof Error ? error.stack : String(error),
 					});

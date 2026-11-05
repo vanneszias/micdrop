@@ -18,6 +18,7 @@ import {
 	ImpersonationBanner,
 	usePurgeImpersonatedSongbook,
 } from "#/features/impersonation";
+import { reportClientError } from "#/integrations/sentry/client";
 import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/_app")({ component: Layout });
@@ -71,8 +72,9 @@ function Layout() {
 					registration.installing?.addEventListener("statechange", ready),
 				);
 			})
-			.catch(() => {
-				/* The next online visit retries offline installation. */
+			.catch((error) => {
+				// The next online visit retries offline installation.
+				reportClientError(error, "offline.register");
 			});
 	}, []);
 	const account =
@@ -118,7 +120,10 @@ function Shell() {
 		select: (state) => state.location.pathname,
 	});
 	useEffect(() => {
-		if (error) toast.error(error);
+		if (error) {
+			reportClientError(new Error(error), "app.load");
+			toast.error(error);
+		}
 	}, [error]);
 	return (
 		<SidebarProvider className="has-data-[variant=inset]:bg-background">
