@@ -4,6 +4,7 @@ import { cn } from "@chords/ui/lib/utils";
 import { forwardRef, useRef } from "react";
 
 const TOKEN = /(\{[^}\n]*\}?|\[[^\]\n]*\]?)/g;
+const SECTION = /^\s*\{(start_of_|so[cvb]\b)/i;
 
 function highlight(line: string) {
 	if (/^\s*#/.test(line))
@@ -49,7 +50,7 @@ export const ChordProTextarea = forwardRef<
 	const shared = cn(
 		// One monospace face everywhere; phones stay at 16px (smaller inputs make iOS zoom
 		// in) with slightly tighter tracking so more of each line fits.
-		"px-3 py-2 font-mono text-base leading-relaxed tracking-[-0.03em] sm:tracking-normal md:text-sm",
+		"px-2 py-2 font-mono text-base leading-relaxed tracking-[-0.03em] sm:px-3 sm:tracking-normal md:text-sm",
 		// A wrapped line continues indented, so it never looks like a new line.
 		wrapLines
 			? "whitespace-pre-wrap break-words [text-indent:2ch_hanging_each-line]"
@@ -66,7 +67,15 @@ export const ChordProTextarea = forwardRef<
 				)}
 			>
 				{value.split("\n").map((line, index) => (
-					<div key={index}>{line ? highlight(line) : "​"}</div>
+					<div
+						key={index}
+						className={cn(
+							"chordpro-line",
+							SECTION.test(line) && "chordpro-section",
+						)}
+					>
+						{line ? highlight(line) : "​"}
+					</div>
 				))}
 			</div>
 			<Textarea
