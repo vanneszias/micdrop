@@ -116,7 +116,7 @@ function Songs() {
 				{songs.length ? (
 					<SearchInput
 						aria-label="Search songs"
-						placeholder="Search title, artist or lyrics…"
+						placeholder="Search songs, artists or lyrics…"
 						value={q}
 						onChange={(event) =>
 							void navigate({

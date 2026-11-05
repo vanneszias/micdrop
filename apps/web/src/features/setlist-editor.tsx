@@ -606,11 +606,11 @@ function KeyCapoPicker({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-10 w-16 justify-between gap-1 px-2 font-normal sm:h-8 sm:w-auto sm:min-w-32 sm:gap-1.5 sm:px-2.5"
+					className="h-10 w-16 justify-between gap-1 px-2 font-normal sm:h-8 sm:w-36 sm:gap-1.5 sm:px-2.5"
 					aria-label={`Key and capo for ${name}: ${keyLabel(value, mode)}, ${capo ? `capo ${capo}` : "no capo"}`}
 				>
 					{/* The same amber key tile as every other list. */}
-					<span className="rounded bg-chord px-1.5 py-0.5 font-mono text-[13px] font-semibold text-chord-foreground">
+					<span className="min-w-8 rounded bg-chord px-1.5 py-0.5 text-center font-mono text-[13px] font-semibold text-chord-foreground">
 						{keyLabel(value, mode)}
 					</span>
 					<span className="text-muted-foreground max-sm:hidden">

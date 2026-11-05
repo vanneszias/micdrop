@@ -193,7 +193,8 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 									asChild
 									tooltip={`${position + 1}. ${title}`}
 									isActive={position === current}
-									className="h-auto min-h-8 py-1.5"
+									// Two-line titles keep their number and key on the first line.
+									className="h-auto min-h-8 items-start py-1.5"
 								>
 									<Link
 										to="/songs/$id"
@@ -203,12 +204,12 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 										onClick={onNavigate}
 										aria-current={position === current ? "page" : undefined}
 									>
-										<span className="flex size-4 shrink-0 items-center justify-center font-mono text-xs tabular-nums text-muted-foreground">
+										<span className="flex h-5 w-4 shrink-0 items-center justify-center font-mono text-xs tabular-nums text-muted-foreground">
 											{position + 1}
 										</span>
-										<span className="line-clamp-2">{title}</span>
+										<span className="line-clamp-2 leading-5">{title}</span>
 										{entry.key ? (
-											<span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+											<span className="ml-auto inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded bg-chord px-1 font-mono text-[11px] font-semibold text-chord-foreground group-data-[collapsible=icon]:hidden">
 												{entry.keyName}
 											</span>
 										) : null}

@@ -361,13 +361,13 @@ export function CatalogueSearch({
 									{/* Status sits where an action would, on every viewport. */}
 									{placed ? (
 										// Same height and shape as the Add button it stands in for.
-										<StatusBadge compact>
+										<StatusBadge>
 											<Check />
 											<span>In set</span>
 										</StatusBadge>
 									) : inRepertoire && !onSelect ? (
-										// The same pill as "In set"; phones show its check only.
-										<StatusBadge compact>
+										// The same labelled pill as "In set", on every viewport.
+										<StatusBadge>
 											<Check />
 											<span>In repertoire</span>
 										</StatusBadge>

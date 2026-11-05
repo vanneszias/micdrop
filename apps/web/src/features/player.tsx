@@ -289,6 +289,8 @@ export function Player({
 	}>();
 	// Sections split across columns only when whole ones would run past the screen.
 	const [sheetHeight, setSheetHeight] = useState<number>();
+	// Autoscroll only shows when there is something to scroll.
+	const [overflows, setOverflows] = useState(true);
 	// The scroller's width, not the sheet's: one column hugs its text, so it can't say
 	// whether more would fit.
 	const [canvas, setCanvas] = useState<number>();
@@ -300,8 +302,11 @@ export function Player({
 		const observer = new ResizeObserver(() => {
 			setSheetHeight(Math.max(240, element.clientHeight - 180));
 			setCanvas(element.clientWidth);
+			setOverflows(element.scrollHeight > element.clientHeight + 8);
 		});
 		observer.observe(element);
+		// The content's size changes with columns and text size, not just the window.
+		for (const child of element.children) observer.observe(child);
 		return () => observer.disconnect();
 	}, [stage]);
 	const songChords = sheetChords(shown.data.content, delta, accidental);
@@ -312,7 +317,9 @@ export function Player({
 		const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
 		let max = 3;
 		while (max > 1 && width / (max * 18 + (max - 1) * 2.5) < floor) max--;
-		return max;
+		// With columns on, the sheet spans the width and its own fit has the last word,
+		// so View never claims more than it shows. One column hugs its text instead.
+		return columns > 1 ? Math.min(max, fit?.max ?? 3) : max;
 	})();
 	if (stage)
 		return (
@@ -360,8 +367,13 @@ export function Player({
 			>
 				{actions}
 				{readOnly ? null : (
-					// Labelled on every viewport: the title lives in the body on phones.
-					<Button variant="outline" size="sm" asChild className="max-sm:h-10">
+					// Labelled on phones too, except in a setlist, whose name needs the header.
+					<Button
+						variant="outline"
+						size="sm"
+						asChild
+						className={cn("max-sm:h-10", playing && "max-sm:hidden")}
+					>
 						<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
 							<Pencil /> Edit
 						</Link>
@@ -381,6 +393,14 @@ export function Player({
 					variant="outline"
 					className="max-sm:size-10"
 				>
+					{readOnly || !playing ? null : (
+						// In a setlist, phones keep the header for its name.
+						<DropdownMenuItem asChild className="sm:hidden">
+							<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
+								<Pencil /> Edit
+							</Link>
+						</DropdownMenuItem>
+					)}
 					{readOnly ? null : (
 						// The same core actions as the song's row in Repertoire.
 						<DropdownMenuItem
@@ -815,7 +835,12 @@ export function Player({
 						{previousTitle || "Previous"}
 					</span>
 				</Button>
-				<div className="flex items-center gap-3">
+				<div
+					className={cn(
+						"flex items-center gap-3",
+						!overflows && !scrolling && "invisible",
+					)}
+				>
 					<Button
 						variant={scrolling ? "secondary" : "default"}
 						size="sm"

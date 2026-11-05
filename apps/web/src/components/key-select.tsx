@@ -107,11 +107,11 @@ export function CapoSelect({
 							{fret === 0 ? "No capo" : `Capo ${fret}`}
 							{shapes ? (
 								// Fixed columns: shape name, then a slot that may hold "open".
-								<span className="ml-auto flex items-center gap-1.5 pl-6 text-xs text-muted-foreground">
-									<span className="w-[4.5rem]">{shapes} shapes</span>
-									<span className="w-9">
+								<span className="ml-auto flex items-center gap-1.5 pl-6 text-[13px] text-foreground/70">
+									<span className="w-[5rem]">{shapes} shapes</span>
+									<span className="w-10">
 										{OPEN_SHAPES.has(shapes) ? (
-											<span className="rounded bg-chord px-1 text-[11px] font-medium text-chord-foreground">
+											<span className="rounded bg-chord px-1.5 py-px text-xs font-semibold text-chord-foreground">
 												open
 											</span>
 										) : null}
