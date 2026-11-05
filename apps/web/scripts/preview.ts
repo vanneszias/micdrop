@@ -98,15 +98,16 @@ async function deploy() {
 	config.previews.d1_databases = [
 		{ binding: "DB", database_name: database, database_id: id },
 	];
-	await writeFile(built, JSON.stringify(config));
 
 	const secrets = join(tmp, "secrets.json");
 	await writeFile(secrets, JSON.stringify({ BETTER_AUTH_SECRET: secret }));
 
-	// Better Auth needs its public URL up front. If Cloudflare serves the Preview elsewhere,
-	// redeploy once with the URL it reports.
+	// Better Auth needs its public URL up front, in place of the production URL the Wrangler
+	// file declares. If Cloudflare serves the Preview elsewhere, redeploy once with that URL.
 	let url = `https://${name}-${worker}.${subdomain}.workers.dev`;
 	for (let attempt = 0; attempt < 2; attempt++) {
+		config.previews.vars = { ...config.previews.vars, BETTER_AUTH_URL: url };
+		await writeFile(built, JSON.stringify(config));
 		const output = join(tmp, "output.ndjson");
 		await rm(output, { force: true });
 		await wrangler([
@@ -117,8 +118,6 @@ async function deploy() {
 			name,
 			"--message",
 			process.env.WORKERS_CI_COMMIT_SHA || "local",
-			"--var",
-			`BETTER_AUTH_URL:${url}`,
 			"--secrets-file",
 			secrets,
 		]).env({ ...process.env, WRANGLER_OUTPUT_FILE_PATH: output });

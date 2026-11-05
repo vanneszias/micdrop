@@ -15,11 +15,12 @@
   "vars": { "BETTER_AUTH_URL": "https://micdrop.day", "SENTRY_DSN": "https://352a2aae8de1434ebaf33c33c822bf6b@error.zias.be/3" },
   // Branch environments (`wrangler preview`). Only compatibility settings are
   // inherited from above. scripts/preview.ts adds the per-branch D1 database
-  // and BETTER_AUTH_URL.
+  // and replaces BETTER_AUTH_URL with the Preview's own URL. SENTRY_DSN stays
+  // empty so Previews don't report to Sentry.
   "previews": {
     "observability": { "enabled": true, "traces": { "enabled": true } },
     "browser": { "binding": "BROWSER" },
     "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["welcome@micdrop.day"] }],
-    "vars": { "SENTRY_DSN": "" }
+    "vars": { "BETTER_AUTH_URL": "https://micdrop.day", "SENTRY_DSN": "" }
   }
 }
