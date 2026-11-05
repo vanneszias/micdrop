@@ -24,6 +24,7 @@ type Totals = Record<
 	| "changedRecords"
 	| "publications"
 	| "openReports"
+	| "openFeedback"
 	| "shareLinks"
 	| "oauthClients"
 	| "anonymousClients"
@@ -104,6 +105,7 @@ function Overview() {
 		["Setlists", totals.setlists],
 		["Public arrangements", totals.publications],
 		["Open reports", totals.openReports, undefined, totals.openReports > 0],
+		["Open feedback", totals.openFeedback, undefined, totals.openFeedback > 0],
 		["Active share links", totals.shareLinks],
 		[
 			"OAuth clients",
@@ -144,6 +146,16 @@ function Overview() {
 					.
 				</p>
 			) : null}
+			{totals.openFeedback ? (
+				<p className="text-sm">
+					{totals.openFeedback} feedback message
+					{totals.openFeedback === 1 ? " is" : "s are"} open.{" "}
+					<Link to="/admin/feedback" className="underline underline-offset-4">
+						Read them
+					</Link>
+					.
+				</p>
+			) : null}
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Section title="Sign-up bursts (last 24 hours)">
 					<Rows
@@ -155,10 +167,10 @@ function Overview() {
 						]}
 					/>
 				</Section>
-				<Section title="Paid imports today, closest to their limit">
+				<Section title="Daily limits, closest to their cap">
 					<Rows
 						rows={data.quotaUsage}
-						empty="No PDF or page imports in the last 24 hours."
+						empty="Nothing counted against a daily limit in the last 24 hours."
 						columns={[
 							[
 								"Who",

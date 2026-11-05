@@ -9,6 +9,7 @@ export const QUOTAS = {
 	pdf_import: { limit: 20, label: "PDF imports" },
 	url_import: { limit: 100, label: "page imports" },
 	anonymous_url_import: { limit: 30, label: "page imports without an account" },
+	feedback: { limit: 20, label: "feedback messages" },
 } as const;
 export type QuotaKind = keyof typeof QUOTAS;
 export const RECORD_LIMIT = 5000;

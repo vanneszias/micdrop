@@ -26,6 +26,7 @@ const tabs = [
 	{ to: "/admin/library", label: "Songs & setlists", exact: false },
 	{ to: "/admin/clients", label: "Assistants", exact: false },
 	{ to: "/admin/links", label: "Share links", exact: false },
+	{ to: "/admin/feedback", label: "Feedback", exact: false },
 	{ to: "/admin/audit", label: "Audit log", exact: false },
 ] as const;
 

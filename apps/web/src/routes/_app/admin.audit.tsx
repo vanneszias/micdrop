@@ -54,6 +54,16 @@ function Target({ entry }: { entry: Entry }) {
 			</Link>
 		);
 	if (kind === "record") return <RecordLink id={id}>record</RecordLink>;
+	if (kind === "feedback")
+		return (
+			<Link
+				to="/admin/feedback"
+				search={{ status: "all", offset: 0 }}
+				className="underline-offset-4 hover:underline"
+			>
+				feedback
+			</Link>
+		);
 	return <span className="break-all">{id}</span>;
 }
 
