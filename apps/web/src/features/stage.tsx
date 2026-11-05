@@ -422,7 +422,7 @@ export function ChordSheet({
 		<Sheet open={!!chord} onOpenChange={(open) => !open && onClose()}>
 			<SheetContent
 				side="bottom"
-				className="mx-auto max-h-[85svh] w-full max-w-lg gap-0 rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+				className="mx-auto max-h-[85svh] w-full max-w-lg gap-0 rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-[28rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border"
 			>
 				<SheetHeader className="pb-0">
 					<SheetTitle className="font-mono text-2xl">{chord}</SheetTitle>

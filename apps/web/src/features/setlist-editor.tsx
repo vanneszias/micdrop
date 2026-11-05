@@ -272,7 +272,9 @@ export function SetlistEditor({
 				back
 				headingInBody
 				crumbs={[{ label: "Setlists", to: "/setlists" }]}
-				title={title || "Untitled setlist"}
+				title={
+					<span className="max-md:sr-only">{title || "Untitled setlist"}</span>
+				}
 			>
 				<SaveState saving={saving || title.trim() !== list.data.title} />
 				<Button

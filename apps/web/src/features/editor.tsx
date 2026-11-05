@@ -59,10 +59,10 @@ import {
 	CircleHelp,
 	Columns2,
 	Eye,
-	Heading,
 	Info,
 	Music,
 	Pencil,
+	Pilcrow,
 	Plus,
 	SlidersHorizontal,
 	StickyNote,
@@ -134,7 +134,7 @@ const syntaxGuide = [
 
 const snippets = [
 	["Chord", "[D]", Music],
-	["Section", "\n{start_of_chorus: Chorus}\n\n{end_of_chorus}\n", Heading],
+	["Section", "\n{start_of_chorus: Chorus}\n\n{end_of_chorus}\n", Pilcrow],
 	["Note", "\n{comment: Play softly}\n", StickyNote],
 ] as const;
 

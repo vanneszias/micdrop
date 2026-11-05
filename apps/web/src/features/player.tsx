@@ -639,7 +639,7 @@ export function Player({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="-ml-2.5 text-muted-foreground"
+								className="h-8 w-full justify-start px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
 								onClick={() => {
 									setLyricsOnly(false);
 									setColumns(1);

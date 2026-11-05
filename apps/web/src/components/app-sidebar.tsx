@@ -26,13 +26,11 @@ import {
 import { cn } from "@chords/ui/lib/utils";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-	Bot,
 	Check,
 	ChevronsUpDown,
 	Cloud,
 	CloudOff,
 	Globe,
-	HardDriveUpload,
 	Heart,
 	ListMusic,
 	LogIn,
@@ -46,9 +44,7 @@ import {
 	User,
 	Users,
 } from "lucide-react";
-import { useState } from "react";
 import { useApp } from "#/features/app-context";
-import { ConnectAssistantDialog } from "#/features/connect-assistant";
 import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
@@ -77,113 +73,100 @@ function AccountMenu({
 	/** Phones have no sidebar switcher, so the menu lists the libraries. */
 	showLibraries?: boolean;
 }) {
-	const { user, store, run, busy, online } = useApp();
-	const [connecting, setConnecting] = useState(false);
+	const { user, run, busy, online } = useApp();
 	const impersonating = !!useImpersonator();
 	const { theme, setTheme } = useTheme();
 	const app = useApp();
 	const navigate = useNavigate();
 	return (
-		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-				<DropdownMenuContent className="min-w-56" align="end" side={side}>
-					{/* The sidebar trigger already names the account; phones have no such trigger. */}
-					{showLibraries ? (
-						<>
-							<DropdownMenuLabel className="font-normal">
-								<div className="truncate font-medium">{user?.name}</div>
-								<div className="truncate text-xs text-muted-foreground">
-									{user?.email}
-								</div>
-							</DropdownMenuLabel>
-							<DropdownMenuSeparator />
-						</>
-					) : null}
-					{showLibraries && app.bands.length ? (
-						<>
-							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-								Library
-							</DropdownMenuLabel>
-							{[
-								{ id: app.account, name: "Personal", icon: User },
-								...app.bands.map((band) => ({ ...band, icon: Users })),
-							].map(({ id, name, icon: Icon }) => (
-								<DropdownMenuItem
-									key={id}
-									onSelect={() => {
-										app.setOwner(id);
-										void navigate({ to: "/songs" });
-									}}
-								>
-									<Icon /> {name}
-									{app.owner === id ? <Check className="ml-auto" /> : null}
-								</DropdownMenuItem>
-							))}
-							<DropdownMenuSeparator />
-						</>
-					) : null}
-					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-						Appearance
-					</DropdownMenuLabel>
-					{(
-						[
-							["system", Monitor, "System"],
-							["light", Sun, "Light"],
-							["dark", Moon, "Dark"],
-						] as const
-					).map(([value, Icon, label]) => (
-						<DropdownMenuItem
-							key={value}
-							onSelect={(event) => {
-								event.preventDefault();
-								setTheme(value);
-							}}
-						>
-							<Icon /> {label}
-							{theme === value ? <Check className="ml-auto" /> : null}
-						</DropdownMenuItem>
-					))}
-					<DropdownMenuSeparator />
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+			<DropdownMenuContent className="min-w-56" align="end" side={side}>
+				{/* The sidebar trigger already names the account; phones have no such trigger. */}
+				{showLibraries ? (
+					<>
+						<DropdownMenuLabel className="font-normal">
+							<div className="truncate font-medium">{user?.name}</div>
+							<div className="truncate text-xs text-muted-foreground">
+								{user?.email}
+							</div>
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+					</>
+				) : null}
+				{showLibraries && app.bands.length ? (
+					<>
+						<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+							Library
+						</DropdownMenuLabel>
+						{[
+							{ id: app.account, name: "Personal", icon: User },
+							...app.bands.map((band) => ({ ...band, icon: Users })),
+						].map(({ id, name, icon: Icon }) => (
+							<DropdownMenuItem
+								key={id}
+								onSelect={() => {
+									app.setOwner(id);
+									void navigate({ to: "/songs" });
+								}}
+							>
+								<Icon /> {name}
+								{app.owner === id ? <Check className="ml-auto" /> : null}
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuSeparator />
+					</>
+				) : null}
+				<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+					Appearance
+				</DropdownMenuLabel>
+				{(
+					[
+						["system", Monitor, "System"],
+						["light", Sun, "Light"],
+						["dark", Moon, "Dark"],
+					] as const
+				).map(([value, Icon, label]) => (
 					<DropdownMenuItem
-						// While impersonating, this would copy the administrator's own songs.
-						disabled={busy || impersonating}
-						onSelect={() =>
-							void run(
-								() => store.importLocal(),
-								"Local songs copied to your account",
-							)
-						}
+						key={value}
+						onSelect={(event) => {
+							event.preventDefault();
+							setTheme(value);
+						}}
 					>
-						<HardDriveUpload /> Import this device’s songs
+						<Icon /> {label}
+						{theme === value ? <Check className="ml-auto" /> : null}
 					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={() => setConnecting(true)}>
-						<Bot /> Add to Claude or ChatGPT
+				))}
+				<DropdownMenuSeparator />
+				{/* Importing and assistant access are set once, so they live in Settings. */}
+				<DropdownMenuItem asChild>
+					<Link to="/settings">
+						<Settings2 /> Settings
+					</Link>
+				</DropdownMenuItem>
+				{online && user?.role?.split(",").includes("admin") ? (
+					<DropdownMenuItem asChild>
+						<Link to="/admin">
+							<Shield /> Administration
+						</Link>
 					</DropdownMenuItem>
-					{online && user?.role?.split(",").includes("admin") ? (
-						<DropdownMenuItem asChild>
-							<Link to="/admin">
-								<Shield /> Administration
-							</Link>
-						</DropdownMenuItem>
-					) : null}
-					<DropdownMenuItem
-						// The banner's "Stop impersonating" also clears their songbook.
-						disabled={busy || impersonating}
-						onSelect={() =>
-							void run(async () => {
-								await authClient.signOut();
-								localStorage.removeItem("chords:account");
-								window.location.assign("/");
-							})
-						}
-					>
-						<LogOut /> Sign out
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-			<ConnectAssistantDialog open={connecting} onOpenChange={setConnecting} />
-		</>
+				) : null}
+				<DropdownMenuItem
+					// The banner's "Stop impersonating" also clears their songbook.
+					disabled={busy || impersonating}
+					onSelect={() =>
+						void run(async () => {
+							await authClient.signOut();
+							localStorage.removeItem("chords:account");
+							window.location.assign("/");
+						})
+					}
+				>
+					<LogOut /> Sign out
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 
@@ -210,6 +193,7 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 									asChild
 									tooltip={`${position + 1}. ${title}`}
 									isActive={position === current}
+									className="h-auto min-h-8 py-1.5"
 								>
 									<Link
 										to="/songs/$id"
@@ -222,7 +206,7 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 										<span className="flex size-4 shrink-0 items-center justify-center font-mono text-xs tabular-nums text-muted-foreground">
 											{position + 1}
 										</span>
-										<span className="truncate">{title}</span>
+										<span className="line-clamp-2">{title}</span>
 										{entry.key ? (
 											<span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
 												{entry.keyName}
@@ -376,7 +360,13 @@ export function BottomNav() {
 				})}
 				{user ? (
 					<AccountMenu side="top" showLibraries>
-						<button type="button" className={tabClass}>
+						<button
+							type="button"
+							className={cn(
+								tabClass,
+								pathname.startsWith("/settings") && "text-foreground",
+							)}
+						>
 							<User className="size-5" />
 							Account
 						</button>

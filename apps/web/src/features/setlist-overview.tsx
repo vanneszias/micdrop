@@ -64,7 +64,7 @@ export function SetlistSheet({ title }: { title: string }) {
 			</SheetTrigger>
 			<SheetContent
 				side="bottom"
-				className="max-h-[75svh] gap-0 rounded-t-3xl pb-[env(safe-area-inset-bottom)]"
+				className="max-h-[75svh] gap-0 rounded-t-3xl pb-[env(safe-area-inset-bottom)] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-[28rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border"
 				onOpenAutoFocus={(event) => {
 					// Focus the current song, not the close button.
 					event.preventDefault();

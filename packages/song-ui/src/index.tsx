@@ -298,7 +298,8 @@ const GAP_EMS = 2.5;
  * so lyrics only open up where the chords need the room.
  */
 export function fitChords(root: HTMLElement) {
-	const gap = (Number.parseFloat(getComputedStyle(root).fontSize) || 16) * 0.3;
+	// Half an em between neighbouring chips, so "Am C" never reads as "AmC".
+	const gap = (Number.parseFloat(getComputedStyle(root).fontSize) || 16) * 0.5;
 	for (const line of root.querySelectorAll<HTMLElement>(".sheet-line")) {
 		const pairs = [...line.querySelectorAll<HTMLElement>(".sheet-pair")];
 		for (const pair of pairs) pair.style.minWidth = "";

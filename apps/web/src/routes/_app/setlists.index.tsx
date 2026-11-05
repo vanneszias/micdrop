@@ -36,7 +36,6 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { LibraryChip } from "#/components/app-sidebar";
 import { PageBody, PageHeader } from "#/components/page-header";
 import {
 	KeyBadge,
@@ -112,7 +111,8 @@ function Setlists() {
 		<>
 			<Button variant="outline" size="sm" asChild>
 				<Link to="/setlists/import" aria-label="Import PDF">
-					<FileUp /> <span className="max-sm:sr-only">Import PDF</span>
+					<FileUp /> <span className="sm:hidden">PDF</span>
+					<span className="max-sm:hidden">Import PDF</span>
 				</Link>
 			</Button>
 			<Button size="sm" onClick={() => void create()}>
@@ -126,12 +126,7 @@ function Setlists() {
 			<PageBody
 				title="Setlists"
 				description="Put songs in order, set a key for each, then play straight through."
-				actions={
-					<>
-						<LibraryChip />
-						{setlists.length ? actions : null}
-					</>
-				}
+				actions={<>{setlists.length ? actions : null}</>}
 			>
 				{setlists.length ? (
 					<SongList>

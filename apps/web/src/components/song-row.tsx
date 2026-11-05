@@ -159,3 +159,12 @@ export function OverflowMenu({
 		</DropdownMenu>
 	);
 }
+
+/** A row's status ("In set", "In repertoire"): one quiet, non-interactive pill. */
+export function StatusBadge({ children }: { children: ReactNode }) {
+	return (
+		<span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 text-[13px] text-secondary-foreground [&_svg]:size-3.5">
+			{children}
+		</span>
+	);
+}

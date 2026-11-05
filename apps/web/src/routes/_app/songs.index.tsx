@@ -38,7 +38,6 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { LibraryChip } from "#/components/app-sidebar";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { SearchInput } from "#/components/search-input";
 import {
@@ -112,12 +111,7 @@ function Songs() {
 							: `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: "Songs you play, each in your own key and capo."
 				}
-				actions={
-					<>
-						<LibraryChip />
-						{add}
-					</>
-				}
+				actions={<>{add}</>}
 			>
 				{songs.length ? (
 					<SearchInput

@@ -9,7 +9,6 @@ import {
 } from "@chords/data";
 import { keyLabel } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
-import { Badge } from "@chords/ui/components/badge";
 import { Button } from "@chords/ui/components/button";
 import {
 	DropdownMenu,
@@ -45,7 +44,13 @@ import {
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
-import { KeyBadge, rowTarget, SongList, SongRow } from "#/components/song-row";
+import {
+	KeyBadge,
+	rowTarget,
+	SongList,
+	SongRow,
+	StatusBadge,
+} from "#/components/song-row";
 import { api, canEditRole, displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 
@@ -370,17 +375,16 @@ export function CatalogueSearch({
 									{/* Status sits where an action would, on every viewport. */}
 									{placed ? (
 										// Same height and shape as the Add button it stands in for.
-										<span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
-											<Check className="size-4" /> In set
-										</span>
+										<StatusBadge>
+											<Check /> In set
+										</StatusBadge>
 									) : inRepertoire && !onSelect ? (
 										// Phones show this on the meta line, leaving the title its width.
-										<Badge
-											variant="secondary"
-											className="font-normal max-sm:hidden"
-										>
-											<Check /> In repertoire
-										</Badge>
+										<span className="max-sm:hidden">
+											<StatusBadge>
+												<Check /> In repertoire
+											</StatusBadge>
+										</span>
 									) : null}
 									{onSelect && own[0] && !placed && !open ? (
 										<Button
@@ -570,7 +574,7 @@ function ArrangementChoices({
 								</span>
 								{/* The song row above already says it is in the repertoire. */}
 							</span>
-							<p className="text-[13px] text-muted-foreground empty:hidden sm:truncate">
+							<p className="text-[13px] text-muted-foreground empty:hidden">
 								{[
 									`Key ${version.mode ? keyLabel(version.data.key, version.mode) : displayKey(version.data)}`,
 									version.mine ? "Your published arrangement" : null,
@@ -595,7 +599,13 @@ function ArrangementChoices({
 									.join(" · ")}
 							</p>
 						</div>
-						<div className="flex shrink-0 items-center gap-1.5 max-sm:basis-full">
+						<div
+							className={cn(
+								"flex shrink-0 items-center gap-1.5 max-sm:basis-full",
+								// The narrow setlist panel gives the actions their own line.
+								picking && "basis-full",
+							)}
+						>
 							<Button
 								type="button"
 								size="sm"

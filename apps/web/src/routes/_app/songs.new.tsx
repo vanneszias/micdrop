@@ -119,7 +119,7 @@ function NewSong() {
 						Or{" "}
 						<Button
 							variant="link"
-							className="h-auto p-0 text-sm"
+							className="h-auto p-0 text-sm underline underline-offset-4"
 							disabled={busy}
 							onClick={() => void run(() => createSong())}
 						>
