@@ -9,7 +9,7 @@ import {
 import { cn } from "@chords/ui/lib/utils";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, ListMusic } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useApp } from "#/features/app-context";
 import { displayKey } from "#/lib/songs";
 
@@ -42,12 +42,14 @@ export function usePlayingSetlist() {
 export function SetlistSheet({ title }: { title: string }) {
 	const playing = usePlayingSetlist();
 	const [open, setOpen] = useState(false);
+	const trigger = useRef<HTMLButtonElement>(null);
 	if (!playing) return title;
 	const { list, current, entries } = playing;
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
 			<SheetTrigger asChild>
 				<button
+					ref={trigger}
 					type="button"
 					className="flex max-w-full min-w-0 flex-col items-start rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
 					aria-label={`Song ${current + 1} of ${entries.length} in ${list.data.title}, show setlist`}
@@ -65,6 +67,11 @@ export function SetlistSheet({ title }: { title: string }) {
 			<SheetContent
 				side="bottom"
 				className="max-h-[75svh] gap-0 rounded-t-3xl pb-[env(safe-area-inset-bottom)] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-[28rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border"
+				onCloseAutoFocus={(event) => {
+					// Back to the trigger, without a keyboard ring after a tap.
+					event.preventDefault();
+					trigger.current?.focus({ focusVisible: false } as FocusOptions);
+				}}
 				onOpenAutoFocus={(event) => {
 					// Focus the current song, not the close button.
 					event.preventDefault();

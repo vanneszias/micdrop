@@ -607,8 +607,9 @@ function ArrangementChoices({
 							<Button
 								type="button"
 								size="sm"
-								variant="ghost"
-								className="max-sm:-ml-2.5"
+								// Beside an outline Add in a set, Preview matches it.
+								variant={picking ? "outline" : "ghost"}
+								className={picking ? undefined : "max-sm:-ml-2.5"}
 								aria-expanded={preview === version.id}
 								onClick={() =>
 									setPreview(preview === version.id ? undefined : version.id)
@@ -621,7 +622,9 @@ function ArrangementChoices({
 								<Button size="sm" variant="outline" asChild>
 									<Link to="/login">Sign in to save</Link>
 								</Button>
-							) : version.saved && !picking ? null : (
+							) : (version.saved && !picking) ||
+								// The row's own Add already picks the first of your versions.
+								(picking && index === 0 && version.local) ? null : (
 								<Button
 									type="button"
 									size="sm"

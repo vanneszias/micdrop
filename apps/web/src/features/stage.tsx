@@ -445,7 +445,7 @@ export function ChordSheet({
 					{chord ? <ChordDiagram chord={chord} stepper /> : null}
 				</div>
 				{chords.length > 1 ? (
-					<div className="mx-auto flex w-fit max-w-full gap-1.5 overflow-x-auto px-4 pt-2 pb-1">
+					<div className="mx-auto flex w-fit max-w-full gap-1.5 overflow-x-auto px-4 pt-3 pb-3">
 						{chords.map((value) => (
 							<Button
 								key={value}

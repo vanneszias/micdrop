@@ -499,10 +499,10 @@ export function Player({
 						<Button
 							variant="outline"
 							// A fixed width, so View and Diagrams stay put from song to song.
-							className="w-[9.5rem] justify-between sm:hidden"
+							className="w-[9.5rem] justify-start gap-1 sm:hidden"
 						>
 							<span className="sr-only">Key</span>
-							<span className="min-w-8 text-left">{keyName}</span>
+							{keyName}
 							{/* Lyrics only dims the capo instead of dropping it, so the bar keeps its width. */}
 							<span className="text-muted-foreground">·</span>
 							<span
@@ -510,7 +510,7 @@ export function Player({
 							>
 								{capo ? `Capo ${capo}` : "No capo"}
 							</span>
-							<ChevronDown className="text-muted-foreground" />
+							<ChevronDown className="ml-auto text-muted-foreground" />
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent align="start" className="w-72 space-y-4">
