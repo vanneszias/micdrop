@@ -333,6 +333,12 @@ export function CatalogueSearch({
 							title={group.title}
 							meta={
 								<>
+									{inRepertoire && !onSelect ? (
+										<span className="text-foreground/80 sm:hidden">
+											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
+											In repertoire ·{" "}
+										</span>
+									) : null}
 									{[group.artists || "Unknown artist"]
 										.filter(Boolean)
 										.join(" · ")}
@@ -366,7 +372,11 @@ export function CatalogueSearch({
 											<Check /> In set
 										</Badge>
 									) : inRepertoire && !onSelect ? (
-										<Badge variant="secondary" className="font-normal">
+										// Phones show this on the meta line, leaving the title its width.
+										<Badge
+											variant="secondary"
+											className="font-normal max-sm:hidden"
+										>
 											<Check /> In repertoire
 										</Badge>
 									) : null}

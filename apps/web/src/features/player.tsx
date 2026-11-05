@@ -189,6 +189,8 @@ export function Player({
 	const mode = songMode(shown.data.content, shown.data.key);
 	const accidental = modeAccidental(shiftKey(shown.data.key, delta), mode);
 	const keyName = keyLabel(key, mode);
+	// "Capo 3 · E shapes": the chords shown are the shapes played above the capo.
+	const capoLabel = `Capo ${capo} · ${keyLabel(shiftKey(key, -capo), mode)} shapes`;
 	// Stage mode swaps the scrolling element, so autoscroll rebinds when it changes.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
 	useEffect(() => {
@@ -294,7 +296,7 @@ export function Player({
 				title={shown.data.title}
 				meta={[
 					`Key ${keyName}`,
-					lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
+					lyricsOnly ? null : capo && shapes ? capoLabel : null,
 				]
 					.filter(Boolean)
 					.join(" · ")}
@@ -622,7 +624,7 @@ export function Player({
 								{[
 									shown.data.artist,
 									`Key ${keyName}`,
-									lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
+									lyricsOnly ? null : capo && shapes ? capoLabel : null,
 								]
 									.filter(Boolean)
 									.join(" · ")}

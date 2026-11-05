@@ -40,7 +40,7 @@ import {
 } from "@chords/ui/components/select";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Link2, Plus, Users, X } from "lucide-react";
+import { ArrowRight, Link2, Plus, UserPlus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
@@ -158,6 +158,8 @@ function BandCard({
 	run: (fn: () => Promise<unknown>, success?: string) => Promise<boolean>;
 }) {
 	const [role, setRole] = useState("editor");
+	// The add form stays folded until it is needed, so the card leads with its members.
+	const [adding, setAdding] = useState(false);
 	const [inviting, setInviting] = useState(false);
 	const owner = band.role === "owner";
 	const { setOwner } = useApp();
@@ -235,6 +237,20 @@ function BandCard({
 			</CardContent>
 			{owner ? (
 				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
+					{adding ? null : (
+						<Button
+							variant="outline"
+							size="sm"
+							className="self-start"
+							onClick={() => setAdding(true)}
+						>
+							<UserPlus /> Add existing account
+						</Button>
+					)}
+				</CardFooter>
+			) : null}
+			{owner && adding ? (
+				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
 					<div className="space-y-0.5">
 						<Label htmlFor={`add-member-${band.id}`}>
 							Add existing account
@@ -268,6 +284,7 @@ function BandCard({
 							type="email"
 							placeholder="Their account email"
 							required
+							autoFocus
 							className="min-w-0 flex-1 max-sm:basis-full"
 						/>
 						<Select value={role} onValueChange={setRole}>

@@ -171,6 +171,14 @@ export function Stage({
 	}, [width, height, content, semitones, accidental, chords, baseSize, notes]);
 
 	const [visible, setVisible] = useState(true);
+	// The first time the controls hide, say how to get them back.
+	const [hint, setHint] = useState<"pending" | "shown" | "done">("pending");
+	useEffect(() => {
+		if (visible || hint !== "pending") return;
+		setHint("shown");
+		const done = setTimeout(() => setHint("done"), 2500);
+		return () => clearTimeout(done);
+	}, [visible, hint]);
 	const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const holding = useRef(false);
 	const wake = useCallback(() => {
@@ -207,7 +215,7 @@ export function Stage({
 				variant="ghost"
 				size="icon-sm"
 				className={cn(
-					"fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 max-sm:hidden",
+					"fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100",
 					// Only while the controls are hidden; otherwise their Exit is the one way out.
 					visible && "pointer-events-none !opacity-0",
 				)}
@@ -251,6 +259,16 @@ export function Stage({
 				</div>
 				<div className="h-20" />
 			</section>
+			{hint === "shown" && !visible ? (
+				<p
+					aria-live="polite"
+					className="pointer-events-none fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] text-center text-sm text-muted-foreground animate-in fade-in-0"
+				>
+					{width < 640
+						? "Tap the sheet to show controls"
+						: "Move the mouse to show controls · Esc to exit"}
+				</p>
+			) : null}
 			{/* Off screen at a fixed size: used to find the layout that fits. */}
 			<div
 				ref={measurer}

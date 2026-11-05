@@ -668,9 +668,24 @@ export function Editor({
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() =>
-									update("content", normalizeSheet(draft.data.content).content)
-								}
+								title="Moves chords written above the lyrics into the line, as ChordPro"
+								onClick={() => {
+									const before = draft.data.content;
+									const after = normalizeSheet(before).content;
+									if (after === before)
+										return toast.info(
+											"Nothing to clean up: the chords are already inline.",
+										);
+									update("content", after);
+									toast.success("Chords moved into the lyrics", {
+										description:
+											"Chords written above each line now sit inline.",
+										action: {
+											label: "Undo",
+											onClick: () => update("content", before),
+										},
+									});
+								}}
 							>
 								<Wand2 />
 								<span>Clean up</span>
@@ -708,13 +723,12 @@ export function Editor({
 							<Toggle
 								size="sm"
 								variant="outline"
-								className="w-8 px-0 data-[state=on]:border-input data-[state=on]:bg-accent"
 								pressed={wrapLines}
 								onPressedChange={setWrapLines}
 								aria-label="Wrap long lines"
 								title="Wrap long lines"
 							>
-								<WrapText />
+								<WrapText /> Wrap
 							</Toggle>
 						</div>
 						<ChordProTextarea
