@@ -345,10 +345,13 @@ export function ChordDiagrams({
 	content,
 	semitones = 0,
 	accidental,
+	onSelect,
 }: {
 	content: string;
 	semitones?: number;
 	accidental?: Accidental;
+	/** Opens a chord elsewhere (e.g. enlarged) instead of cycling its shapes in place. */
+	onSelect?: (chord: string) => void;
 }) {
 	const database = useGuitarDatabase();
 	const chords = useMemo(
@@ -359,7 +362,12 @@ export function ChordDiagrams({
 	return (
 		<div className="chord-diagrams">
 			{chords.map((chord) => (
-				<GuitarDiagram key={chord} chord={chord} database={database} />
+				<GuitarDiagram
+					key={chord}
+					chord={chord}
+					database={database}
+					onSelect={onSelect}
+				/>
 			))}
 		</div>
 	);
@@ -411,9 +419,11 @@ const DOT = 6;
 function GuitarDiagram({
 	chord,
 	database,
+	onSelect,
 }: {
 	chord: string;
 	database: GuitarData;
+	onSelect?: (chord: string) => void;
 }) {
 	const [position, setPosition] = useState(0);
 	const match = chord.match(/^([A-G][#b]?)(.*)$/);
@@ -450,12 +460,16 @@ function GuitarDiagram({
 		<button
 			type="button"
 			className="diagram"
-			onClick={() => setPosition((value) => value + 1)}
-			title={`${chord}: tap for another shape`}
+			onClick={() =>
+				onSelect ? onSelect(chord) : setPosition((value) => value + 1)
+			}
+			title={
+				onSelect ? `${chord}: open larger` : `${chord}: tap for another shape`
+			}
 		>
 			<strong>{chord}</strong>
 			<svg
-				// Room on the left only for a "2fr" position label, so open shapes draw larger.
+				// One frame for every chord, with room on the left for a "2fr" label.
 				viewBox="-6 0 102 112"
 				role="img"
 				aria-label={`${chord} guitar fingering, fret ${shape.baseFret}`}
@@ -483,7 +497,7 @@ function GuitarDiagram({
 					/>
 				))}
 				{shape.baseFret > 1 ? (
-					<text x="10" y="37" fontSize="9" fontWeight="600" textAnchor="end">
+					<text x="10" y="37" fontSize="11" fontWeight="700" textAnchor="end">
 						{shape.baseFret}fr
 					</text>
 				) : null}
@@ -498,10 +512,12 @@ function GuitarDiagram({
 					return (
 						<g key={`barre-${fret}`}>
 							<rect
-								// Inset to the outer barred strings rather than past them.
-								x={from - DOT + 2}
+								// Inset to the outer barred strings, and never past the grid's edges.
+								x={Math.max(13, from - DOT + 2)}
 								y={13.5 + fret * 19 - DOT + 1}
-								width={to - from + DOT * 2 - 4}
+								width={
+									Math.min(87, to + DOT - 2) - Math.max(13, from - DOT + 2)
+								}
 								height={DOT * 2 - 2}
 								rx={DOT - 1}
 								className="diagram-barre"
@@ -510,7 +526,7 @@ function GuitarDiagram({
 								x={(from + to) / 2}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="9.5"
+								fontSize="10.5"
 								fontWeight="600"
 								fill="white"
 							>
@@ -535,7 +551,7 @@ function GuitarDiagram({
 								x={15 + i * 14}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="9.5"
+								fontSize="10.5"
 								fontWeight="600"
 								fill="white"
 							>

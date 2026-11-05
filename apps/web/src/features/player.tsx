@@ -349,11 +349,16 @@ export function Player({
 					variant="outline"
 					size="sm"
 					aria-label="Stage mode"
+					className="max-sm:h-10"
 					onClick={enterStage}
 				>
 					<Maximize2 /> Stage
 				</Button>
-				<OverflowMenu label="More song actions" variant="outline">
+				<OverflowMenu
+					label="More song actions"
+					variant="outline"
+					className="max-sm:size-10"
+				>
 					{readOnly ? null : (
 						// Phones keep the header to Stage and this menu, so the title has room.
 						<DropdownMenuItem asChild className="sm:hidden">
@@ -682,6 +687,7 @@ export function Player({
 								content={shown.data.content}
 								semitones={delta}
 								accidental={accidental}
+								onSelect={setChord}
 							/>
 						</aside>
 					) : null}
@@ -716,6 +722,7 @@ export function Player({
 								content={shown.data.content}
 								semitones={delta}
 								accidental={accidental}
+								onSelect={setChord}
 							/>
 						)}
 					</div>
