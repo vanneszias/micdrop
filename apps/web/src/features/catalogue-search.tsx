@@ -45,7 +45,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
 import { KeyBadge, rowTarget, SongList, SongRow } from "#/components/song-row";
-import { api, canEditRole } from "#/lib/songs";
+import { api, canEditRole, displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 
 type Group = CatalogueGroup & { local: Arrangement[] };
@@ -210,7 +210,7 @@ export function CatalogueSearch({
 						{ownMatches.map((song) => (
 							<SongRow
 								key={song.id}
-								leading={<KeyBadge>{song.data.key}</KeyBadge>}
+								leading={<KeyBadge>{displayKey(song.data)}</KeyBadge>}
 								title={song.data.title}
 								meta={song.data.artist || "Unknown artist"}
 								main={(content) => (
@@ -315,7 +315,7 @@ export function CatalogueSearch({
 							key={group.id}
 							leading={
 								own[0] ? (
-									<KeyBadge>{own[0].data.key}</KeyBadge>
+									<KeyBadge>{displayKey(own[0].data)}</KeyBadge>
 								) : (
 									<KeyBadge className="bg-secondary text-muted-foreground">
 										<Globe className="size-4" />
@@ -328,16 +328,14 @@ export function CatalogueSearch({
 									<Badge variant="secondary" className="shrink-0 font-normal">
 										<Check /> In set
 									</Badge>
-								) : publicOnly && inRepertoire && !open ? (
+								) : inRepertoire && !onSelect ? (
 									<Badge variant="secondary" className="shrink-0 font-normal">
-										<Check />
-										<span className="max-sm:sr-only">In repertoire</span>
+										<Check /> In repertoire
 									</Badge>
 								) : null
 							}
 							meta={[
 								group.artists || "Unknown artist",
-								!publicOnly && own.length ? "In your repertoire" : null,
 								group.count
 									? `${group.count} public ${group.count === 1 ? "version" : "versions"}`
 									: null,
@@ -480,7 +478,7 @@ function ArrangementChoices({
 	};
 	const action = (localSong?: Arrangement) =>
 		localSong?.owner === owner
-			? "Use arrangement"
+			? "Add this version"
 			: localSong
 				? "Copy to band and add"
 				: "Save arrangement";
@@ -523,12 +521,12 @@ function ArrangementChoices({
 									variant="secondary"
 									className="min-w-7 justify-center font-mono text-xs"
 								>
-									{version.data.key}
+									{displayKey(version.data)}
 								</Badge>
 								{version.data.arrangementName || "Standard version"}
 								{version.saved && !picking ? (
 									<Badge variant="secondary" className="font-normal">
-										<Check /> In your repertoire
+										<Check /> In repertoire
 									</Badge>
 								) : null}
 							</span>

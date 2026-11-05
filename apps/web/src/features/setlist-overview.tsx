@@ -11,6 +11,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, ListMusic } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "#/features/app-context";
+import { displayKey } from "#/lib/songs";
 
 // The setlist the current song was opened from, with each entry's song resolved.
 export function usePlayingSetlist() {
@@ -29,6 +30,10 @@ export function usePlayingSetlist() {
 			title:
 				arrangements.find((row) => row.id === entry.arrangementId)?.data
 					.title ?? "Missing song",
+			keyName: (() => {
+				const song = arrangements.find((row) => row.id === entry.arrangementId);
+				return song && entry.key ? displayKey(song.data, entry.key) : entry.key;
+			})(),
 		})),
 	};
 }
@@ -99,7 +104,7 @@ export function SetlistSheet({ title }: { title: string }) {
 								<span className="truncate">{entry.title}</span>
 								{entry.key ? (
 									<span className="ml-auto font-mono text-xs text-muted-foreground">
-										{entry.key}
+										{entry.keyName}
 									</span>
 								) : null}
 							</Link>

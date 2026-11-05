@@ -320,40 +320,49 @@ export const EXAMPLE = `{title: Evening rehearsal}
 {comment: Repeat chorus, then end on D}`;
 
 /**
- * Splits consecutive sections into at most `columns` groups so a multi-column sheet ends
- * evenly and every column starts on a section heading. Sections never split and keep
- * their order. The tallest group is as short as possible; among equal choices the
- * groups are as even as possible, then earlier groups are fuller. Returns the start
- * index of each group.
+ * Splits consecutive pieces of a sheet into at most `columns` groups so a multi-column
+ * sheet ends evenly. Order is kept and pieces never split. `breakCost[i]` is added when
+ * a group starts at piece `i`, so starting a column mid-section can be discouraged.
+ * The tallest group plus break costs is minimised; among equal choices the groups are
+ * as even as possible, then earlier groups are fuller. Returns each group's start.
  */
-export function balanceColumns(heights: number[], columns: number): number[] {
+export function balanceColumns(
+	heights: number[],
+	columns: number,
+	breakCost: number[] = [],
+): number[] {
 	const count = Math.min(Math.max(1, Math.floor(columns)), heights.length);
 	if (count <= 1) return [0];
 	const prefix = [0];
 	for (const height of heights)
 		prefix.push(prefix[prefix.length - 1] + Math.max(0, height));
 	const n = heights.length;
-	let best: { starts: number[]; tallest: number; spread: number } | undefined;
-	// Sheets have a few dozen sections and at most three columns, so try every split.
+	let best: { starts: number[]; cost: number; spread: number } | undefined;
+	const same = (a: number, b: number) => Math.abs(a - b) <= 1e-9;
+	// Sheets have a few dozen pieces and at most three columns, so try every split.
 	const visit = (starts: number[]) => {
 		if (starts.length === count) {
 			const sizes = starts.map(
 				(start, i) => prefix[starts[i + 1] ?? n] - prefix[start],
 			);
-			const tallest = Math.max(...sizes);
+			const cost =
+				Math.max(...sizes) +
+				starts
+					.slice(1)
+					.reduce((sum, start) => sum + (breakCost[start] ?? 0), 0);
 			const spread = sizes.reduce((sum, size) => sum + size * size, 0);
-			const better =
+			const later = () => {
+				const i = starts.findIndex((start, k) => start !== best?.starts[k]);
+				return i >= 0 && starts[i] > (best?.starts[i] ?? 0);
+			};
+			if (
 				!best ||
-				tallest < best.tallest - 1e-9 ||
-				(Math.abs(tallest - best.tallest) <= 1e-9 &&
+				cost < best.cost - 1e-9 ||
+				(same(cost, best.cost) &&
 					(spread < best.spread - 1e-9 ||
-						(Math.abs(spread - best.spread) <= 1e-9 &&
-							starts.some(
-								(start, i) =>
-									start > (best?.starts[i] ?? 0) &&
-									starts.slice(0, i).every((s, j) => s === best?.starts[j]),
-							))));
-			if (better) best = { starts: [...starts], tallest, spread };
+						(same(spread, best.spread) && later())))
+			)
+				best = { starts: [...starts], cost, spread };
 			return;
 		}
 		const from = starts[starts.length - 1] + 1;
@@ -362,4 +371,65 @@ export function balanceColumns(heights: number[], columns: number): number[] {
 	};
 	visit([0]);
 	return best?.starts ?? [0];
+}
+
+/** How much taller a column may get to avoid starting it in the middle of a section. */
+export const MID_SECTION_COST = 0.08;
+
+/**
+ * Balances sheet pieces (a section's heading with its first line, then one line each)
+ * into columns. Columns prefer to start on a section, but split one when that evens
+ * them out by more than {@link MID_SECTION_COST} of the sheet's height. A split never
+ * leaves a single line of a section on either side unless nothing else fits.
+ */
+export function balanceSheet(
+	pieces: { height: number; start: boolean }[],
+	columns: number,
+): number[] {
+	const total = pieces.reduce((sum, piece) => sum + piece.height, 0);
+	const section: number[] = [];
+	for (const piece of pieces)
+		section.push((section[section.length - 1] ?? -1) + (piece.start ? 1 : 0));
+	const size = (id: number) => section.filter((value) => value === id).length;
+	const before = (i: number) =>
+		section.slice(0, i).filter((value) => value === section[i]).length;
+	return balanceColumns(
+		pieces.map((piece) => piece.height),
+		columns,
+		pieces.map((piece, i) =>
+			piece.start
+				? 0
+				: before(i) < 2 || size(section[i]) - before(i) < 2
+					? total
+					: total * MID_SECTION_COST,
+		),
+	);
+}
+
+export type Mode = "major" | "minor";
+
+/**
+ * Keys are stored as roots. A song whose first chord is the minor chord on that root
+ * (Am in A) is in the minor key, so it is labelled and spelled as one.
+ */
+export function songMode(content: string, key: string): Mode {
+	const first = sheetChords(content)[0];
+	const chord = first ? Chord.parse(first) : null;
+	const root = first?.match(/^[A-G][#b]?/)?.[0];
+	return chord?.isMinor() &&
+		root &&
+		keyDistance(key, root) === 0 &&
+		Chord.parse(key)
+		? "minor"
+		: "major";
+}
+
+/** "A" or "Am": the key as players name it. */
+export function keyLabel(key: string, mode: Mode = "major"): string {
+	return mode === "minor" ? `${key}m` : key;
+}
+
+/** Minor keys spell like their relative major: C minor uses Eb, not D#. */
+export function modeAccidental(key: string, mode: Mode = "major"): Accidental {
+	return keyAccidental(mode === "minor" ? shiftKey(key, 3) : key);
 }

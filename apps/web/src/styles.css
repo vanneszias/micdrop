@@ -153,7 +153,14 @@
   .print-song { break-after: page; } .print-song:last-child { break-after: auto; }
 }
 .sheet-block { break-inside: avoid; }
-.sheet-block:first-child > .sheet-section:first-child, .sheet-block:first-child > .sheet-space:first-child + .sheet-section, .sheet-block:first-child:has(> .sheet-space:only-child) + .sheet-block > .sheet-section:first-child { margin-top: 0; }
+/* The sheet and every column start flush with their first heading, so headings line up. */
+.song-sheet > .sheet-block:first-child > .sheet-piece:first-child > :first-child,
+.sheet-column > .sheet-block:first-child > :first-child,
+.sheet-column > .sheet-block:first-child > .sheet-piece:first-child > :first-child { margin-top: 0; }
+.sheet-section-continued span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.sheet-frame { position: relative; }
+.sheet-probe { position: absolute; inset: 0 auto auto 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+.sheet-probe > .song-sheet, .stage-probe .song-sheet { display: flow-root; }
 .diagram-rail .chord-diagrams { flex-wrap: wrap; overflow: visible; gap: .5rem; }
 .diagram-rail .diagram, .diagram-rail .diagram-missing { width: 112px; }
 /* Balanced columns: each column starts on a section, so headings line up across the top. */

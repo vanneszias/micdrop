@@ -220,7 +220,7 @@ function SetlistOverview({ onNavigate }: { onNavigate: () => void }) {
 										<span className="truncate">{title}</span>
 										{entry.key ? (
 											<span className="ml-auto font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-												{entry.key}
+												{entry.keyName}
 											</span>
 										) : null}
 									</Link>
@@ -344,7 +344,7 @@ export function BottomNav() {
 		<nav
 			data-print="hide"
 			aria-label="Main"
-			className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+			className="fixed inset-x-0 bottom-0 z-30 border-t bg-card pb-[env(safe-area-inset-bottom)]"
 		>
 			<div className="grid grid-cols-5">
 				{tabs.map((item) => {

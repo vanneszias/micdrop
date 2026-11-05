@@ -2,6 +2,7 @@
 import {
 	type Accidental,
 	balanceColumns,
+	balanceSheet,
 	type SheetLine,
 	sheetChords,
 	sheetLines,
@@ -90,84 +91,171 @@ export function SongSheet({
 				))}
 			</div>
 		);
-	// Each section is one block so multi-column layouts never split it from its heading.
-	const blocks: { line: (typeof lines)[number]; index: number }[][] = [];
-	lines.forEach((line, index) => {
-		if (line.type === "section" || !blocks.length) blocks.push([]);
-		const block = blocks[blocks.length - 1];
-		// Blank lines at the top of a section only push it down; headings carry the spacing.
-		if (line.type === "blank" && !block.length) return;
-		block.push({ line, index });
-	});
-	for (let i = blocks.length - 1; i >= 0; i--)
-		if (!blocks[i].length) blocks.splice(i, 1);
-	const root = useRef<HTMLDivElement>(null);
-	// Columns need at least 18em each; a narrower sheet uses fewer.
-	const [fit, setFit] = useState(columns);
-	const [starts, setStarts] = useState<number[]>(() =>
-		balanceColumns(blocks.map(estimateHeight), columns),
+	// A section is a block; its pieces (the heading with its first line, then one line
+	// each) are where a column may break.
+	const blocks = useMemo(() => {
+		const result: { line: SheetLine; index: number }[][] = [];
+		lines.forEach((line, index) => {
+			if (line.type === "section" || !result.length) result.push([]);
+			const block = result[result.length - 1];
+			// Blank lines at the top of a section only push it down; headings carry the spacing.
+			if (line.type === "blank" && !block.length) return;
+			block.push({ line, index });
+		});
+		return result.filter((block) => block.length);
+	}, [lines]);
+	const pieces = useMemo(
+		() =>
+			blocks.flatMap((block, b) => {
+				const result: Piece[] = [];
+				for (const item of block) {
+					const last = result[result.length - 1];
+					const headingOnly =
+						last?.lines.length === 1 && last.lines[0].line.type === "section";
+					if (last && (item.line.type === "blank" || headingOnly))
+						last.lines.push(item);
+					else result.push({ block: b, start: !result.length, lines: [item] });
+				}
+				return result;
+			}),
+		[blocks],
 	);
-	const shown = Math.min(fit, columns, blocks.length || 1);
+	const root = useRef<HTMLDivElement>(null);
+	const measurer = useRef<HTMLDivElement>(null);
+	const [layout, setLayout] = useState(() => ({
+		columns: Math.min(columns, blocks.length || 1),
+		size: fontSize,
+		starts: balanceColumns(
+			blocks.map(estimateHeight),
+			Math.min(columns, blocks.length || 1),
+		).map((start) => pieces.findIndex((piece) => piece.block === start)),
+	}));
 	useBrowserLayoutEffect(() => {
 		const element = root.current;
-		if (!element || columns <= 1) return;
+		const probe = measurer.current;
+		if (!element || !probe || columns <= 1) return;
 		const measure = () => {
 			const width = element.clientWidth;
-			const em = Number.parseFloat(getComputedStyle(element).fontSize) || 16;
-			const count = Math.max(
-				1,
-				Math.min(columns, Math.floor((width + 2.5 * em) / (20.5 * em))),
-			);
-			setFit(count);
-			// Every column has the same width, so a block's height does not depend on its column.
-			const heights = [
-				...element.querySelectorAll<HTMLElement>(":scope .sheet-block"),
-			].map((block) => block.offsetHeight);
-			const next = balanceColumns(heights, count);
-			setStarts((previous) =>
-				previous.join() === next.join() ? previous : next,
+			// Each column needs 18em. Text shrinks (down to 14px) to fit the chosen count,
+			// and only a sheet too narrow even then drops a column.
+			const needed = (count: number) =>
+				count * COLUMN_EMS + (count - 1) * GAP_EMS;
+			let count = Math.min(columns, pieces.length || 1);
+			while (count > 1 && width / needed(count) < 14) count--;
+			const size =
+				count > 1
+					? Math.min(fontSize, Math.floor(width / needed(count)))
+					: fontSize;
+			const gap = GAP_EMS * size;
+			probe.style.fontSize = `${size}px`;
+			probe.style.width = `${(width - gap * (count - 1)) / count}px`;
+			const next = {
+				columns: count,
+				size,
+				starts: balanceSheet(measurePieces(probe), count),
+			};
+			setLayout((previous) =>
+				previous.columns === next.columns &&
+				previous.size === next.size &&
+				previous.starts.join() === next.starts.join()
+					? previous
+					: next,
 			);
 		};
 		measure();
 		const observer = new ResizeObserver(measure);
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, [columns, lines, fontSize, chords, shown]);
-	const renderBlock = (block: (typeof blocks)[number]) => (
-		<div key={`block-${block[0].index}`} className="sheet-block">
-			{block.map(({ line, index }) => renderLine(line, index))}
-		</div>
-	);
-	if (shown <= 1)
-		return (
-			<div ref={root} className="song-sheet" style={{ fontSize }}>
-				{blocks.map(renderBlock)}
-			</div>
-		);
-	const groups = (
-		starts.length === shown
-			? starts
-			: balanceColumns(blocks.map(estimateHeight), shown)
-	).map((start, i, all) => blocks.slice(start, all[i + 1] ?? blocks.length));
-	return (
-		<div
-			ref={root}
-			className="song-sheet sheet-columns"
-			style={{
-				fontSize,
-				gridTemplateColumns: `repeat(${shown}, minmax(0, 1fr))`,
-			}}
-		>
-			{groups.map((group, i) => (
-				<div
-					key={`column-${group[0]?.[0].index ?? i}`}
-					className="sheet-column"
-				>
-					{group.map(renderBlock)}
+	}, [columns, pieces, fontSize, chords]);
+	const renderPieces = (slice: Piece[]) => {
+		const groups: Piece[][] = [];
+		for (const piece of slice)
+			if (groups[groups.length - 1]?.[0].block === piece.block)
+				groups[groups.length - 1].push(piece);
+			else groups.push([piece]);
+		return groups.map((group) => {
+			const heading = blocks[group[0].block][0].line;
+			return (
+				<div key={`block-${group[0].lines[0].index}`} className="sheet-block">
+					{/* A column that starts inside a section repeats its heading. */}
+					{group[0].start || heading.type !== "section" ? null : (
+						<p className="sheet-section sheet-section-continued">
+							{heading.label} <span>(continued)</span>
+						</p>
+					)}
+					{group.map((piece) => (
+						<div
+							key={`piece-${piece.lines[0].index}`}
+							className="sheet-piece"
+							data-start={piece.start || undefined}
+						>
+							{piece.lines.map(({ line, index }) => renderLine(line, index))}
+						</div>
+					))}
 				</div>
-			))}
+			);
+		});
+	};
+	const shown = columns > 1 ? layout.columns : 1;
+	const starts =
+		layout.starts.length === shown && layout.starts.every((start) => start >= 0)
+			? layout.starts
+			: [0];
+	return (
+		<div className="sheet-frame">
+			<div
+				ref={root}
+				className={shown > 1 ? "song-sheet sheet-columns" : "song-sheet"}
+				style={{
+					fontSize: shown > 1 ? layout.size : fontSize,
+					gridTemplateColumns:
+						shown > 1 ? `repeat(${shown}, minmax(0, 1fr))` : undefined,
+				}}
+			>
+				{shown > 1
+					? starts.map((start, i) => (
+							<div key={`column-${start}`} className="sheet-column">
+								{renderPieces(
+									pieces.slice(start, starts[i + 1] ?? pieces.length),
+								)}
+							</div>
+						))
+					: renderPieces(pieces)}
+			</div>
+			{columns > 1 ? (
+				// One column at the column width, off screen: where every piece's height comes from.
+				<div className="sheet-probe" aria-hidden>
+					<div ref={measurer} className="song-sheet">
+						{renderPieces(pieces)}
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
+}
+
+type Piece = {
+	block: number;
+	/** The piece opens its section, so a column may start here without a repeated heading. */
+	start: boolean;
+	lines: { line: SheetLine; index: number }[];
+};
+
+const COLUMN_EMS = 18;
+const GAP_EMS = 2.5;
+
+/**
+ * Heights of the pieces of a single-column sheet, from the distance between their tops,
+ * so collapsed margins between lines are counted exactly once.
+ */
+export function measurePieces(sheet: HTMLElement) {
+	const pieces = [...sheet.querySelectorAll<HTMLElement>(".sheet-piece")];
+	const tops = pieces.map((piece) => piece.offsetTop);
+	const end = sheet.scrollHeight;
+	return pieces.map((piece, i) => ({
+		height: Math.max(0, (tops[i + 1] ?? end) - tops[i]),
+		start: piece.dataset.start === "true",
+	}));
 }
 
 /** A first guess at a section's height, in lines, before the browser can measure it. */
@@ -397,7 +485,7 @@ function GuitarDiagram({
 								x={(from + to) / 2}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="8.5"
+								fontSize="9.5"
 								fontWeight="600"
 								fill="white"
 							>
@@ -422,7 +510,7 @@ function GuitarDiagram({
 								x={15 + i * 14}
 								y={16.5 + fret * 19}
 								textAnchor="middle"
-								fontSize="8.5"
+								fontSize="9.5"
 								fontWeight="600"
 								fill="white"
 							>

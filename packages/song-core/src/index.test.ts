@@ -1,15 +1,19 @@
 import { describe, expect, test } from "bun:test";
 import {
 	balanceColumns,
+	balanceSheet,
 	displayTranspose,
 	exportChordPro,
 	keyAccidental,
 	keyDistance,
+	keyLabel,
+	modeAccidental,
 	normalizeSheet,
 	sheetChords,
 	sheetLines,
 	sheetMetadata,
 	shiftKey,
+	songMode,
 	stripMetadata,
 	transposeChord,
 } from "./index";
@@ -171,5 +175,78 @@ describe("balanced columns", () => {
 	test("prefers fuller early columns on a tie", () => {
 		expect(balanceColumns([3, 3, 3, 3], 2)).toEqual([0, 2]);
 		expect(balanceColumns([4, 2, 2], 2)).toEqual([0, 1]);
+	});
+});
+
+describe("minor keys", () => {
+	test("a song starting on the root's minor chord is in the minor key", () => {
+		expect(songMode("[Am]There is a [C]house", "A")).toBe("minor");
+		expect(songMode("[Am7]Soft [G]start", "A")).toBe("minor");
+		expect(songMode("[G]Amazing [Em]grace", "G")).toBe("major");
+		// A minor chord on another root is not the key's own minor.
+		expect(songMode("[Em]Down [G]low", "G")).toBe("major");
+		expect(songMode("no chords", "C")).toBe("major");
+	});
+	test("labels and spells minor keys like players do", () => {
+		expect(keyLabel("A", "minor")).toBe("Am");
+		expect(keyLabel("A")).toBe("A");
+		// C minor shares Eb major's flats; D minor shares F major's flat.
+		expect(modeAccidental("C", "minor")).toBe("b");
+		expect(modeAccidental("D", "minor")).toBe("b");
+		expect(modeAccidental("E", "minor")).toBe("#");
+		expect(modeAccidental("C")).toBe("#");
+		expect(
+			transposeChord("Bm", 1, modeAccidental(shiftKey("B", 1), "minor")),
+		).toBe("Cm");
+		expect(
+			transposeChord("F#", -1, modeAccidental(shiftKey("A", 2), "minor")),
+		).toBe("F");
+	});
+});
+
+describe("balanced sheets", () => {
+	const piece = (height: number, start = false) => ({ height, start });
+	// Three sections of four lines; the last section is taller.
+	const song = [
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2, true),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2),
+		piece(2),
+	];
+	test("starts columns on sections when that is even enough", () => {
+		expect(balanceSheet(song, 3)).toEqual([0, 4, 8]);
+	});
+	test("splits a section when whole sections would leave a column far shorter", () => {
+		// Whole sections give 8 | 16 at best; splitting the middle verse gives 12 | 12.
+		expect(balanceSheet(song.slice(0, 12), 2)).toEqual([0, 6]);
+		// Here whole sections already reach 16 | 12, close enough to keep.
+		expect(balanceSheet(song, 2)).toEqual([0, 8]);
+	});
+	test("never strands a single line of a section", () => {
+		// Two four-line verses in three columns: split the second verse 2 + 2, not 3 + 1.
+		const short = [
+			piece(2, true),
+			piece(2),
+			piece(2),
+			piece(2),
+			piece(2, true),
+			piece(2),
+			piece(2),
+			piece(2),
+		];
+		expect(balanceSheet(short, 3)).toEqual([0, 4, 6]);
+	});
+	test("a large break cost keeps whole sections", () => {
+		expect(balanceColumns([8, 4, 4, 12], 2, [0, 0, 100, 0])).toEqual([0, 3]);
 	});
 });

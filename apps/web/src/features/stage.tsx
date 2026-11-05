@@ -1,5 +1,5 @@
-import { type Accidental, balanceColumns } from "@chords/song-core";
-import { ChordDiagram, SongSheet } from "@chords/song-ui";
+import { type Accidental, balanceSheet } from "@chords/song-core";
+import { ChordDiagram, measurePieces, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
 	Sheet,
@@ -100,17 +100,22 @@ export function Stage({
 		const narrow = width < 640;
 		const paddingX = narrow ? 40 : 96;
 		const available = width - paddingX;
-		const room = height - (header.current?.offsetHeight ?? 56) - 32;
-		const minimum = Math.max(narrow ? 18 : 22, baseSize);
+		// Leave room for the control pill, so the last line is never under it.
+		const room = height - (header.current?.offsetHeight ?? 56) - 88;
+		const minimum = Math.max(narrow ? 20 : 22, baseSize + (narrow ? 3 : 0));
 		const maximum = narrow ? 30 : 52;
 		const columnWidth = (columns: number, size: number) =>
 			(available - GAP_EMS * size * (columns - 1)) / columns;
+		const sheet = element.querySelector<HTMLElement>(".song-sheet");
+		if (!sheet) return;
 		const tallest = (columns: number, size: number) => {
 			element.style.width = `${(columnWidth(columns, size) * REFERENCE) / size}px`;
-			const heights = [
-				...element.querySelectorAll<HTMLElement>(".sheet-block"),
-			].map((block) => (block.offsetHeight * size) / REFERENCE);
-			const starts = balanceColumns(heights, columns);
+			const pieces = measurePieces(sheet).map((piece) => ({
+				...piece,
+				height: (piece.height * size) / REFERENCE,
+			}));
+			const heights = pieces.map((piece) => piece.height);
+			const starts = balanceSheet(pieces, columns);
 			return Math.max(
 				...starts.map((start, i) =>
 					heights
@@ -214,7 +219,7 @@ export function Stage({
 			<div
 				ref={measurer}
 				aria-hidden
-				className="pointer-events-none invisible fixed top-0 -left-[10000px]"
+				className="stage-probe pointer-events-none invisible fixed top-0 -left-[10000px]"
 			>
 				<SongSheet
 					content={content}

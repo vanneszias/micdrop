@@ -3,7 +3,7 @@ import {
 	arrangementFingerprint,
 	copyArrangement,
 } from "@chords/data";
-import { normalizeSheet, sheetDiagnostics } from "@chords/song-core";
+import { normalizeSheet, sheetDiagnostics, songMode } from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
@@ -71,6 +71,7 @@ import { toast } from "sonner";
 import { ChordProTextarea } from "#/components/chordpro-textarea";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
+import { displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 import { CatalogueSearch } from "./catalogue-search";
 
@@ -300,6 +301,7 @@ export function Editor({
 					<FieldLabel>Key</FieldLabel>
 					<KeySelect
 						value={draft.data.key}
+						mode={songMode(draft.data.content, draft.data.key)}
 						onChange={(key) => update("key", key)}
 					/>
 				</Field>
@@ -523,7 +525,7 @@ export function Editor({
 	);
 	const summary = [
 		draft.data.artist || "No artist",
-		`Key ${draft.data.key}`,
+		`Key ${displayKey(draft.data)}`,
 		draft.data.sourceCapo ? `Capo ${draft.data.sourceCapo}` : null,
 		visibilityOptions.find(([value]) => value === state)?.[1],
 	]
@@ -639,7 +641,7 @@ export function Editor({
 								}
 							>
 								<Wand2 />
-								<span className="max-sm:sr-only">
+								<span>
 									Clean up<span className="max-sm:hidden"> pasted chords</span>
 								</span>
 							</Button>
@@ -720,7 +722,7 @@ export function Editor({
 									{draft.data.title || "Untitled song"}
 								</p>
 								<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
-									{[draft.data.artist, `Key ${draft.data.key}`]
+									{[draft.data.artist, `Key ${displayKey(draft.data)}`]
 										.filter(Boolean)
 										.join(" · ")}
 								</p>

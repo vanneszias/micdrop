@@ -1,4 +1,10 @@
-import { CAPO_FRETS, KEYS, shiftKey } from "@chords/song-core";
+import {
+	CAPO_FRETS,
+	KEYS,
+	keyLabel,
+	type Mode,
+	shiftKey,
+} from "@chords/song-core";
 import {
 	Select,
 	SelectContent,
@@ -8,7 +14,7 @@ import {
 } from "@chords/ui/components/select";
 
 // Keys whose chords are easy open shapes, worth pointing out in the capo menu.
-const OPEN_SHAPES = new Set(["C", "G", "D", "A", "E"]);
+const OPEN_SHAPES = new Set(["C", "G", "D", "A", "E", "Am", "Em", "Dm"]);
 
 export function KeySelect({
 	value,
@@ -17,7 +23,10 @@ export function KeySelect({
 	label = "Key",
 	prefix,
 	original,
+	mode,
 }: {
+	/** Minor songs list Am, Bbm… while the stored value stays the root. */
+	mode?: Mode;
 	value: string;
 	onChange: (key: string) => void;
 	className?: string;
@@ -33,12 +42,12 @@ export function KeySelect({
 				{prefix ? (
 					<span className="text-xs text-muted-foreground">{prefix}</span>
 				) : null}
-				<SelectValue>{value}</SelectValue>
+				<SelectValue>{keyLabel(value, mode)}</SelectValue>
 			</SelectTrigger>
 			<SelectContent>
 				{KEYS.map((key) => (
 					<SelectItem key={key} value={key}>
-						{key}
+						{keyLabel(key, mode)}
 						{key === original ? (
 							<span className="text-xs text-muted-foreground">Original</span>
 						) : null}
@@ -55,7 +64,11 @@ export function CapoSelect({
 	className,
 	prefix,
 	soundingKey,
+	mode,
+	disabled,
 }: {
+	disabled?: boolean;
+	mode?: Mode;
 	value: number;
 	onChange: (capo: number) => void;
 	className?: string;
@@ -67,6 +80,7 @@ export function CapoSelect({
 		<Select
 			value={String(value)}
 			onValueChange={(next) => onChange(Number(next))}
+			disabled={disabled}
 		>
 			<SelectTrigger className={className} aria-label="Capo">
 				{prefix ? (
@@ -79,7 +93,9 @@ export function CapoSelect({
 					// High frets rarely help; keep them only when a song already uses one.
 					(fret) => !soundingKey || fret <= 7 || fret === value,
 				).map((fret) => {
-					const shapes = soundingKey ? shiftKey(soundingKey, -fret) : "";
+					const shapes = soundingKey
+						? keyLabel(shiftKey(soundingKey, -fret), mode)
+						: "";
 					return (
 						<SelectItem
 							key={fret}

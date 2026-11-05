@@ -4,7 +4,14 @@ import {
 	type Setlist,
 	type SongRecord,
 } from "@chords/data";
-import { KEYS, keyAccidental, keyDistance } from "@chords/song-core";
+import {
+	KEYS,
+	keyDistance,
+	keyLabel,
+	type Mode,
+	modeAccidental,
+	songMode,
+} from "@chords/song-core";
 import { SongSheet } from "@chords/song-ui";
 import {
 	AlertDialog,
@@ -89,6 +96,7 @@ import {
 	SongList,
 	SongRow,
 } from "#/components/song-row";
+import { displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 import { CatalogueSearch } from "./catalogue-search";
 
@@ -180,13 +188,16 @@ export function SetlistEditor({
 						<article key={entry.id} className="print-song p-6">
 							<h1 className="text-2xl font-semibold">{song.data.title}</h1>
 							<p>
-								{song.data.artist} · Key {entry.key}
+								{song.data.artist} · Key {displayKey(song.data, entry.key)}
 							</p>
 							<p>{entry.notes}</p>
 							<SongSheet
 								content={song.data.content}
 								semitones={keyDistance(song.data.key, entry.key)}
-								accidental={keyAccidental(entry.key)}
+								accidental={modeAccidental(
+									entry.key,
+									songMode(song.data.content, song.data.key),
+								)}
 							/>
 						</article>
 					) : (
@@ -304,7 +315,7 @@ export function SetlistEditor({
 								}}
 								className="-mx-2 w-[calc(100%+1rem)] rounded-md border border-transparent bg-transparent px-2 py-0.5 text-2xl font-semibold tracking-tight outline-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:border-solid focus-visible:ring-[3px] focus-visible:ring-ring/50"
 							/>
-							<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+							<div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm text-muted-foreground">
 								<SetlistDate
 									value={list.data.date}
 									onChange={(date) => update({ ...list.data, date })}
@@ -364,6 +375,11 @@ export function SetlistEditor({
 												>
 													<KeyCapoPicker
 														name={name}
+														mode={
+															song
+																? songMode(song.data.content, song.data.key)
+																: undefined
+														}
 														value={entry.key}
 														capo={capo}
 														onKey={(key) => patch(entry.id, { key })}
@@ -498,12 +514,14 @@ export function SaveState({ saving }: { saving: boolean }) {
 /** One compact chip per song for its performance key and capo. */
 function KeyCapoPicker({
 	name,
+	mode,
 	value,
 	capo,
 	onKey,
 	onCapo,
 }: {
 	name: string;
+	mode?: Mode;
 	value: string;
 	capo: number;
 	onKey: (key: string) => void;
@@ -520,10 +538,10 @@ function KeyCapoPicker({
 					variant="outline"
 					size="sm"
 					className="h-8 gap-1.5 px-2.5 font-normal"
-					aria-label={`Key and capo for ${name}: ${value}, ${capo ? `capo ${capo}` : "no capo"}`}
+					aria-label={`Key and capo for ${name}: ${keyLabel(value, mode)}, ${capo ? `capo ${capo}` : "no capo"}`}
 				>
 					<span className="font-mono font-semibold text-chord-foreground">
-						{value}
+						{keyLabel(value, mode)}
 					</span>
 					<span className="text-muted-foreground max-sm:hidden">
 						{capo ? `Capo ${capo}` : "No capo"}
@@ -548,6 +566,7 @@ function KeyCapoPicker({
 						</Button>
 						<KeySelect
 							value={value}
+							mode={mode}
 							onChange={onKey}
 							className="flex-1 justify-between"
 						/>
@@ -567,6 +586,7 @@ function KeyCapoPicker({
 						value={capo}
 						onChange={onCapo}
 						soundingKey={value}
+						mode={mode}
 						className="w-full justify-between"
 					/>
 				</div>

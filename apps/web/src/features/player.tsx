@@ -2,10 +2,12 @@ import type { Arrangement } from "@chords/data";
 import {
 	displayTranspose,
 	KEYS,
-	keyAccidental,
 	keyDistance,
+	keyLabel,
+	modeAccidental,
 	sheetChords,
 	shiftKey,
+	songMode,
 } from "@chords/song-core";
 import { ChordDiagrams, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
@@ -182,7 +184,9 @@ export function Player({
 	};
 	const delta = displayTranspose(shown.data.key, key, shapes ? capo : 0);
 	// Spell chords for the key they are shown in, so Ab shows Db rather than C#.
-	const accidental = keyAccidental(shiftKey(shown.data.key, delta));
+	const mode = songMode(shown.data.content, shown.data.key);
+	const accidental = modeAccidental(shiftKey(shown.data.key, delta), mode);
+	const keyName = keyLabel(key, mode);
 	// Stage mode swaps the scrolling element, so autoscroll rebinds when it changes.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
 	useEffect(() => {
@@ -273,7 +277,7 @@ export function Player({
 				scroller={sheet}
 				title={shown.data.title}
 				meta={[
-					`Key ${key}`,
+					`Key ${keyName}`,
 					lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
 				]
 					.filter(Boolean)
@@ -353,7 +357,8 @@ export function Player({
 							label="Key"
 							prefix="Key"
 							original={shiftKey(shown.data.key, shown.data.sourceCapo)}
-							className="w-24 justify-between"
+							mode={mode}
+							className="w-28 justify-between"
 						/>
 						<Button
 							variant="outline"
@@ -364,21 +369,22 @@ export function Player({
 							<Plus />
 						</Button>
 					</ButtonGroup>
-					{lyricsOnly ? null : (
-						<CapoSelect
-							value={capo}
-							onChange={setCapo}
-							prefix="Capo"
-							soundingKey={key}
-							className="w-36 justify-between"
-						/>
-					)}
+					{/* Lyrics only keeps the controls in place, disabled, so the bar does not jump. */}
+					<CapoSelect
+						value={capo}
+						onChange={setCapo}
+						prefix="Capo"
+						soundingKey={key}
+						mode={mode}
+						disabled={lyricsOnly}
+						className="w-36 justify-between"
+					/>
 				</div>
 				<Popover>
 					<PopoverTrigger asChild>
 						<Button variant="outline" className="sm:hidden">
 							<span className="sr-only">Key</span>
-							{key}
+							{keyName}
 							{lyricsOnly ? null : (
 								<>
 									<span className="text-muted-foreground">·</span>
@@ -404,6 +410,7 @@ export function Player({
 									value={key}
 									onChange={setKey}
 									original={shiftKey(shown.data.key, shown.data.sourceCapo)}
+									mode={mode}
 									className="flex-1 justify-between"
 								/>
 								<Button
@@ -423,6 +430,7 @@ export function Player({
 									value={capo}
 									onChange={setCapo}
 									soundingKey={key}
+									mode={mode}
 									className="w-full justify-between"
 								/>
 							</div>
@@ -490,13 +498,14 @@ export function Player({
 						</div>
 					</PopoverContent>
 				</Popover>
-				{lyricsOnly ? null : (
+				{
 					<IconTip
 						label={diagrams ? "Hide chord diagrams" : "Show chord diagrams"}
 					>
 						<Toggle
 							variant="outline"
-							pressed={diagrams}
+							disabled={lyricsOnly}
+							pressed={diagrams && !lyricsOnly}
 							onPressedChange={setDiagrams}
 							aria-label="Chord diagrams"
 							className="px-2.5 sm:px-3"
@@ -505,7 +514,7 @@ export function Player({
 							Diagrams
 						</Toggle>
 					</IconTip>
-				)}
+				}
 				{arrangement.updatedAt !== shown.updatedAt ? (
 					<Button
 						variant="secondary"
@@ -553,7 +562,7 @@ export function Player({
 							<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
 								{[
 									shown.data.artist,
-									`Key ${key}`,
+									`Key ${keyName}`,
 									lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
 								]
 									.filter(Boolean)

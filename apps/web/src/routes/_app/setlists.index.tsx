@@ -110,7 +110,7 @@ function Setlists() {
 		<>
 			<Button variant="outline" size="sm" asChild>
 				<Link to="/setlists/import" aria-label="Import PDF">
-					<FileUp /> <span className="max-sm:hidden">Import PDF</span>
+					<FileUp /> Import<span className="max-sm:hidden"> PDF</span>
 				</Link>
 			</Button>
 			<Button size="sm" onClick={() => void create()}>

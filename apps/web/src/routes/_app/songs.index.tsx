@@ -53,6 +53,7 @@ import { ShareDialog } from "#/features/share-dialog";
 import {
 	canMoveFrom,
 	destinations,
+	displayKey,
 	exportSheet,
 	freshArrangement,
 	type Library,
@@ -135,7 +136,7 @@ function Songs() {
 						{shown.map((song) => (
 							<SongRow
 								key={song.id}
-								leading={<KeyBadge>{song.data.key}</KeyBadge>}
+								leading={<KeyBadge>{displayKey(song.data)}</KeyBadge>}
 								title={song.data.title}
 								meta={[
 									song.data.artist || "Unknown artist",
@@ -162,7 +163,7 @@ function Songs() {
 											) : (
 												<Lock className="size-4" />
 											)}
-											<span className="max-sm:sr-only">
+											<span>
 												{song.data.draft
 													? "Draft"
 													: song.data.visibility === "public"
