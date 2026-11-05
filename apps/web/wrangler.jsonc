@@ -10,16 +10,17 @@
   "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["welcome@micdrop.day"] }],
   "routes": [{ "pattern": "micdrop.day", "custom_domain": true }],
   // Gives each Preview a <preview>-chords.<subdomain>.workers.dev URL. Applied on
-  // production deploys; scripts/preview.sh also turns it on before a Preview deploy.
+  // production deploys.
   "preview_urls": true,
   "vars": { "BETTER_AUTH_URL": "https://micdrop.day", "SENTRY_DSN": "https://352a2aae8de1434ebaf33c33c822bf6b@error.zias.be/3" },
-  // Pull request environments (`wrangler preview`). Only compatibility settings
-  // are inherited from above. The preview workflow adds the per-PR D1 database
-  // and BETTER_AUTH_URL, see .github/workflows/preview.yml.
+  // Branch environments (`wrangler preview`). Only compatibility settings are
+  // inherited from above. scripts/preview.ts adds the per-branch D1 database
+  // and replaces BETTER_AUTH_URL with the Preview's own URL. SENTRY_DSN stays
+  // empty so Previews don't report to Sentry.
   "previews": {
     "observability": { "enabled": true, "traces": { "enabled": true } },
     "browser": { "binding": "BROWSER" },
     "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["welcome@micdrop.day"] }],
-    "vars": { "SENTRY_DSN": "" }
+    "vars": { "BETTER_AUTH_URL": "https://micdrop.day", "SENTRY_DSN": "" }
   }
 }

@@ -1,9 +1,21 @@
 import { oauthProviderClient } from "@better-auth/oauth-provider/client";
-import { adminClient, organizationClient } from "better-auth/client/plugins";
+import { passkeyClient } from "@better-auth/passkey/client";
+import {
+	adminClient,
+	organizationClient,
+	twoFactorClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
-	plugins: [organizationClient(), adminClient(), oauthProviderClient()],
+	plugins: [
+		organizationClient(),
+		adminClient(),
+		oauthProviderClient(),
+		// The login page shows the code step itself when sign-in answers with twoFactorRedirect.
+		twoFactorClient(),
+		passkeyClient(),
+	],
 });
 
 /** When an MCP client sent the user here to sign in, returns where to resume authorization. */

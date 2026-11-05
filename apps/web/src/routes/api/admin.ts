@@ -23,7 +23,7 @@ const Query = z.discriminatedUnion("view", [
 		view: z.literal("users"),
 		query: z.string().trim().max(200).default(""),
 		sort: z.enum(["created", "seen", "records", "imports"]).default("created"),
-		filter: z.enum(["all", "banned", "admin"]).default("all"),
+		filter: z.enum(["all", "banned", "admin", "unverified"]).default("all"),
 		offset,
 	}),
 	z.object({ view: z.literal("user"), id: z.string().min(1).max(200) }),

@@ -12,4 +12,4 @@
 - Check `bun run typecheck`, `bun run check`, `bun run test`, and `bun run build`.
 - Local D1 migrations: `bun run db:migrate`. Never use remote migrations or deployment during local testing.
 - Integration checks: start the app, then run `CHORDS_TEST_URL=http://localhost:3000 bun test apps/web/src/server`.
-- Every same-repo PR gets a Workers Preview (`pr-<number>`) with its own D1 database via `.github/workflows/preview.yml` and `apps/web/scripts/preview.sh`; closing the PR deletes both.
+- Cloudflare Workers Builds deploys `master` to production and every other branch to a Workers Preview (named after the branch) with its own D1 database via `apps/web/scripts/preview.ts`. `.github/workflows/preview.yml` deletes both when the PR closes.

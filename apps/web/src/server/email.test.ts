@@ -3,14 +3,28 @@ import { authEmail, sendEmail } from "./email";
 import { localSql } from "./test-db";
 
 test("auth mail contains text and escaped HTML links, uses the Mic Drop sender, and propagates delivery errors", async () => {
-	for (const kind of ["verification", "reset"] as const) {
+	const expected = {
+		welcome: ["Welcome", "24 hours"],
+		verify: ["Confirm", "24 hours"],
+		reminder: ["Confirm", "7 days"],
+		change: ["Approve", "24 hours"],
+		reset: ["Reset", "one hour"],
+	} as const;
+	for (const [kind, [subject, expiry]] of Object.entries(expected) as [
+		keyof typeof expected,
+		(typeof expected)[keyof typeof expected],
+	][]) {
 		const url =
 			'https://micdrop.day/api/auth/link?token=fixture&callbackURL="quoted"';
-		const template = authEmail(kind, url);
+		const template = authEmail(kind, url, { newEmail: "<new@chords.test>" });
 		expect(template.text).toContain(url);
 		expect(template.html).toContain("&#38;callbackURL=&#34;quoted&#34;");
-		expect(template.text).toContain("expires in one hour");
-		expect(template.subject).toContain(kind === "reset" ? "Reset" : "Welcome");
+		expect(template.text).toContain(`expires in ${expiry}`);
+		expect(template.subject).toContain(subject);
+		if (kind === "change") {
+			expect(template.text).toContain("<new@chords.test>");
+			expect(template.html).toContain("&#60;new@chords.test&#62;");
+		}
 		const message = { to: "fixture@chords.test", ...template };
 		const result = await sendEmail(
 			{

@@ -88,24 +88,42 @@ To guard email sign-up with Cloudflare Turnstile, create a widget for `micdrop.d
 
 ### GitHub Actions
 
-`.github/workflows/ci.yml` uses GitHub-hosted Ubuntu runners and Bun 1.4.4. Pull requests and pushes to `master` run typecheck, Biome, unit tests, local D1 migrations, a production build, deployment dry run, and server integration tests against a local production preview. Integration tests use a fixed test-only auth secret, an explicit local storage path, and a localhost upstream; they never use production credentials or data.
+`.github/workflows/ci.yml` uses GitHub-hosted Ubuntu runners and Bun 1.4.4. Pull requests and pushes to `master` run typecheck, Biome, unit tests, local D1 migrations, a production build, deployment dry run, and server integration tests against a local production preview. Integration tests use a fixed test-only auth secret, an explicit local storage path, and a localhost upstream; they never use production credentials or data. CI does not deploy.
 
-After checks pass on `master`, the deployment job builds the app, applies pending **remote production D1 migrations**, then deploys the Worker. Deployments are serialized and an in-progress deployment is never cancelled. Manual runs are available through Actions → CI and deployment → Run workflow; only `master` can deploy. Keep migrations compatible with the currently deployed Worker, since they run before the new code is deployed. Rolling back Worker code does not roll back D1 changes.
+`.github/workflows/preview.yml` deletes a branch's Workers Preview and its D1 database when its pull request closes. It needs a `preview` environment with the `CLOUDFLARE_ACCOUNT_ID` variable (`6495d15c9d09b19ddc65f0a01892a183`) and a `CLOUDFLARE_API_TOKEN` secret with Workers Scripts and D1 edit access.
 
-One-time GitHub setup:
+### Deployment (Cloudflare Workers Builds)
 
-1. Create a `production` environment limited to the `master` branch.
-2. Set its `CLOUDFLARE_ACCOUNT_ID` variable to `6495d15c9d09b19ddc65f0a01892a183`.
-3. Add its `CLOUDFLARE_API_TOKEN` secret. Start with Cloudflare's **Edit Cloudflare Workers** token template, scoped to this account and the `micdrop.day` zone, and include **D1: Edit** for migrations. Ensure the token can deploy the Worker's Browser Run binding. Use a dedicated CI token, separate from local OAuth credentials.
-4. Merge the workflow into `master` to activate automatic deployment. If Cloudflare Workers Builds is also connected to this repository, disable its automatic builds so only this workflow deploys.
+The `chords` Worker is connected to this repository through Cloudflare's Git integration. A push to `master` builds the app, applies pending **remote production D1 migrations**, then deploys the Worker. Keep migrations compatible with the currently deployed Worker, since they run before the new code is deployed. Rolling back Worker code does not roll back D1 changes. Workers Builds does not wait for GitHub CI, so merge only after checks pass.
 
-See [Cloudflare's GitHub Actions authentication guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) and [Wrangler permissions](https://developers.cloudflare.com/workers/authorization/workers/). Actions are pinned to commit SHAs, dependencies use the frozen Bun lockfile, the GitHub token has read-only repository access, and Cloudflare credentials are available only to production deployment steps.
+Every push to another branch deploys a Workers Preview named after the branch (`zias/foo` becomes `zias-foo`) at `https://<preview>-chords.zias.workers.dev`, with its own D1 database `chords-<preview>`. Cloudflare comments the Preview URL on the pull request. To remove one by hand: `cd apps/web && bun scripts/preview.ts delete <branch>`.
+
+Workers Builds settings (Worker → Settings → Build):
+
+| Setting | Value |
+| --- | --- |
+| Git repository | `vanneszias/micdrop`, production branch `master` |
+| Root directory | `/` |
+| Build command | `bun run build` |
+| Deploy command | `cd apps/web && bun run deploy:production` |
+| Preview builds | Enabled, all non-production branches |
+| Preview command | `cd apps/web && bun run deploy:preview` |
+| Build variables | `BUN_VERSION=1.4.4`; secret `PREVIEW_BETTER_AUTH_SECRET` (at least 32 characters) |
+| API token | A user token with Workers Scripts edit, D1 edit, Browser Rendering edit, and Workers Routes edit for `micdrop.day` |
+
+The Sentry release is the built commit (`WORKERS_CI_COMMIT_SHA`).
 
 No Cloudflare resources are created or deployed by the local setup commands.
 
 ## Transactional email
 
-Better Auth sends a welcome email with a verification link on email signup and handles verification resends and password recovery. The sign-in page offers **Forgot password?** and **Resend verification email**; signed-in users can choose **Verify email address** from their account menu. Verification is available without blocking existing accounts from signing in. Verification and reset links expire after one hour. Reset links are single use, and resetting a password revokes existing sessions.
+Better Auth sends a welcome email with a verification link on email signup and handles verification resends and password recovery. The sign-in page offers **Forgot password?** and **Resend verification email**; signed-in users can choose **Verify email address** from their account menu. Verification is available without blocking existing accounts from signing in. Verification and email-change links expire after 24 hours, reset links after one hour. Reset links are single use, and resetting a password revokes existing sessions.
+
+Accounts created before email delivery was enabled can be reminded from **Administration → Users**: filter on **Unverified email** and choose **Email … unverified accounts**. Each unbanned, unverified account receives a verification link valid for 7 days; the server sends in batches of 50 and records each batch in the audit log. A single account can be reminded from its detail page with **Resend verification**.
+
+## Account settings
+
+Signed-in users manage their own account under **Settings**: name, email address (a verified address approves the change before the new one is confirmed), password (Google-only accounts get an emailed link to set one), Google linking, passkeys, authenticator-app two-factor authentication with backup codes, signed-in devices, and deleting their account. Deleting an account removes its personal library in one batch and is refused while the account is a band's only owner. Two-factor codes guard password sign-in; Google and passkey sign-in rely on their own second factor. Passkeys use the host of `BETTER_AUTH_URL` as their relying party, so a passkey made on one Preview does not work on another.
 
 The server uses Cloudflare Email Service through the `EMAIL` binding, with `welcome@micdrop.day` as its allowed sender. The binding is configured for production and Workers Previews; sending must be enabled for `micdrop.day` in the target Cloudflare account before deployment. No email API key is needed. Preview emails contain links to their preview's auth URL.
 

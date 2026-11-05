@@ -12,12 +12,15 @@
     "typecheck": "tsc --noEmit",
     "cf:typegen": "wrangler types --env-file ../../.env.example --strict-vars false",
     "db:migrate": "wrangler d1 migrations apply chords --local",
-    "deploy": "bun run build && wrangler deploy"
+    "deploy": "bun run build && wrangler deploy",
+    "deploy:production": "wrangler d1 migrations apply chords --remote && wrangler deploy",
+    "deploy:preview": "bun scripts/preview.ts deploy"
   },
   "dependencies": {
     "@better-auth/cimd": "^1.7.14",
     "@better-auth/mcp": "^1.7.14",
     "@better-auth/oauth-provider": "^1.7.14",
+    "@better-auth/passkey": "1.7.14",
     "@chords/data": "workspace:*",
     "@chords/imports": "workspace:*",
     "@chords/song-core": "workspace:*",
@@ -42,6 +45,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sonner": "^2.0.8",
+    "uqr": "^0.1.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

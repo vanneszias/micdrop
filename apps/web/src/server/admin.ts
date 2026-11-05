@@ -120,6 +120,17 @@ const SORTS = {
 } as const;
 export type UserSort = keyof typeof SORTS;
 
+/** Accounts a verification reminder goes to: unverified and not banned. */
+export const UNVERIFIED_USERS =
+	"FROM user WHERE emailVerified=0 AND COALESCE(banned,0)=0";
+
+const FILTERS = {
+	all: "",
+	banned: "AND u.banned=1",
+	admin: "AND ','||COALESCE(u.role,'')||',' LIKE '%,admin,%'",
+	unverified: "AND u.emailVerified=0 AND COALESCE(u.banned,0)=0",
+};
+
 export async function listUsers({
 	query = "",
 	sort = "created",
@@ -129,26 +140,36 @@ export async function listUsers({
 }: {
 	query?: string;
 	sort?: UserSort;
-	filter?: "all" | "banned" | "admin";
+	filter?: "all" | "banned" | "admin" | "unverified";
 	offset?: number;
 	now?: number;
 }) {
 	const like = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
-	const { results } =
-		await env.DB.prepare(`SELECT u.id,u.name,u.email,u.emailVerified,u.role,u.banned,u.createdAt,
+	const [{ results }, unverified] = await env.DB.batch([
+		env.DB.prepare(`SELECT u.id,u.name,u.email,u.emailVerified,u.role,u.banned,u.createdAt,
 		(SELECT COUNT(*) FROM records r WHERE r.owner=u.id) AS records,
 		(SELECT COUNT(*) FROM member m WHERE m.userId=u.id) AS bands,
 		(SELECT MAX(${ms("s.updatedAt")}) FROM session s WHERE s.userId=u.id) AS lastSeen,
 		(SELECT COUNT(*) FROM pdf_import_jobs j WHERE j.user_id=u.id AND j.created_at>=?) AS pdfImports
 		FROM user u
 		WHERE (?='' OR u.name LIKE ? ESCAPE '\\' OR u.email LIKE ? ESCAPE '\\' OR u.id=?)
-		${filter === "banned" ? "AND u.banned=1" : filter === "admin" ? "AND ','||COALESCE(u.role,'')||',' LIKE '%,admin,%'" : ""}
-		ORDER BY ${SORTS[sort]},u.id LIMIT ? OFFSET ?`)
-			.bind(now - 7 * DAY, query, like, like, query, PAGE_SIZE + 1, offset)
-			.all();
+		${FILTERS[filter]}
+		ORDER BY ${SORTS[sort]},u.id LIMIT ? OFFSET ?`).bind(
+			now - 7 * DAY,
+			query,
+			like,
+			like,
+			query,
+			PAGE_SIZE + 1,
+			offset,
+		),
+		// Accounts a verification reminder would reach, so the page can say how many before sending.
+		env.DB.prepare(`SELECT COUNT(*) AS count ${UNVERIFIED_USERS}`),
+	]);
 	return {
 		users: results.slice(0, PAGE_SIZE),
 		next: results.length > PAGE_SIZE ? offset + PAGE_SIZE : null,
+		unverified: (unverified.results[0] as { count: number }).count,
 	};
 }
 

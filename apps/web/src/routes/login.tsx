@@ -8,9 +8,11 @@ import {
 	FieldSeparator,
 } from "@chords/ui/components/field";
 import { Input } from "@chords/ui/components/input";
+import { Label } from "@chords/ui/components/label";
 import { Spinner } from "@chords/ui/components/spinner";
+import { Switch } from "@chords/ui/components/switch";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Music } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Music } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { TURNSTILE_SITE_KEY, Turnstile } from "#/features/turnstile";
@@ -126,7 +128,7 @@ function Login() {
 	const { data: session } = authClient.useSession();
 	const search = Route.useSearch();
 	const [mode, setMode] = useState<
-		"signin" | "signup" | "forgot" | "reset" | "verify"
+		"signin" | "signup" | "forgot" | "reset" | "verify" | "two-factor"
 	>(
 		search.action === "reset"
 			? "reset"
@@ -145,6 +147,8 @@ function Login() {
 	const [busy, setBusy] = useState(false);
 	const [reveal, setReveal] = useState(false);
 	const [captcha, setCaptcha] = useState("");
+	const [backupCode, setBackupCode] = useState(false);
+	const [trustDevice, setTrustDevice] = useState(false);
 	const [attempt, setAttempt] = useState(0);
 	const needsCaptcha = mode === "signup" && !!TURNSTILE_SITE_KEY;
 	// An assistant connecting over MCP sent the user here; resume its authorization.
@@ -186,6 +190,21 @@ function Login() {
 							const password = String(form.get("password"));
 							void run(async () => {
 								setNotice("");
+								if (mode === "two-factor") {
+									const code = String(form.get("code")).trim();
+									const result = backupCode
+										? await authClient.twoFactor.verifyBackupCode({
+												code,
+												trustDevice,
+											})
+										: await authClient.twoFactor.verifyTotp({
+												code,
+												trustDevice,
+											});
+									if (result.error) throw new Error(result.error.message);
+									await done();
+									return;
+								}
 								if (mode === "forgot" || mode === "verify") {
 									const result =
 										mode === "forgot"
@@ -237,6 +256,15 @@ function Login() {
 									}
 									throw new Error(result.error.message);
 								}
+								// Accounts with an authenticator app finish signing in with a code.
+								if (
+									result.data &&
+									"twoFactorRedirect" in result.data &&
+									result.data.twoFactorRedirect
+								) {
+									setMode("two-factor");
+									return;
+								}
 								if (mode === "signup")
 									toast.success(
 										"Welcome! Check your inbox to verify your email address.",
@@ -270,6 +298,7 @@ function Login() {
 											forgot: "Forgot your password?",
 											reset: "Choose a new password",
 											verify: "Verify your email",
+											"two-factor": "Enter your code",
 										}[mode]
 									}
 								</h1>
@@ -278,7 +307,11 @@ function Login() {
 										? "Songs stay on this device. Sign in to sync them."
 										: mode === "reset"
 											? "Use at least 10 characters for your new password."
-											: "Enter your account email and we’ll send you a link."}
+											: mode === "two-factor"
+												? backupCode
+													? "Enter one of the backup codes you saved."
+													: "Open your authenticator app and enter the 6-digit code for Mic Drop."
+												: "Enter your account email and we’ll send you a link."}
 								</p>
 							</div>
 							{mode === "signup" ? (
@@ -288,7 +321,41 @@ function Login() {
 								</Field>
 							) : null}
 							{notice ? <output className="text-sm">{notice}</output> : null}
-							{mode !== "reset" ? (
+							{mode === "two-factor" ? (
+								<>
+									<Field>
+										<FieldLabel htmlFor="code">
+											{backupCode ? "Backup code" : "Code"}
+										</FieldLabel>
+										<Input
+											key={String(backupCode)}
+											id="code"
+											name="code"
+											required
+											autoFocus
+											autoComplete="one-time-code"
+											{...(backupCode
+												? {}
+												: {
+														inputMode: "numeric" as const,
+														pattern: "[0-9]{6}",
+														maxLength: 6,
+													})}
+										/>
+									</Field>
+									<div className="flex items-center gap-2">
+										<Switch
+											id="trust-device"
+											checked={trustDevice}
+											onCheckedChange={setTrustDevice}
+										/>
+										<Label htmlFor="trust-device">
+											Don’t ask again on this device for 30 days
+										</Label>
+									</div>
+								</>
+							) : null}
+							{mode !== "reset" && mode !== "two-factor" ? (
 								<Field>
 									<FieldLabel htmlFor="email">Email</FieldLabel>
 									<Input
@@ -348,13 +415,25 @@ function Login() {
 											forgot: "Send reset link",
 											reset: "Save new password",
 											verify: "Send verification link",
+											"two-factor": "Verify",
 										}[mode]
 									}
 								</Button>
 							</Field>
 							{mode === "signin" || !authenticating ? (
 								<FieldDescription className="flex flex-wrap justify-center gap-3">
-									{mode !== "forgot" ? (
+									{mode === "two-factor" ? (
+										<button
+											type="button"
+											disabled={busy}
+											className="underline underline-offset-4"
+											onClick={() => setBackupCode((value) => !value)}
+										>
+											{backupCode
+												? "Use your authenticator app"
+												: "Use a backup code"}
+										</button>
+									) : mode !== "forgot" ? (
 										<button
 											type="button"
 											disabled={busy}
@@ -398,6 +477,25 @@ function Login() {
 								<>
 									<FieldSeparator>Or continue with</FieldSeparator>
 									<Field>
+										<Button
+											type="button"
+											variant="outline"
+											disabled={busy}
+											onClick={() =>
+												void run(async () => {
+													const result = await authClient.signIn.passkey();
+													if (result.error)
+														throw new Error(
+															result.error.message ||
+																"Passkey sign-in was cancelled.",
+														);
+													await done();
+												})
+											}
+										>
+											<KeyRound />
+											Sign in with a passkey
+										</Button>
 										<Button
 											type="button"
 											variant="outline"
