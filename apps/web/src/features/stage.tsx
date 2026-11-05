@@ -235,18 +235,18 @@ export function Stage({
 				onClick={wake}
 				onKeyDown={() => {}}
 			>
-				<header
-					ref={header}
-					className="flex flex-wrap items-baseline gap-x-3 pt-4 pb-3 text-muted-foreground"
-				>
-					<h1 className="text-lg font-semibold text-foreground">{title}</h1>
-					<span className="text-sm">{meta}</span>
-					{notes ? (
-						<p className="basis-full text-sm text-foreground/80">{notes}</p>
-					) : null}
-				</header>
-				{/* A song shorter than the screen sits in the middle rather than at the top. */}
+				{/* A song shorter than the screen sits in the middle, its title with it. */}
 				<div className="my-auto">
+					<header
+						ref={header}
+						className="flex flex-wrap items-baseline gap-x-3 pt-4 pb-3 text-muted-foreground"
+					>
+						<h1 className="text-lg font-semibold text-foreground">{title}</h1>
+						<span className="text-sm">{meta}</span>
+						{notes ? (
+							<p className="basis-full text-sm text-foreground/80">{notes}</p>
+						) : null}
+					</header>
 					<SongSheet
 						content={content}
 						semitones={semitones}

@@ -42,7 +42,7 @@ import {
 	ThumbsDown,
 	ThumbsUp,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { SearchInput } from "#/components/search-input";
 import { KeyBadge, rowTarget, SongList, SongRow } from "#/components/song-row";
@@ -452,6 +452,16 @@ function ArrangementChoices({
 	/** True when choosing for a setlist or song group rather than saving to the repertoire. */
 	picking: boolean;
 }) {
+	// Phone previews use a smaller size so short lines don't break apart.
+	const narrow = useSyncExternalStore(
+		(change) => {
+			const media = window.matchMedia("(max-width: 640px)");
+			media.addEventListener("change", change);
+			return () => media.removeEventListener("change", change);
+		},
+		() => window.matchMedia("(max-width: 640px)").matches,
+		() => false,
+	);
 	const { account, owner, online, bands, run, arrangements } = useApp();
 	const editable =
 		owner === account ||
@@ -550,7 +560,7 @@ function ArrangementChoices({
 			].map((version, index) => (
 				<div key={version.id} className="space-y-2">
 					{/* Versions sit under their song's tile; each names its key in the meta line. */}
-					<div className="flex items-center gap-3 pl-12">
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-12">
 						<div className="min-w-0 flex-1">
 							<span className="flex min-w-0 items-center gap-2 text-sm font-medium">
 								<span className="truncate">
@@ -558,7 +568,7 @@ function ArrangementChoices({
 								</span>
 								{/* The song row above already says it is in the repertoire. */}
 							</span>
-							<p className="truncate text-[13px] text-muted-foreground empty:hidden">
+							<p className="text-[13px] text-muted-foreground empty:hidden sm:truncate">
 								{[
 									`Key ${version.mode ? keyLabel(version.data.key, version.mode) : displayKey(version.data)}`,
 									version.mine ? "Your published arrangement" : null,
@@ -583,11 +593,12 @@ function ArrangementChoices({
 									.join(" · ")}
 							</p>
 						</div>
-						<div className="flex shrink-0 items-center gap-1.5">
+						<div className="flex shrink-0 items-center gap-1.5 max-sm:basis-full">
 							<Button
 								type="button"
 								size="sm"
 								variant="ghost"
+								className="max-sm:-ml-2.5"
 								aria-expanded={preview === version.id}
 								onClick={() =>
 									setPreview(preview === version.id ? undefined : version.id)
@@ -731,7 +742,7 @@ function ArrangementChoices({
 									Original source
 								</a>
 							) : null}
-							<SongSheet content={data.content} />
+							<SongSheet content={data.content} fontSize={narrow ? 16 : 20} />
 						</>
 					) : null}
 				</div>
