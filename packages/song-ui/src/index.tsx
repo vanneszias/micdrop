@@ -300,7 +300,7 @@ const GAP_EMS = 2.5;
  */
 export function fitChords(root: HTMLElement) {
 	const em = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
-	const gap = em * 0.35;
+	const gap = em * 0.45;
 	// The visible chip, inside any transparent border that only enlarges the tap target.
 	const box = (chip: HTMLElement) => {
 		const rect = chip.getBoundingClientRect();

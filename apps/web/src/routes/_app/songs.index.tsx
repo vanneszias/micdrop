@@ -132,7 +132,15 @@ function Songs() {
 						{shown.map((song) => (
 							<SongRow
 								key={song.id}
-								leading={<KeyBadge>{displayKey(song.data)}</KeyBadge>}
+								leading={
+									// The key you play it in, as the song page opens.
+									<KeyBadge>
+										{displayKey(
+											song.data,
+											song.data.performanceKey || song.data.key,
+										)}
+									</KeyBadge>
+								}
 								title={song.data.title}
 								meta={[
 									song.data.artist || "Unknown artist",

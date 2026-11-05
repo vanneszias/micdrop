@@ -144,7 +144,7 @@
 @media (max-width: 640px) {
   .sheet-line { margin-bottom: .6em; }
   /* Phones get a slightly larger chip: easier to read and to tap. */
-  .sheet-chord { font-size: .88em; padding: .12em .42em; }
+  .sheet-chord { font-size: .88em; padding: .12em .42em; margin-bottom: .2em; }
   .sheet-section { margin: 1.4em 0 .7em; }
   /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
   .diagram, .diagram-missing { width: 76px; font-size: 12px; padding: .125rem; }
@@ -208,7 +208,7 @@ button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offse
 
 /* Phones and touch screens get full-height menu rows, like the other phone targets. */
 @media (pointer: coarse), (max-width: 640px) {
-  [data-slot='dropdown-menu-item'], [data-slot='select-item'] { min-height: 44px; }
+  [data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-sub-trigger'], [data-slot='select-item'] { min-height: 44px; }
 }
 /* Sheets and dialogs sit clearly above the page in dark mode. */
 .dark [data-slot='sheet-overlay'], .dark [data-slot='dialog-overlay'], .dark [data-slot='alert-dialog-overlay'] { background: oklch(0 0 0 / 0.7); }

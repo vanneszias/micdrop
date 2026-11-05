@@ -649,7 +649,6 @@ export function Player({
 								Reset view
 							</Button>
 						) : null}
-						<div className="hidden"></div>
 					</PopoverContent>
 				</Popover>
 				{
