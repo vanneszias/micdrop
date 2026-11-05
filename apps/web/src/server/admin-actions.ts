@@ -10,6 +10,7 @@ import {
 	UNVERIFIED_USERS,
 } from "./admin";
 import { getAuth, HttpError, isAdminRole } from "./auth";
+import { resolveFeedback } from "./feedback";
 
 export const AdminAction = z.discriminatedUnion("action", [
 	z.object({
@@ -36,6 +37,11 @@ export const AdminAction = z.discriminatedUnion("action", [
 		disabled: z.boolean(),
 	}),
 	z.object({ action: z.literal("revoke_share"), ref: z.number().int() }),
+	z.object({
+		action: z.literal("resolve_feedback"),
+		id: z.string().min(1),
+		resolved: z.boolean(),
+	}),
 	/** Hard deletes need the account's email or the band's name typed back. */
 	z.object({
 		action: z.literal("delete_user"),
@@ -57,6 +63,8 @@ export async function runAdminAction(
 ) {
 	if (input.action === "disable_client") return disableClient(adminId, input);
 	if (input.action === "revoke_share") return revokeShare(adminId, input.ref);
+	if (input.action === "resolve_feedback")
+		return resolveFeedback(adminId, input.id, input.resolved);
 	if (input.action === "delete_band") return deleteBand(adminId, input);
 	if (input.action === "delete_user") return deleteUser(adminId, input);
 	if (input.action === "remind_unverified")

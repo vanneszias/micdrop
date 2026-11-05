@@ -56,6 +56,7 @@ export async function overview(now = Date.now()) {
 				(SELECT COUNT(*) FROM records WHERE updated_at>=?3) AS changedRecords,
 				(SELECT COUNT(*) FROM publications WHERE hidden=0 AND moderated=0) AS publications,
 				(SELECT COUNT(*) FROM catalogue_reports WHERE resolved=0) AS openReports,
+				(SELECT COUNT(*) FROM feedback WHERE resolved_at IS NULL) AS openFeedback,
 				(SELECT COUNT(*) FROM share_links WHERE revoked=0 AND (expires_at IS NULL OR expires_at>?4)) AS shareLinks,
 				(SELECT COUNT(*) FROM oauthClient) AS oauthClients,
 				(SELECT COUNT(*) FROM oauthClient WHERE userId IS NULL) AS anonymousClients,

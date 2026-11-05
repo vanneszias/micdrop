@@ -6,7 +6,9 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 // Workers Builds names the commit it builds; Sentry uses it as the release.
-process.env.VITE_SENTRY_RELEASE ||= process.env.WORKERS_CI_COMMIT_SHA;
+// Assigning undefined to process.env stores the string "undefined", so only set a real SHA.
+if (process.env.WORKERS_CI_COMMIT_SHA)
+	process.env.VITE_SENTRY_RELEASE ||= process.env.WORKERS_CI_COMMIT_SHA;
 
 export default defineConfig({
 	envDir: "../..",

@@ -22,6 +22,7 @@ import { Route as AppCommunityRouteImport } from './routes/_app/community'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiAdminRouteImport } from './routes/api/admin'
 import { Route as ApiBandsRouteImport } from './routes/api/bands'
+import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
 import { Route as ApiImportRouteImport } from './routes/api/import'
 import { Route as ApiImportPdfRouteImport } from './routes/api/import-pdf'
 import { Route as ApiOgRouteImport } from './routes/api/og'
@@ -32,6 +33,7 @@ import { Route as ApiSyncRouteImport } from './routes/api/sync'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin.index'
 import { Route as AppAdminAuditRouteImport } from './routes/_app/admin.audit'
 import { Route as AppAdminClientsRouteImport } from './routes/_app/admin.clients'
+import { Route as AppAdminFeedbackRouteImport } from './routes/_app/admin.feedback'
 import { Route as AppAdminLinksRouteImport } from './routes/_app/admin.links'
 import { Route as AppInviteTokenRouteImport } from './routes/_app/invite.$token'
 import { Route as AppSetlistsIndexRouteImport } from './routes/_app/setlists.index'
@@ -115,6 +117,11 @@ const ApiBandsRoute = ApiBandsRouteImport.update({
   path: '/api/bands',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFeedbackRoute = ApiFeedbackRouteImport.update({
+  id: '/api/feedback',
+  path: '/api/feedback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImportRoute = ApiImportRouteImport.update({
   id: '/api/import',
   path: '/api/import',
@@ -163,6 +170,11 @@ const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
 const AppAdminClientsRoute = AppAdminClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminFeedbackRoute = AppAdminFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => AppAdminRoute,
 } as any)
 const AppAdminLinksRoute = AppAdminLinksRouteImport.update({
@@ -269,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/og': typeof ApiOgRoute
@@ -278,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/api/sync': typeof ApiSyncRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/clients': typeof AppAdminClientsRoute
+  '/admin/feedback': typeof AppAdminFeedbackRoute
   '/admin/links': typeof AppAdminLinksRoute
   '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
@@ -309,6 +323,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/og': typeof ApiOgRoute
@@ -319,6 +334,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/clients': typeof AppAdminClientsRoute
+  '/admin/feedback': typeof AppAdminFeedbackRoute
   '/admin/links': typeof AppAdminLinksRoute
   '/invite/$token': typeof AppInviteTokenRoute
   '/setlists/$id': typeof AppSetlistsIdRoute
@@ -353,6 +369,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/api/admin': typeof ApiAdminRoute
   '/api/bands': typeof ApiBandsRoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/api/import': typeof ApiImportRoute
   '/api/import-pdf': typeof ApiImportPdfRouteWithChildren
   '/api/og': typeof ApiOgRoute
@@ -363,6 +380,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/admin/audit': typeof AppAdminAuditRoute
   '/_app/admin/clients': typeof AppAdminClientsRoute
+  '/_app/admin/feedback': typeof AppAdminFeedbackRoute
   '/_app/admin/links': typeof AppAdminLinksRoute
   '/_app/invite/$token': typeof AppInviteTokenRoute
   '/_app/setlists/$id': typeof AppSetlistsIdRoute
@@ -398,6 +416,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/admin'
     | '/api/bands'
+    | '/api/feedback'
     | '/api/import'
     | '/api/import-pdf'
     | '/api/og'
@@ -407,6 +426,7 @@ export interface FileRouteTypes {
     | '/api/sync'
     | '/admin/audit'
     | '/admin/clients'
+    | '/admin/feedback'
     | '/admin/links'
     | '/invite/$token'
     | '/setlists/$id'
@@ -438,6 +458,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/admin'
     | '/api/bands'
+    | '/api/feedback'
     | '/api/import'
     | '/api/import-pdf'
     | '/api/og'
@@ -448,6 +469,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/audit'
     | '/admin/clients'
+    | '/admin/feedback'
     | '/admin/links'
     | '/invite/$token'
     | '/setlists/$id'
@@ -481,6 +503,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/api/admin'
     | '/api/bands'
+    | '/api/feedback'
     | '/api/import'
     | '/api/import-pdf'
     | '/api/og'
@@ -491,6 +514,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/admin/audit'
     | '/_app/admin/clients'
+    | '/_app/admin/feedback'
     | '/_app/admin/links'
     | '/_app/invite/$token'
     | '/_app/setlists/$id'
@@ -521,6 +545,7 @@ export interface RootRouteChildren {
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   ApiAdminRoute: typeof ApiAdminRoute
   ApiBandsRoute: typeof ApiBandsRoute
+  ApiFeedbackRoute: typeof ApiFeedbackRoute
   ApiImportRoute: typeof ApiImportRoute
   ApiImportPdfRoute: typeof ApiImportPdfRouteWithChildren
   ApiOgRoute: typeof ApiOgRoute
@@ -624,6 +649,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/feedback': {
+      id: '/api/feedback'
+      path: '/api/feedback'
+      fullPath: '/api/feedback'
+      preLoaderRoute: typeof ApiFeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/import': {
       id: '/api/import'
       path: '/api/import'
@@ -692,6 +724,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/admin/clients'
       preLoaderRoute: typeof AppAdminClientsRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/feedback': {
+      id: '/_app/admin/feedback'
+      path: '/feedback'
+      fullPath: '/admin/feedback'
+      preLoaderRoute: typeof AppAdminFeedbackRouteImport
       parentRoute: typeof AppAdminRoute
     }
     '/_app/admin/links': {
@@ -826,6 +865,7 @@ declare module '@tanstack/react-router' {
 interface AppAdminRouteChildren {
   AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminClientsRoute: typeof AppAdminClientsRoute
+  AppAdminFeedbackRoute: typeof AppAdminFeedbackRoute
   AppAdminLinksRoute: typeof AppAdminLinksRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppAdminBandsIdRoute: typeof AppAdminBandsIdRoute
@@ -839,6 +879,7 @@ interface AppAdminRouteChildren {
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminClientsRoute: AppAdminClientsRoute,
+  AppAdminFeedbackRoute: AppAdminFeedbackRoute,
   AppAdminLinksRoute: AppAdminLinksRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
   AppAdminBandsIdRoute: AppAdminBandsIdRoute,
@@ -910,6 +951,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   ApiAdminRoute: ApiAdminRoute,
   ApiBandsRoute: ApiBandsRoute,
+  ApiFeedbackRoute: ApiFeedbackRoute,
   ApiImportRoute: ApiImportRoute,
   ApiImportPdfRoute: ApiImportPdfRouteWithChildren,
   ApiOgRoute: ApiOgRoute,

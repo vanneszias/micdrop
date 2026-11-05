@@ -14,6 +14,7 @@ import {
 } from "#/server/admin";
 import { AdminAction, runAdminAction } from "#/server/admin-actions";
 import { endpoint, requireAdmin } from "#/server/auth";
+import { listFeedback } from "#/server/feedback";
 
 const offset = z.coerce.number().int().min(0).default(0);
 
@@ -51,6 +52,11 @@ const Query = z.discriminatedUnion("view", [
 		offset,
 	}),
 	z.object({ view: z.literal("audit"), offset }),
+	z.object({
+		view: z.literal("feedback"),
+		status: z.enum(["open", "resolved", "all"]).default("open"),
+		offset,
+	}),
 ]);
 
 export const Route = createFileRoute("/api/admin")({
@@ -87,6 +93,8 @@ export const Route = createFileRoute("/api/admin")({
 							});
 						case "audit":
 							return auditLog(input);
+						case "feedback":
+							return listFeedback(input);
 					}
 				})();
 				return Response.json(body, { headers });

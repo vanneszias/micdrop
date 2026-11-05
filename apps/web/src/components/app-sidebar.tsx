@@ -35,6 +35,7 @@ import {
 	ListMusic,
 	LogIn,
 	LogOut,
+	MessageSquarePlus,
 	Monitor,
 	Moon,
 	Music,
@@ -44,7 +45,9 @@ import {
 	User,
 	Users,
 } from "lucide-react";
+import { useState } from "react";
 import { useApp } from "#/features/app-context";
+import { FeedbackDialog } from "#/features/feedback";
 import { useImpersonator } from "#/features/impersonation";
 import { usePlayingSetlist } from "#/features/setlist-overview";
 import { authClient } from "#/lib/auth-client";
@@ -78,105 +81,112 @@ function AccountMenu({
 	const { theme, setTheme } = useTheme();
 	const app = useApp();
 	const navigate = useNavigate();
+	const [feedback, setFeedback] = useState(false);
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-			<DropdownMenuContent className="min-w-56" align="end" side={side}>
-				{/* The sidebar trigger already names the account; phones have no such trigger. */}
-				{showLibraries ? (
-					<>
-						<DropdownMenuLabel className="font-normal">
-							<div className="truncate font-medium">{user?.name}</div>
-							<div className="truncate text-xs text-muted-foreground">
-								{user?.email}
-							</div>
-						</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-					</>
-				) : null}
-				{user && !user.emailVerified ? (
-					<>
-						<DropdownMenuItem asChild>
-							<Link to="/login" search={{ action: "verify" }}>
-								Verify email address
-							</Link>
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-					</>
-				) : null}
-				{showLibraries && app.bands.length ? (
-					<>
-						<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-							Library
-						</DropdownMenuLabel>
-						{[
-							{ id: app.account, name: "Personal", icon: User },
-							...app.bands.map((band) => ({ ...band, icon: Users })),
-						].map(({ id, name, icon: Icon }) => (
-							<DropdownMenuItem
-								key={id}
-								onSelect={() => {
-									app.setOwner(id);
-									void navigate({ to: "/songs" });
-								}}
-							>
-								<Icon /> {name}
-								{app.owner === id ? <Check className="ml-auto" /> : null}
+		<>
+			<FeedbackDialog open={feedback} onOpenChange={setFeedback} />
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+				<DropdownMenuContent className="min-w-56" align="end" side={side}>
+					{/* The sidebar trigger already names the account; phones have no such trigger. */}
+					{showLibraries ? (
+						<>
+							<DropdownMenuLabel className="font-normal">
+								<div className="truncate font-medium">{user?.name}</div>
+								<div className="truncate text-xs text-muted-foreground">
+									{user?.email}
+								</div>
+							</DropdownMenuLabel>
+							<DropdownMenuSeparator />
+						</>
+					) : null}
+					{user && !user.emailVerified ? (
+						<>
+							<DropdownMenuItem asChild>
+								<Link to="/login" search={{ action: "verify" }}>
+									Verify email address
+								</Link>
 							</DropdownMenuItem>
-						))}
-						<DropdownMenuSeparator />
-					</>
-				) : null}
-				<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-					Appearance
-				</DropdownMenuLabel>
-				{(
-					[
-						["system", Monitor, "System"],
-						["light", Sun, "Light"],
-						["dark", Moon, "Dark"],
-					] as const
-				).map(([value, Icon, label]) => (
-					<DropdownMenuItem
-						key={value}
-						onSelect={(event) => {
-							event.preventDefault();
-							setTheme(value);
-						}}
-					>
-						<Icon /> {label}
-						{theme === value ? <Check className="ml-auto" /> : null}
-					</DropdownMenuItem>
-				))}
-				<DropdownMenuSeparator />
-				{/* Importing and assistant access are set once, so they live in Settings. */}
-				<DropdownMenuItem asChild>
-					<Link to="/settings">
-						<Settings2 /> Settings
-					</Link>
-				</DropdownMenuItem>
-				{online && user?.role?.split(",").includes("admin") ? (
+							<DropdownMenuSeparator />
+						</>
+					) : null}
+					{showLibraries && app.bands.length ? (
+						<>
+							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+								Library
+							</DropdownMenuLabel>
+							{[
+								{ id: app.account, name: "Personal", icon: User },
+								...app.bands.map((band) => ({ ...band, icon: Users })),
+							].map(({ id, name, icon: Icon }) => (
+								<DropdownMenuItem
+									key={id}
+									onSelect={() => {
+										app.setOwner(id);
+										void navigate({ to: "/songs" });
+									}}
+								>
+									<Icon /> {name}
+									{app.owner === id ? <Check className="ml-auto" /> : null}
+								</DropdownMenuItem>
+							))}
+							<DropdownMenuSeparator />
+						</>
+					) : null}
+					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+						Appearance
+					</DropdownMenuLabel>
+					{(
+						[
+							["system", Monitor, "System"],
+							["light", Sun, "Light"],
+							["dark", Moon, "Dark"],
+						] as const
+					).map(([value, Icon, label]) => (
+						<DropdownMenuItem
+							key={value}
+							onSelect={(event) => {
+								event.preventDefault();
+								setTheme(value);
+							}}
+						>
+							<Icon /> {label}
+							{theme === value ? <Check className="ml-auto" /> : null}
+						</DropdownMenuItem>
+					))}
+					<DropdownMenuSeparator />
+					{/* Importing and assistant access are set once, so they live in Settings. */}
 					<DropdownMenuItem asChild>
-						<Link to="/admin">
-							<Shield /> Administration
+						<Link to="/settings">
+							<Settings2 /> Settings
 						</Link>
 					</DropdownMenuItem>
-				) : null}
-				<DropdownMenuItem
-					// The banner's "Stop impersonating" also clears their songbook.
-					disabled={busy || impersonating}
-					onSelect={() =>
-						void run(async () => {
-							await authClient.signOut();
-							localStorage.removeItem("chords:account");
-							window.location.assign("/");
-						})
-					}
-				>
-					<LogOut /> Sign out
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+					<DropdownMenuItem onSelect={() => setFeedback(true)}>
+						<MessageSquarePlus /> Send feedback
+					</DropdownMenuItem>
+					{online && user?.role?.split(",").includes("admin") ? (
+						<DropdownMenuItem asChild>
+							<Link to="/admin">
+								<Shield /> Administration
+							</Link>
+						</DropdownMenuItem>
+					) : null}
+					<DropdownMenuItem
+						// The banner's "Stop impersonating" also clears their songbook.
+						disabled={busy || impersonating}
+						onSelect={() =>
+							void run(async () => {
+								await authClient.signOut();
+								localStorage.removeItem("chords:account");
+								window.location.assign("/");
+							})
+						}
+					>
+						<LogOut /> Sign out
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</>
 	);
 }
 

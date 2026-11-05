@@ -25,9 +25,10 @@ function Privacy() {
 					With an account, Mic Drop stores your name, email address and password
 					hash (or your Google sign-in), the songs and setlists you sync with
 					their earlier versions, your bands and their members, what you publish
-					to the catalogue, your votes and reports, the assistants you connect,
-					and your sign-in sessions, including the IP address and browser they
-					came from.
+					to the catalogue, your votes and reports, the feedback you send with
+					the page, app version and device details it was sent from, the
+					assistants you connect, and your sign-in sessions, including the IP
+					address and browser they came from.
 				</p>
 			</section>
 			<section className="space-y-2">
