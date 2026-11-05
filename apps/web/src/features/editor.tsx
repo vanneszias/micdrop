@@ -237,6 +237,23 @@ export function Editor({
 		() => !!arrangement.data.reviewRequired,
 	);
 	const [reader] = useState(() => readerPreferences(account));
+	// The preview starts at the song page's size; "Compact" fits more of the song beside the source.
+	const [compact, setCompact] = useState(() => {
+		try {
+			return localStorage.getItem("chords:editor-preview") === "compact";
+		} catch {
+			return false;
+		}
+	});
+	const chooseCompact = (value: boolean) => {
+		setCompact(value);
+		try {
+			localStorage.setItem(
+				"chords:editor-preview",
+				value ? "compact" : "reader",
+			);
+		} catch {}
+	};
 	// Side-by-side preview needs room; on small screens it starts hidden below the editor.
 	const [preview, setPreview] = useState(
 		() =>
@@ -769,20 +786,53 @@ export function Editor({
 					</div>
 					{preview ? (
 						<div className="min-w-0 rounded-lg border bg-card/40 px-5 py-6 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 sm:px-6 lg:mt-10 lg:h-[calc(100svh-20rem)] lg:min-h-96 lg:overflow-y-auto">
-							<header className="mb-5 sm:mb-7">
-								<p className="text-2xl font-semibold tracking-tight sm:text-3xl">
-									{draft.data.title || "Untitled song"}
-								</p>
-								<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
-									{[draft.data.artist, `Key ${displayKey(draft.data)}`]
-										.filter(Boolean)
-										.join(" · ")}
-								</p>
+							<header className="mb-5 flex items-start gap-3 sm:mb-7">
+								<div className="min-w-0 flex-1">
+									<p
+										className={cn(
+											"font-semibold tracking-tight",
+											compact ? "text-xl" : "text-2xl sm:text-3xl",
+										)}
+									>
+										{draft.data.title || "Untitled song"}
+									</p>
+									<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
+										{[draft.data.artist, `Key ${displayKey(draft.data)}`]
+											.filter(Boolean)
+											.join(" · ")}
+									</p>
+								</div>
+								<ToggleGroup
+									type="single"
+									variant="outline"
+									size="sm"
+									aria-label="Preview size"
+									className="shrink-0 max-lg:hidden"
+									value={compact ? "compact" : "reader"}
+									onValueChange={(value) =>
+										value && chooseCompact(value === "compact")
+									}
+								>
+									<ToggleGroupItem
+										value="reader"
+										title="The song page's text size"
+									>
+										Actual
+									</ToggleGroupItem>
+									<ToggleGroupItem
+										value="compact"
+										title="Smaller, to see more of the song"
+									>
+										Compact
+									</ToggleGroupItem>
+								</ToggleGroup>
 							</header>
-							{/* Same size and options as the song page, so the preview is what you will play. */}
+							{/* By default the song page's size and options, so the preview is what you will play. */}
 							<SongSheet
 								content={content}
-								fontSize={reader.fontSize ?? (wide ? 23 : 17)}
+								fontSize={
+									compact && wide ? 16 : (reader.fontSize ?? (wide ? 23 : 17))
+								}
 								chords={!reader.lyricsOnly}
 							/>
 						</div>

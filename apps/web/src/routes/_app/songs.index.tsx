@@ -111,7 +111,8 @@ function Songs() {
 							: `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: "Songs you play, each in your own key and capo."
 				}
-				actions={add}
+				// An empty repertoire has one Add: the empty state's own.
+				actions={songs.length ? add : null}
 			>
 				{songs.length ? (
 					<SearchInput
@@ -335,8 +336,7 @@ function Songs() {
 									Clear search
 								</Button>
 							) : (
-								// The header keeps the one primary Add; this is its quiet echo.
-								<Button asChild variant="outline">
+								<Button asChild>
 									<Link to="/songs/new">
 										<Plus /> Add a song
 									</Link>
