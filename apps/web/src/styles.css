@@ -63,11 +63,11 @@
   --brand-foreground: oklch(0.22 0.04 60);
   --chord: oklch(0.82 0.14 78 / 0.14);
   --chord-foreground: oklch(0.86 0.13 82);
-  --sidebar: oklch(0.2 0.005 60);
+  --sidebar: oklch(0.12 0.004 60); /* a step below the panel, so the inset shape reads */
   --sidebar-foreground: oklch(0.97 0.004 85);
   --sidebar-primary: oklch(0.82 0.14 78);
   --sidebar-primary-foreground: oklch(0.22 0.04 60);
-  --sidebar-accent: oklch(0.28 0.006 60);
+  --sidebar-accent: oklch(0.22 0.006 60);
   --sidebar-accent-foreground: oklch(0.97 0.004 85);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.75 0.12 75);
@@ -102,17 +102,24 @@
 /* Chord sheet */
 .song-sheet { font-family: var(--font-sans); line-height: 1.7; }
 .sheet-space { height: .4em; }
-.sheet-section { font-size: .55em; letter-spacing: .05em; color: var(--muted-foreground); font-weight: 600; text-transform: uppercase; margin: 1.4em 0 .8em; }
+.sheet-section { font-size: max(.55em, 11.5px); letter-spacing: .05em; color: var(--muted-foreground); font-weight: 600; text-transform: uppercase; margin: 1.4em 0 .8em; }
 .sheet-note { color: var(--muted-foreground); font-size: .65em; margin: 1.3em 0; }
 .sheet-line { display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: .35em; margin-bottom: .85em; }
 .sheet-word { display: inline-flex; align-items: flex-end; }
 .sheet-pair { display: inline-flex; flex-direction: column; white-space: pre; min-width: 0; }
 /* A chord wider than its syllable leaves a gap inside the word; bridge it with a hairline. */
 .sheet-pair-joined .sheet-lyric { display: flex; }
-.sheet-pair-joined .sheet-lyric::after { content: ''; flex: 1; align-self: center; height: 1px; margin-top: .15em; background: linear-gradient(currentColor, currentColor) center / calc(100% - .5em) 100% no-repeat; opacity: .35; }
-.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: .78em; font-weight: 700; line-height: 1.45; padding: .05em .35em; margin: 0 .5em .05em -.35em; border-radius: .3em; }
+/* width: 0 keeps the hyphen out of the syllable's own width: it shows only in a gap. */
+.sheet-pair-joined .sheet-lyric::after { content: '-'; flex: 1 0 0; width: 0; min-width: 0; overflow: hidden; text-align: center; opacity: .55; }
+.sheet-chord { align-self: flex-start; font-family: var(--font-mono); color: var(--chord-foreground); background: var(--chord); font-size: max(.78em, 12.5px); font-weight: 700; line-height: 1.45; padding: .05em .35em; border-radius: .3em; white-space: nowrap;
+  /* The chip hangs over the following text instead of widening its syllable; fitChords
+     opens a gap only where two chips would collide. */
+  margin: 0 -20em .05em -.15em; }
+/* A line's first chord lines up with the lyric edge instead of hanging outside it. */
+.sheet-line > .sheet-word:first-child > .sheet-pair:first-child > .sheet-chord { margin-left: 0; }
 
-.sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
+/* Placeholder chips on chordless syllables never take width (also over the phone padding). */
+.sheet-chord.sheet-chord-empty { background: none; padding-inline: 0; margin-inline: 0; }
 .sheet-lyric { min-height: 1.3em; line-height: 1.3; }
 .sheet-text { margin: 0 0 .15em; white-space: pre-wrap; }
 .sheet-line, .sheet-text, .sheet-note { break-inside: avoid; } .sheet-section { break-after: avoid; }
@@ -136,10 +143,11 @@
 
 @media (max-width: 640px) {
   .sheet-line { margin-bottom: .6em; }
-  .sheet-chord { font-size: .84em; }
+  /* Phones get a slightly larger chip: easier to read and to tap. */
+  .sheet-chord { font-size: .88em; padding: .12em .42em; margin-bottom: .3em; }
   .sheet-section { margin: 1.4em 0 .7em; }
   /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
-  .diagram, .diagram-missing { width: 66px; font-size: 12px; padding: .125rem; }
+  .diagram, .diagram-missing { width: 76px; font-size: 12px; padding: .125rem; }
   .chord-diagrams { gap: .25rem; }
 }
 
@@ -153,6 +161,62 @@
   .print-song { break-after: page; } .print-song:last-child { break-after: auto; }
 }
 .sheet-block { break-inside: avoid; }
-.sheet-block:first-child > .sheet-section:first-child, .sheet-block:first-child > .sheet-space:first-child + .sheet-section, .sheet-block:first-child:has(> .sheet-space:only-child) + .sheet-block > .sheet-section:first-child { margin-top: 0; }
+/* The sheet and every column start flush with their first heading, so headings line up. */
+.song-sheet > .sheet-block:first-child > .sheet-piece:first-child > :first-child,
+.sheet-column > .sheet-block:first-child > :first-child,
+.sheet-column > .sheet-block:first-child > .sheet-piece:first-child > :first-child { margin-top: 0; }
+.sheet-section-continued span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.sheet-frame { position: relative; }
+.sheet-probe { position: absolute; inset: 0 auto auto 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+.sheet-probe > .song-sheet, .stage-probe .song-sheet { display: flow-root; }
 .diagram-rail .chord-diagrams { flex-wrap: wrap; overflow: visible; gap: .5rem; }
-.diagram-rail .diagram, .diagram-rail .diagram-missing { width: 112px; }
+.diagram-rail .diagram, .diagram-rail .diagram-missing { width: 132px; }
+.diagram-rail strong { font-size: 15px; }
+/* Balanced columns: each column starts on a section, so headings line up across the top. */
+.sheet-columns { display: grid; column-gap: 2.5em; align-items: start; }
+.sheet-column { min-width: 0; }
+.sheet-column + .sheet-column { border-left: 1px solid var(--border); padding-left: 1.25em; margin-left: -1.25em; }
+/* Chord chips that open a diagram keep the chip look. */
+button.sheet-chord { position: relative; border: 0; cursor: pointer; text-align: left; transition: background-color .15s, box-shadow .15s; }
+/* A larger invisible tap area, so chords are easy to hit while holding an instrument. */
+button.sheet-chord::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 40px); transform: translate(-50%, -50%); }
+/* On phones the button itself is the 44px target: a transparent border grows it, the
+   background stays on the chip, and negative margins keep the layout unchanged. */
+@media (max-width: 640px) {
+  button.sheet-chord { border: 9px solid transparent; background-clip: padding-box; margin-top: -9px; margin-bottom: calc(.3em - 9px); margin-left: calc(-.15em - 9px); }
+  .sheet-line > .sheet-word:first-child > .sheet-pair:first-child > button.sheet-chord { margin-left: -9px; }
+  button.sheet-chord:hover { box-shadow: none; }
+}
+button.sheet-chord:hover { box-shadow: 0 0 0 1px var(--chord-foreground) inset; }
+button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* A tapped chord, enlarged in its own sheet. */
+.chord-sheet .diagram, .chord-sheet .diagram-missing { width: min(15rem, 70vw); font-size: 15px; }
+.chord-sheet .diagram strong { display: none; }
+.chord-sheet .diagram small { font-size: 13px; }
+.chord-sheet div.diagram:hover { background: none; }
+.chord-sheet div.diagram:active { transform: none; }
+/* Previous/next shape, with the count between: 44px targets. */
+.diagram-stepper { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .5rem; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.diagram-stepper button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: 22px; line-height: 1; }
+.diagram-stepper button:hover { background: var(--accent); }
+.diagram-stepper button:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* One segmented control: toggle groups look like tabs (grey track, raised selected pill). */
+[data-slot='toggle-group'][data-variant='outline'] { background: var(--muted); padding: 3px; border-radius: var(--radius-lg); gap: 0; box-shadow: none; }
+[data-slot='toggle-group-item'][data-variant='outline'] { border: 1px solid transparent !important; background: transparent; box-shadow: none; color: var(--muted-foreground); border-radius: var(--radius-md) !important; height: 2rem; }
+[data-slot='toggle-group-item'][data-variant='outline'][data-disabled] { opacity: .35; text-decoration: line-through; }
+[data-slot='toggle-group-item'][data-variant='outline']:hover { color: var(--foreground); background: transparent; }
+[data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 0.12); }
+.dark [data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { background: var(--input); border-color: var(--input) !important; }
+/* Standalone toggles (Diagrams, wrap) show "on" clearly. */
+/* aria-pressed: a tooltip trigger replaces the toggle's data-state and data-slot. */
+[aria-pressed='true']:is([data-slot='toggle'], [data-slot='tooltip-trigger']):not(.toggle-neutral) { background: color-mix(in oklch, var(--brand) 22%, transparent); border-color: color-mix(in oklch, var(--brand) 70%, transparent); color: var(--foreground); }
+[data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { border-color: var(--border) !important; box-shadow: 0 1px 3px oklch(0 0 0 / 0.16); }
+.sheet-tail { display: inline-flex; align-items: flex-end; }
+
+/* Phones and touch screens get full-height menu rows, like the other phone targets. */
+@media (pointer: coarse), (max-width: 640px) {
+  [data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-sub-trigger'], [data-slot='select-item'] { min-height: 44px; }
+}
+/* Sheets and dialogs sit clearly above the page in dark mode. */
+.dark [data-slot='sheet-overlay'], .dark [data-slot='dialog-overlay'], .dark [data-slot='alert-dialog-overlay'] { background: oklch(0 0 0 / 0.7); }
+.dark [data-slot='sheet-content'] { background: var(--popover); }
