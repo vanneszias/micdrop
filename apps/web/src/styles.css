@@ -180,6 +180,13 @@
 button.sheet-chord { position: relative; border: 0; cursor: pointer; text-align: left; transition: background-color .15s, box-shadow .15s; }
 /* A larger invisible tap area, so chords are easy to hit while holding an instrument. */
 button.sheet-chord::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 40px); transform: translate(-50%, -50%); }
+/* On phones the button itself is the 44px target: a transparent border grows it, the
+   background stays on the chip, and negative margins keep the layout unchanged. */
+@media (max-width: 640px) {
+  button.sheet-chord { border: 9px solid transparent; background-clip: padding-box; margin-top: -9px; margin-bottom: calc(.05em - 9px); margin-left: calc(-.15em - 9px); }
+  .sheet-line > .sheet-word:first-child > .sheet-pair:first-child > button.sheet-chord { margin-left: -9px; }
+  button.sheet-chord:hover { box-shadow: none; }
+}
 button.sheet-chord:hover { box-shadow: 0 0 0 1px var(--chord-foreground) inset; }
 button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 /* A tapped chord, enlarged in its own sheet. */

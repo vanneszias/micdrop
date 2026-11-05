@@ -301,6 +301,15 @@ const GAP_EMS = 2.5;
 export function fitChords(root: HTMLElement) {
 	const em = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
 	const gap = em * 0.35;
+	// The visible chip, inside any transparent border that only enlarges the tap target.
+	const box = (chip: HTMLElement) => {
+		const rect = chip.getBoundingClientRect();
+		return {
+			left: rect.left + chip.clientLeft,
+			right: rect.right - chip.clientLeft,
+			top: rect.top + chip.clientTop,
+		};
+	};
 	for (const line of root.querySelectorAll<HTMLElement>(".sheet-line")) {
 		const pairs = [...line.querySelectorAll<HTMLElement>(".sheet-pair")];
 		for (const pair of pairs) {
@@ -313,8 +322,8 @@ export function fitChords(root: HTMLElement) {
 			const chip = pair.firstElementChild as HTMLElement | null;
 			if (!chip || chip.classList.contains("sheet-chord-empty")) continue;
 			if (previous) {
-				const before = previous.chip.getBoundingClientRect();
-				const after = chip.getBoundingClientRect();
+				const before = box(previous.chip);
+				const after = box(chip);
 				const sameRow = Math.abs(before.top - after.top) < 2;
 				const overlap = before.right + gap - after.left;
 				if (sameRow && overlap > 0) {

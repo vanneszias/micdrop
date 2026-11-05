@@ -701,7 +701,10 @@ export function Player({
 						"flex justify-center",
 						// One column centres in a three-column grid; wider layouts take the room they need.
 						columns === 1
-							? "xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10"
+							? // With the rail open, sheet and rail are centred together.
+								diagrams && !lyricsOnly
+								? "xl:grid xl:grid-cols-[1fr_auto_auto_1fr] xl:gap-10"
+								: "xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10"
 							: "gap-8 px-2",
 					)}
 				>
