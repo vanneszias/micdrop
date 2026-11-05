@@ -7,6 +7,11 @@ import {
 } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@chords/ui/components/popover";
+import {
 	Sheet,
 	SheetContent,
 	SheetDescription,
@@ -24,6 +29,7 @@ import {
 	X,
 } from "lucide-react";
 import {
+	type ReactNode,
 	type RefObject,
 	useCallback,
 	useEffect,
@@ -74,6 +80,7 @@ export function Stage({
 	previousTitle,
 	nextTitle,
 	onExit,
+	tune,
 }: {
 	scroller: RefObject<HTMLElement | null>;
 	title: string;
@@ -91,6 +98,8 @@ export function Stage({
 	previousTitle?: string;
 	nextTitle?: string;
 	onExit: () => void;
+	/** Key and capo, changed from a chip so the toolbar stays small. Absent for lyrics only. */
+	tune?: { label: string; capo: number; controls: ReactNode };
 }) {
 	const { width, height } = useViewport();
 	const measurer = useRef<HTMLDivElement>(null);
@@ -197,19 +206,29 @@ export function Stage({
 	}, [visible, hint]);
 	const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const holding = useRef(false);
+	// Focus moves into the key popover, so it holds the controls on its own while open.
+	const [tuning, setTuning] = useState(false);
+	const tuningRef = useRef(false);
 	const wake = useCallback(() => {
 		setVisible(true);
 		clearTimeout(timer.current);
 		timer.current = setTimeout(() => {
-			if (!holding.current) setVisible(false);
+			if (!holding.current && !tuningRef.current) setVisible(false);
 		}, 2500);
 	}, []);
+	const onTuning = (open: boolean) => {
+		tuningRef.current = open;
+		setTuning(open);
+		wake();
+	};
 	useEffect(() => {
 		wake();
 		return () => clearTimeout(timer.current);
 	}, [wake]);
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
+			// An Escape that closed a popover or menu has done its job.
+			if (event.defaultPrevented) return;
 			if (event.key === "Escape" && !document.fullscreenElement) onExit();
 			else wake();
 		};
@@ -359,12 +378,15 @@ export function Stage({
 					<Button
 						size="sm"
 						variant={scrolling ? "secondary" : "default"}
-						className="rounded-full"
+						// Phones show the icon alone, so a setlist's prev/next and key still fit.
+						className="rounded-full max-sm:px-2.5"
 						aria-pressed={scrolling}
 						onClick={() => onScrolling((value) => !value)}
 					>
 						{scrolling ? <Pause /> : <Play />}
-						{scrolling ? "Pause" : "Scroll"}
+						<span className="max-sm:sr-only">
+							{scrolling ? "Pause" : "Scroll"}
+						</span>
 					</Button>
 					<fieldset className="m-0 flex items-center border-0 p-0">
 						<legend className="sr-only">Text size</legend>
@@ -402,14 +424,43 @@ export function Stage({
 							<ChevronRight />
 						</Button>
 					) : null}
-					<span className="mx-1 h-5 w-px bg-border" aria-hidden />
+					{tune ? (
+						<Popover open={tuning} onOpenChange={onTuning}>
+							<PopoverTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="gap-1 rounded-full px-2.5 tabular-nums"
+									aria-label={`Key ${tune.label}${tune.capo ? `, capo ${tune.capo}` : ""}`}
+								>
+									{tune.label}
+									{tune.capo ? (
+										<span className="text-muted-foreground">
+											<span className="max-sm:hidden">Capo </span>
+											<span className="sm:hidden">C</span>
+											{tune.capo}
+										</span>
+									) : null}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent
+								side="top"
+								sideOffset={10}
+								className="w-72 space-y-4"
+							>
+								{tune.controls}
+							</PopoverContent>
+						</Popover>
+					) : null}
+					<span className="mx-1 h-5 w-px bg-border max-sm:hidden" aria-hidden />
 					<Button
 						variant="ghost"
 						size="sm"
-						className="rounded-full"
+						className="rounded-full max-sm:px-2"
+						aria-label="Exit stage mode"
 						onClick={onExit}
 					>
-						<X /> Exit
+						<X /> <span className="max-sm:hidden">Exit</span>
 					</Button>
 				</div>
 			</div>
