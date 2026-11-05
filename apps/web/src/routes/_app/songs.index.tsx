@@ -327,7 +327,12 @@ function Songs() {
 									Clear search
 								</Button>
 							) : (
-								add
+								// The header keeps the one primary Add; this is its quiet echo.
+								<Button asChild variant="outline">
+									<Link to="/songs/new">
+										<Plus /> Add a song
+									</Link>
+								</Button>
 							)}
 						</EmptyContent>
 					</Empty>
