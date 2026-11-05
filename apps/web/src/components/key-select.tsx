@@ -106,14 +106,16 @@ export function CapoSelect({
 						>
 							{fret === 0 ? "No capo" : `Capo ${fret}`}
 							{shapes ? (
-								<span
-									className={
-										OPEN_SHAPES.has(shapes)
-											? "ml-auto pl-6 text-xs text-muted-foreground after:ml-1.5 after:rounded after:bg-chord after:px-1 after:text-[10px] after:text-chord-foreground after:content-['open']"
-											: "ml-auto pl-6 text-xs text-muted-foreground"
-									}
-								>
-									{shapes} shapes
+								// Fixed columns: shape name, then a slot that may hold "open".
+								<span className="ml-auto flex items-center gap-1.5 pl-6 text-xs text-muted-foreground">
+									<span className="w-16 text-right">{shapes} shapes</span>
+									<span className="w-9">
+										{OPEN_SHAPES.has(shapes) ? (
+											<span className="rounded bg-chord px-1 text-[10px] text-chord-foreground">
+												open
+											</span>
+										) : null}
+									</span>
 								</span>
 							) : null}
 						</SelectItem>

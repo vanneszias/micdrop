@@ -494,11 +494,12 @@ function GuitarDiagram({
 					return (
 						<g key={`barre-${fret}`}>
 							<rect
-								x={from - DOT}
-								y={13.5 + fret * 19 - DOT}
-								width={to - from + DOT * 2}
-								height={DOT * 2}
-								rx={DOT}
+								// Inset to the outer barred strings rather than past them.
+								x={from - DOT + 2}
+								y={13.5 + fret * 19 - DOT + 1}
+								width={to - from + DOT * 2 - 4}
+								height={DOT * 2 - 2}
+								rx={DOT - 1}
 								className="diagram-barre"
 							/>
 							<text

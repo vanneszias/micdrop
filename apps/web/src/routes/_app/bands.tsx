@@ -194,59 +194,57 @@ function BandCard({
 					) : null}
 				</CardAction>
 			</CardHeader>
-			<CardContent className="divide-y max-sm:px-4">
-				{band.members.map((member) => (
-					<div key={member.id} className="flex items-center gap-3 py-2.5">
-						<Avatar className="size-8">
-							<AvatarFallback className="text-xs">
-								{member.name[0]?.toUpperCase()}
-							</AvatarFallback>
-						</Avatar>
-						<div className="min-w-0 flex-1">
-							<div className="flex items-center gap-2 text-sm font-medium">
-								<span className="truncate">{member.name}</span>
-								<Badge variant="secondary" className="capitalize">
-									{member.role}
-								</Badge>
+			<CardContent className="max-sm:px-4">
+				<h3 className="pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Members
+				</h3>
+				<div className="divide-y">
+					{band.members.map((member) => (
+						<div key={member.id} className="flex items-center gap-3 py-2.5">
+							<Avatar className="size-8">
+								<AvatarFallback className="text-xs">
+									{member.name[0]?.toUpperCase()}
+								</AvatarFallback>
+							</Avatar>
+							<div className="min-w-0 flex-1">
+								<div className="flex items-center gap-2 text-sm font-medium">
+									<span className="truncate">{member.name}</span>
+									<Badge variant="secondary" className="capitalize">
+										{member.role}
+									</Badge>
+								</div>
+								<div className="truncate text-xs text-muted-foreground">
+									{member.email}
+								</div>
 							</div>
-							<div className="truncate text-xs text-muted-foreground">
-								{member.email}
-							</div>
+							{owner && member.role !== "owner" ? (
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label={`Remove ${member.name}`}
+									onClick={() =>
+										void run(async () => {
+											await api("/api/bands", {
+												action: "remove",
+												bandId: band.id,
+												memberId: member.id,
+											});
+											await changed();
+										})
+									}
+								>
+									<X />
+								</Button>
+							) : null}
 						</div>
-						{owner && member.role !== "owner" ? (
-							<Button
-								variant="ghost"
-								size="icon-sm"
-								aria-label={`Remove ${member.name}`}
-								onClick={() =>
-									void run(async () => {
-										await api("/api/bands", {
-											action: "remove",
-											bandId: band.id,
-											memberId: member.id,
-										});
-										await changed();
-									})
-								}
-							>
-								<X />
-							</Button>
-						) : null}
-					</div>
-				))}
+					))}
+				</div>
 			</CardContent>
-			{owner ? (
-				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
-					{adding ? null : (
-						<Button
-							variant="outline"
-							size="sm"
-							className="self-start"
-							onClick={() => setAdding(true)}
-						>
-							<UserPlus /> Add existing account
-						</Button>
-					)}
+			{owner && !adding ? (
+				<CardFooter className="border-t max-sm:px-4">
+					<Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+						<UserPlus /> Add existing account
+					</Button>
 				</CardFooter>
 			) : null}
 			{owner && adding ? (
@@ -297,6 +295,13 @@ function BandCard({
 							</SelectContent>
 						</Select>
 						<Button variant="outline">Add</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							onClick={() => setAdding(false)}
+						>
+							Cancel
+						</Button>
 					</form>
 					<p className="text-xs text-muted-foreground">
 						Editors can change the band's songs and setlists. Viewers can open

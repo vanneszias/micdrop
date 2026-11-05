@@ -342,7 +342,7 @@ export function SetlistEditor({
 				</AlertDialogContent>
 			</AlertDialog>
 			<PageBody width="workspace">
-				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+				<div className="grid gap-x-10 gap-y-5 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-y-8">
 					<section aria-labelledby="setlist-name" className="min-w-0 space-y-5">
 						<div className="space-y-2">
 							<label htmlFor="setlist-name" className="sr-only">
@@ -679,8 +679,8 @@ function SetlistDate({
 					size="sm"
 					aria-label={date ? "Change date" : "Pick a date"}
 					className={cn(
-						"-ml-1.5 h-7 pr-0 pl-1.5 font-normal text-muted-foreground hover:bg-transparent hover:text-foreground",
-						!date && "border border-dashed",
+						"h-7 px-0 font-normal text-muted-foreground hover:bg-transparent hover:text-foreground has-[>svg]:px-0",
+						!date && "border border-dashed px-2 has-[>svg]:px-2",
 					)}
 				>
 					<CalendarDays />

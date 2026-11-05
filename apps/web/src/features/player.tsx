@@ -673,7 +673,7 @@ export function Player({
 							// Phones get a compact launcher; each chord opens its diagram full size.
 							<div className="flex items-center gap-1.5 overflow-x-auto">
 								<span className="shrink-0 text-xs text-muted-foreground">
-									Diagrams
+									Tap a chord
 								</span>
 								{songChords.map((value) => (
 									<Button

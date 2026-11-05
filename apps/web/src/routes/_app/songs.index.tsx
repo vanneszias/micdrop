@@ -107,7 +107,9 @@ function Songs() {
 				}
 				description={
 					songs.length
-						? `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
+						? q
+							? `${shown.length} of ${songs.length} songs match “${q}”.`
+							: `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: "Songs you play, each in your own key and capo."
 				}
 				actions={
@@ -163,7 +165,7 @@ function Songs() {
 											) : (
 												<Lock className="size-4" />
 											)}
-											<span>
+											<span className="max-[420px]:sr-only">
 												{song.data.draft
 													? "Draft"
 													: song.data.visibility === "public"
