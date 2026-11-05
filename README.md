@@ -103,12 +103,24 @@ See [Cloudflare's GitHub Actions authentication guide](https://developers.cloudf
 
 No Cloudflare resources are created or deployed by the local setup commands.
 
+## Transactional email
+
+Better Auth sends a welcome email with a verification link on email signup and handles verification resends and password recovery. The sign-in page offers **Forgot password?** and **Resend verification email**; signed-in users can choose **Verify email address** from their account menu. Verification is available without blocking existing accounts from signing in. Verification and reset links expire after one hour. Reset links are single use, and resetting a password revokes existing sessions.
+
+The server uses Cloudflare Email Service through the `EMAIL` binding, with `welcome@micdrop.day` as its allowed sender. The binding is configured for production and Workers Previews; sending must be enabled for `micdrop.day` in the target Cloudflare account before deployment. No email API key is needed. Preview emails contain links to their preview's auth URL.
+
+Local development and integration tests simulate delivery without sending real mail. Wrangler logs paths to the generated text and HTML files for inspection. Keep the email binding local (do not set `remote: true`) during testing. Delivery runs under `waitUntil`; failures are reported to Sentry as `auth.email_failed` without logging recipients or email links. Recovery and resend requests return a generic confirmation to avoid disclosing whether an account exists, and are rate limited per IP.
+
+Regenerate Worker types with `bun run --filter @chords/web cf:typegen`; this reads the checked-in `.env.example` for secret names, without requiring real secret values.
+
+See the [Cloudflare Workers email API](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/) and [Better Auth email flows](https://better-auth.com/docs/concepts/email).
+
 ## Current boundaries
 
 - Conflict handling is revision-based, with explicit resolution rather than real-time text merging.
 - Guitar diagrams use the MIT-licensed `@tombatossals/chords-db` dataset; unsupported shapes remain readable as chord names.
 - Local player preferences are stored per account and arrangement. They do not yet synchronize between devices.
-- Email verification/recovery delivery, invite emails, selective downloads, and additional site adapters remain follow-up work.
+- Invite emails, selective downloads, and additional site adapters remain follow-up work.
 
 ## Catalogue administration
 

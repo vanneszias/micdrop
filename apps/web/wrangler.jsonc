@@ -7,6 +7,7 @@
   "observability": { "enabled": true, "traces": { "enabled": true } },
   "d1_databases": [{ "binding": "DB", "database_name": "chords", "database_id": "4026fa4f-3cfe-4fd2-a53d-a619b186f1b0", "migrations_dir": "migrations" }],
   "browser": { "binding": "BROWSER" },
+  "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["welcome@micdrop.day"] }],
   "routes": [{ "pattern": "micdrop.day", "custom_domain": true }],
   // Gives each Preview a <preview>-chords.<subdomain>.workers.dev URL. Applied on
   // production deploys; scripts/preview.sh also turns it on before a Preview deploy.
@@ -18,6 +19,7 @@
   "previews": {
     "observability": { "enabled": true, "traces": { "enabled": true } },
     "browser": { "binding": "BROWSER" },
+    "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["welcome@micdrop.day"] }],
     "vars": { "SENTRY_DSN": "" }
   }
 }
