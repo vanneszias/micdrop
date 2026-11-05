@@ -321,6 +321,51 @@ export function Player({
 		// so View never claims more than it shows. One column hugs its text instead.
 		return columns > 1 ? Math.min(max, fit?.max ?? 3) : max;
 	})();
+	// Key and capo, shared by the phone popover and the stage toolbar.
+	const keyCapoFields = (
+		<>
+			<div className="space-y-2">
+				<Label>Key</Label>
+				<ButtonGroup className="w-full">
+					<Button
+						variant="outline"
+						size="icon"
+						aria-label="Transpose down a semitone"
+						onClick={() => step(-1)}
+					>
+						<Minus />
+					</Button>
+					<KeySelect
+						value={key}
+						onChange={setKey}
+						original={shiftKey(shown.data.key, shown.data.sourceCapo)}
+						mode={mode}
+						className="flex-1 justify-between"
+					/>
+					<Button
+						variant="outline"
+						size="icon"
+						aria-label="Transpose up a semitone"
+						onClick={() => step(1)}
+					>
+						<Plus />
+					</Button>
+				</ButtonGroup>
+			</div>
+			{lyricsOnly ? null : (
+				<div className="space-y-2">
+					<Label>Capo</Label>
+					<CapoSelect
+						value={capo}
+						onChange={setCapo}
+						soundingKey={key}
+						mode={mode}
+						className="w-full justify-between"
+					/>
+				</div>
+			)}
+		</>
+	);
 	if (stage)
 		return (
 			<Stage
@@ -345,6 +390,15 @@ export function Player({
 				previousTitle={previousTitle}
 				nextTitle={nextTitle}
 				onExit={leaveStage}
+				tune={
+					lyricsOnly
+						? undefined
+						: {
+								label: keyName,
+								capo,
+								controls: keyCapoFields,
+							}
+				}
 			/>
 		);
 	return (
@@ -514,46 +568,7 @@ export function Player({
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent align="start" className="w-72 space-y-4">
-						<div className="space-y-2">
-							<Label>Key</Label>
-							<ButtonGroup className="w-full">
-								<Button
-									variant="outline"
-									size="icon"
-									aria-label="Transpose down a semitone"
-									onClick={() => step(-1)}
-								>
-									<Minus />
-								</Button>
-								<KeySelect
-									value={key}
-									onChange={setKey}
-									original={shiftKey(shown.data.key, shown.data.sourceCapo)}
-									mode={mode}
-									className="flex-1 justify-between"
-								/>
-								<Button
-									variant="outline"
-									size="icon"
-									aria-label="Transpose up a semitone"
-									onClick={() => step(1)}
-								>
-									<Plus />
-								</Button>
-							</ButtonGroup>
-						</div>
-						{lyricsOnly ? null : (
-							<div className="space-y-2">
-								<Label>Capo</Label>
-								<CapoSelect
-									value={capo}
-									onChange={setCapo}
-									soundingKey={key}
-									mode={mode}
-									className="w-full justify-between"
-								/>
-							</div>
-						)}
+						{keyCapoFields}
 					</PopoverContent>
 				</Popover>
 				<Popover>
