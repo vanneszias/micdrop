@@ -272,8 +272,15 @@ describe("sheet columns", () => {
 		expect(sheetColumns(song, 2)).toEqual({ starts: [0, 8], tallest: 16 });
 		expect(sheetColumns(song, 2, 16).starts).toEqual([0, 8]);
 	});
-	test("splits a section only when whole sections would scroll", () => {
-		expect(sheetColumns(song, 2, 14)).toEqual({ starts: [0, 6], tallest: 12 });
+	test("keeps sections whole even when the sheet then scrolls", () => {
+		// Whole sections need 16 of 14; every section (8) fits, so none is split.
+		expect(sheetColumns(song, 2, 14).starts).toEqual([0, 8]);
+	});
+	test("splits only a section taller than the space", () => {
+		const long = [piece(2, true), ...Array.from({ length: 9 }, () => piece(2))];
+		expect(sheetColumns([...song.slice(0, 4), ...long], 2, 12).starts).toEqual([
+			0, 7,
+		]);
 	});
 	test("never makes more columns than sections without needing to", () => {
 		expect(sheetColumns(song.slice(0, 8), 3).starts).toEqual([0, 4]);

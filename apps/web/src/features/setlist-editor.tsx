@@ -104,7 +104,6 @@ import { toast } from "sonner";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageBody, PageHeader } from "#/components/page-header";
 import {
-	KeyBadge,
 	OverflowMenu,
 	rowTarget,
 	SongList,
@@ -601,7 +600,7 @@ function KeyCapoPicker({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-8 min-w-16 justify-between gap-1.5 px-2.5 font-normal sm:min-w-32"
+					className="h-8 min-w-14 justify-between gap-1 px-2 font-normal sm:min-w-32 sm:gap-1.5 sm:px-2.5"
 					aria-label={`Key and capo for ${name}: ${keyLabel(value, mode)}, ${capo ? `capo ${capo}` : "no capo"}`}
 				>
 					<span className="font-mono font-semibold text-chord-foreground">
@@ -748,21 +747,18 @@ function SortableEntry({
 				isDragging && "relative z-10 rounded-xl shadow-lg ring-1 ring-border",
 			)}
 			leading={
-				<span className="flex items-center">
-					<button
-						ref={setActivatorNodeRef}
-						type="button"
-						aria-label={label}
-						className="relative z-[1] -ml-1.5 cursor-grab touch-none rounded p-1 text-muted-foreground/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
-						{...attributes}
-						{...listeners}
-					>
-						<GripVertical className="size-4" />
-					</button>
-					<KeyBadge muted className="min-w-6 px-0">
-						{index + 1}
-					</KeyBadge>
-				</span>
+				// The position number is the drag handle, so phones keep the width for titles.
+				<button
+					ref={setActivatorNodeRef}
+					type="button"
+					aria-label={label}
+					className="group/grip relative z-[1] -ml-1 flex h-8 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md font-mono text-[13px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+					{...attributes}
+					{...listeners}
+				>
+					<span className="group-hover/grip:hidden">{index + 1}</span>
+					<GripVertical className="hidden size-4 group-hover/grip:block" />
+				</button>
 			}
 			title={title}
 			meta={meta}
@@ -782,7 +778,9 @@ function SortableEntry({
 			}
 			trailing={children}
 		>
-			{note ? <div className="-mt-2 pr-4 pb-2 pl-[4.75rem]">{note}</div> : null}
+			{note ? (
+				<div className="-mt-2 pr-4 pb-2 pl-[3.25rem] sm:pl-14">{note}</div>
+			) : null}
 		</SongRow>
 	);
 }

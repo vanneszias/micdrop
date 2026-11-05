@@ -47,7 +47,9 @@ export const ChordProTextarea = forwardRef<
 ) {
 	const backdrop = useRef<HTMLDivElement>(null);
 	const shared = cn(
-		"px-3 py-2 font-mono text-base leading-relaxed md:text-sm",
+		// Phones use the proportional face at 16px (smaller inputs make iOS zoom in), so
+		// more of each line fits before it wraps.
+		"px-3 py-2 font-sans text-base leading-relaxed sm:font-mono md:text-sm",
 		wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre",
 	);
 	return (

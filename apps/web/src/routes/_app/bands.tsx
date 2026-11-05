@@ -187,7 +187,7 @@ function BandCard({
 							size="sm"
 							onClick={() => setInviting(true)}
 						>
-							<Link2 /> Invite
+							<Link2 /> Invite link
 						</Button>
 					) : null}
 				</CardAction>
@@ -235,7 +235,15 @@ function BandCard({
 			</CardContent>
 			{owner ? (
 				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
-					<Label htmlFor={`add-member-${band.id}`}>Add a member</Label>
+					<div className="space-y-0.5">
+						<Label htmlFor={`add-member-${band.id}`}>
+							Add existing account
+						</Label>
+						<p className="text-[13px] text-muted-foreground">
+							For someone who already uses Mic Drop. Anyone else gets an invite
+							link.
+						</p>
+					</div>
 					<form
 						className="flex w-full flex-wrap gap-2"
 						onSubmit={(event) => {
