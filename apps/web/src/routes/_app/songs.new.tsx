@@ -35,7 +35,7 @@ import {
 import { Textarea } from "@chords/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ClipboardPaste, FileText, Link2, PenLine, Search } from "lucide-react";
+import { ClipboardPaste, FileText, Link2, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageBody, PageHeader } from "#/components/page-header";
@@ -101,16 +101,6 @@ function NewSong() {
 			<PageBody
 				title="Add a song"
 				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
-				actions={
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={busy}
-						onClick={() => void run(() => createSong())}
-					>
-						<PenLine /> Blank song
-					</Button>
-				}
 			>
 				<Tabs defaultValue="paste">
 					<TabsList className="h-10 w-full sm:w-auto">
@@ -124,6 +114,20 @@ function NewSong() {
 							<FileText /> File
 						</TabsTrigger>
 					</TabsList>
+					{/* One place to choose how to start: three ways in, or a blank song. */}
+					<div className="pt-1 text-sm text-muted-foreground">
+						Or{" "}
+						<Button
+							variant="link"
+							className="h-auto p-0 text-sm"
+							disabled={busy}
+							onClick={() => void run(() => createSong())}
+						>
+							start a blank song
+						</Button>
+						.
+					</div>
+
 					<TabsContent value="paste" className="mt-4">
 						<FieldGroup>
 							<Field>

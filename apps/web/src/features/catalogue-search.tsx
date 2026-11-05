@@ -333,15 +333,16 @@ export function CatalogueSearch({
 							title={group.title}
 							meta={
 								<>
-									{inRepertoire && !onSelect ? (
-										<span className="text-foreground/80 sm:hidden">
-											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
-											In repertoire ·{" "}
-										</span>
-									) : null}
 									{[group.artists || "Unknown artist"]
 										.filter(Boolean)
 										.join(" · ")}
+									{inRepertoire && !onSelect ? (
+										<span className="text-foreground/80 sm:hidden">
+											{" · "}
+											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
+											In repertoire
+										</span>
+									) : null}
 									{group.count > 1 ? (
 										// Phones keep the row to status and artist.
 										<span
@@ -368,9 +369,10 @@ export function CatalogueSearch({
 								<>
 									{/* Status sits where an action would, on every viewport. */}
 									{placed ? (
-										<Badge variant="secondary" className="font-normal">
-											<Check /> In set
-										</Badge>
+										// Same height and shape as the Add button it stands in for.
+										<span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
+											<Check className="size-4" /> In set
+										</span>
 									) : inRepertoire && !onSelect ? (
 										// Phones show this on the meta line, leaving the title its width.
 										<Badge
@@ -625,6 +627,7 @@ function ArrangementChoices({
 										)
 									}
 								>
+									{picking ? <Plus /> : null}
 									{action(version.local)}
 								</Button>
 							)}

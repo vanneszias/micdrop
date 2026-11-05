@@ -274,7 +274,11 @@ export function Player({
 		setOpen(true);
 	};
 	const [chord, setChord] = useState<string>();
-	const [fit, setFit] = useState<{ size: number; columns: number }>();
+	const [fit, setFit] = useState<{
+		size: number;
+		columns: number;
+		max: number;
+	}>();
 	// Sections split across columns only when whole ones would run past the screen.
 	const [sheetHeight, setSheetHeight] = useState<number>();
 	// Leaving stage mode mounts a new scroller, so the observer rebinds.
@@ -481,7 +485,7 @@ export function Player({
 						>
 							<SlidersHorizontal />
 							View
-							{lyricsOnly || columns > 1 ? (
+							{lyricsOnly || columns > 1 || chosenSize !== undefined ? (
 								// Shows that a view option changes the sheet.
 								<span
 									className="absolute top-1 right-1 size-1.5 rounded-full bg-primary"
@@ -515,31 +519,35 @@ export function Player({
 								type="single"
 								variant="outline"
 								aria-label="Columns"
-								value={String(columns)}
+								// Only counts that fit this width at a readable size can be chosen.
+								value={String(Math.min(columns, fit?.max ?? columns))}
 								onValueChange={(value) => value && setColumns(Number(value))}
 							>
 								{[1, 2, 3].map((value) => (
-									<ToggleGroupItem key={value} value={String(value)}>
+									<ToggleGroupItem
+										key={value}
+										value={String(value)}
+										disabled={!!fit && value > fit.max}
+										title={
+											fit && value > fit.max
+												? "Needs a wider window or smaller text"
+												: undefined
+										}
+									>
 										{value}
 									</ToggleGroupItem>
 								))}
 							</ToggleGroup>
 						</div>
 						<div className="space-y-2">
-							<Label>Text size · {fontSize}px</Label>
-							{fit && columns > 1 && fit.columns < columns ? (
-								<p className="text-xs text-muted-foreground">
-									Only{" "}
-									{fit.columns === 1
-										? "one column fits"
-										: `${fit.columns} columns fit`}{" "}
-									at this size and width.
-								</p>
-							) : fit && fit.size < fontSize ? (
-								<p className="text-xs text-muted-foreground">
-									Shown at {fit.size}px so {fit.columns} columns fit.
-								</p>
-							) : null}
+							<Label>
+								Text size · {fit && fit.size < fontSize ? fit.size : fontSize}px
+								{fit && fit.size < fontSize ? (
+									<span className="font-normal text-muted-foreground">
+										(fitted to {fit.columns} columns)
+									</span>
+								) : null}
+							</Label>
 							<Slider
 								min={14}
 								max={40}
@@ -549,6 +557,22 @@ export function Player({
 								onValueChange={([value]) => setFontSize(value)}
 							/>
 						</div>
+						{lyricsOnly || columns > 1 || chosenSize !== undefined ? (
+							// The dot on View marks these changes; one click undoes them.
+							<Button
+								variant="ghost"
+								size="sm"
+								className="-ml-2.5 text-muted-foreground"
+								onClick={() => {
+									setLyricsOnly(false);
+									setColumns(1);
+									setFontSize(undefined);
+								}}
+							>
+								Reset view
+							</Button>
+						) : null}
+						<div className="hidden"></div>
 					</PopoverContent>
 				</Popover>
 				{
@@ -652,7 +676,7 @@ export function Player({
 						<aside
 							data-print="hide"
 							aria-label="Chord diagrams"
-							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10 xl:block"
+							className="diagram-rail sticky top-0 hidden h-fit w-72 shrink-0 justify-self-start pt-10 xl:block"
 						>
 							<ChordDiagrams
 								content={shown.data.content}

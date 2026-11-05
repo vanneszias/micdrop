@@ -31,7 +31,7 @@ export function SongSheet({
 	/** Room the columns have before the page scrolls; sections split only to stay inside it. */
 	height?: number;
 	/** Reports the text size and column count actually shown, when they differ from the request. */
-	onFit?: (fit: { size: number; columns: number }) => void;
+	onFit?: (fit: { size: number; columns: number; max: number }) => void;
 	content: string;
 	semitones?: number;
 	fontSize?: number;
@@ -140,20 +140,24 @@ export function SongSheet({
 			Math.min(columns, blocks.length || 1),
 		).map((start) => pieces.findIndex((piece) => piece.block === start)),
 	}));
+	// The most columns this width allows at a readable size, so a picker can offer only those.
+	const [maxColumns, setMaxColumns] = useState(3);
 	useBrowserLayoutEffect(() => {
 		const element = root.current;
 		const probe = measurer.current;
-		if (!element || !probe || columns <= 1) return;
+		if (!element) return;
 		const measure = () => {
 			const width = element.clientWidth;
-			// Each column needs 18em. Text shrinks (down to 14px) to fit the chosen count,
-			// and only a sheet too narrow even then drops a column.
+			// Each column needs 18em. Text shrinks to fit the chosen count, but never below
+			// 18px (or most of the chosen size): fewer columns read better than tiny text.
 			const needed = (count: number) =>
 				count * columnEms + (count - 1) * GAP_EMS;
-			let count = Math.min(columns, pieces.length || 1);
-			// Never below 18px (or most of the chosen size): fewer columns read better than tiny text.
 			const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
-			while (count > 1 && width / needed(count) < floor) count--;
+			let max = 3;
+			while (max > 1 && width / needed(max) < floor) max--;
+			setMaxColumns(max);
+			if (!probe || columns <= 1) return;
+			const count = Math.min(columns, pieces.length || 1, max);
 			const size =
 				count > 1
 					? Math.min(fontSize, Math.floor(width / needed(count)))
@@ -180,8 +184,8 @@ export function SongSheet({
 	const shownColumns = columns > 1 ? layout.columns : 1;
 	const shownSize = shownColumns > 1 ? layout.size : fontSize;
 	useEffect(() => {
-		onFit?.({ size: shownSize, columns: shownColumns });
-	}, [onFit, shownSize, shownColumns]);
+		onFit?.({ size: shownSize, columns: shownColumns, max: maxColumns });
+	}, [onFit, shownSize, shownColumns, maxColumns]);
 	const renderPieces = (slice: Piece[]) => {
 		const groups: Piece[][] = [];
 		for (const piece of slice)

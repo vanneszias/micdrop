@@ -309,7 +309,7 @@ export function Editor({
 					/>
 				</Field>
 				<Field className="lg:col-span-2">
-					<FieldLabel>Key</FieldLabel>
+					<FieldLabel>Song key</FieldLabel>
 					<KeySelect
 						value={draft.data.key}
 						mode={songMode(draft.data.content, draft.data.key)}
@@ -317,7 +317,7 @@ export function Editor({
 					/>
 				</Field>
 				<Field className="lg:col-span-2">
-					<FieldLabel>Capo</FieldLabel>
+					<FieldLabel>Capo as written</FieldLabel>
 					<CapoSelect
 						value={draft.data.sourceCapo}
 						onChange={(capo) => update("sourceCapo", capo)}
@@ -488,14 +488,14 @@ export function Editor({
 							</h3>
 							<div className="grid gap-3 sm:grid-cols-2">
 								<Field>
-									<FieldLabel>My key</FieldLabel>
+									<FieldLabel>I play it in</FieldLabel>
 									<KeySelect
 										value={draft.data.performanceKey || draft.data.key}
 										onChange={(key) => update("performanceKey", key)}
 									/>
 								</Field>
 								<Field>
-									<FieldLabel>My capo</FieldLabel>
+									<FieldLabel>With capo</FieldLabel>
 									<CapoSelect
 										value={draft.data.performanceCapo ?? draft.data.sourceCapo}
 										onChange={(capo) => update("performanceCapo", capo)}

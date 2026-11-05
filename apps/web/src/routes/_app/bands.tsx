@@ -52,6 +52,7 @@ export const Route = createFileRoute("/_app/bands")({ component: Bands });
 function Bands() {
 	const { account, bands, refetchBands, store, run, busy } = useApp();
 	const [open, setOpen] = useState(false);
+	const [bandName, setBandName] = useState("");
 	const signedOut = account === "local";
 	const changed = async () => {
 		await refetchBands();
@@ -100,6 +101,8 @@ function Bands() {
 											name="name"
 											required
 											maxLength={100}
+											value={bandName}
+											onChange={(event) => setBandName(event.target.value)}
 										/>
 									</Field>
 									<DialogFooter>
@@ -108,7 +111,7 @@ function Bands() {
 												Cancel
 											</Button>
 										</DialogClose>
-										<Button disabled={busy}>
+										<Button disabled={busy || !bandName.trim()}>
 											{busy ? <Spinner /> : null} Create band
 										</Button>
 									</DialogFooter>
@@ -260,6 +263,7 @@ function BandCard({
 					</div>
 					<form
 						className="flex w-full flex-wrap gap-2"
+						onKeyDown={(event) => event.key === "Escape" && setAdding(false)}
 						onSubmit={(event) => {
 							event.preventDefault();
 							const form = event.currentTarget;
@@ -294,7 +298,7 @@ function BandCard({
 								<SelectItem value="viewer">Viewer</SelectItem>
 							</SelectContent>
 						</Select>
-						<Button variant="outline">Add</Button>
+						<Button>Add</Button>
 						<Button
 							type="button"
 							variant="ghost"

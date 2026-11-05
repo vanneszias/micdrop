@@ -759,6 +759,8 @@ function SortableEntry({
 					{...attributes}
 					{...listeners}
 				>
+					{/* A faint grip marks the handle; hover swaps the number for it. */}
+					<GripVertical className="absolute -left-2.5 size-3.5 text-muted-foreground/40 group-hover/grip:hidden max-sm:hidden" />
 					<span className="group-hover/grip:hidden">{index + 1}</span>
 					<GripVertical className="hidden size-4 group-hover/grip:block" />
 				</button>

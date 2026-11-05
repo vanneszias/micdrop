@@ -241,8 +241,14 @@ export function Stage({
 						ref={header}
 						className="flex flex-wrap items-baseline gap-x-3 pt-4 pb-3 text-muted-foreground"
 					>
-						<h1 className="text-lg font-semibold text-foreground">{title}</h1>
-						<span className="text-sm">{meta}</span>
+						{/* The title matches the lyric size, so it leads the stage. */}
+						<h1
+							className="font-semibold text-foreground"
+							style={{ fontSize: Math.max(18, size) }}
+						>
+							{title}
+						</h1>
+						<span style={{ fontSize: Math.max(13, size * 0.6) }}>{meta}</span>
 						{notes ? (
 							<p className="basis-full text-sm text-foreground/80">{notes}</p>
 						) : null}
