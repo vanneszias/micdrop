@@ -18,7 +18,7 @@ function highlight(line: string) {
 				key={index}
 				className={
 					/^\{(start|end)_of_|^\{(soc|eoc|sov|eov|sob|eob)\b/i.test(part)
-						? "text-sky-700 dark:text-sky-300"
+						? "font-medium text-foreground/60"
 						: "text-muted-foreground"
 				}
 			>

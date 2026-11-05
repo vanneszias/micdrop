@@ -473,3 +473,25 @@ export function keyLabel(key: string, mode: Mode = "major"): string {
 export function modeAccidental(key: string, mode: Mode = "major"): Accidental {
 	return keyAccidental(mode === "minor" ? shiftKey(key, 3) : key);
 }
+
+/**
+ * Mutes the lowest string of a shape when it isn't the chord's root but the next string
+ * is, the way players voice B as x24442 rather than a full barre with F# in the bass.
+ * `midi` lists the sounding strings from low to high.
+ */
+export function rootInBass<
+	T extends { frets: number[]; fingers: number[]; midi?: number[] },
+>(shape: T, root: string): T {
+	const pitch = keyDistance("C", root);
+	const pc = (note: number) => ((note % 12) + 12) % 12;
+	const lowest = shape.frets.findIndex((fret) => fret >= 0);
+	const { midi } = shape;
+	if (lowest < 0 || !midi || midi.length < 2) return shape;
+	if (pc(midi[0]) === pitch || pc(midi[1]) !== pitch) return shape;
+	return {
+		...shape,
+		frets: shape.frets.map((fret, i) => (i === lowest ? -1 : fret)),
+		fingers: shape.fingers.map((finger, i) => (i === lowest ? 0 : finger)),
+		midi: midi.slice(1),
+	};
+}

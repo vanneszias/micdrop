@@ -287,7 +287,7 @@ export function SetlistEditor({
 				<Button size="sm" disabled={!entries.length} onClick={() => play(0)}>
 					<Play /> Play
 				</Button>
-				<OverflowMenu label="Setlist actions">
+				<OverflowMenu label="Setlist actions" variant="outline">
 					<DropdownMenuItem
 						className="sm:hidden"
 						disabled={!entries.length}
@@ -364,7 +364,10 @@ export function SetlistEditor({
 									value={list.data.date}
 									onChange={(date) => update({ ...list.data, date })}
 								/>
-								<span>· {songCount}</span>
+								<span aria-hidden className="px-1.5">
+									·
+								</span>
+								<span>{songCount}</span>
 							</div>
 						</div>
 						{entries.length ? (
@@ -600,7 +603,7 @@ function KeyCapoPicker({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-8 min-w-14 justify-between gap-1 px-2 font-normal sm:min-w-32 sm:gap-1.5 sm:px-2.5"
+					className="h-8 w-16 justify-between gap-1 px-2 font-normal sm:w-auto sm:min-w-32 sm:gap-1.5 sm:px-2.5"
 					aria-label={`Key and capo for ${name}: ${keyLabel(value, mode)}, ${capo ? `capo ${capo}` : "no capo"}`}
 				>
 					<span className="font-mono font-semibold text-chord-foreground">
@@ -676,7 +679,7 @@ function SetlistDate({
 					size="sm"
 					aria-label={date ? "Change date" : "Pick a date"}
 					className={cn(
-						"-ml-1.5 h-7 px-1.5 font-normal text-muted-foreground hover:text-foreground",
+						"-ml-1.5 h-7 pr-0 pl-1.5 font-normal text-muted-foreground hover:bg-transparent hover:text-foreground",
 						!date && "border border-dashed",
 					)}
 				>

@@ -344,7 +344,7 @@ export function BottomNav() {
 		? items
 		: [...items, { to: "/login", label: "Sign in", icon: User }];
 	const tabClass =
-		"flex h-14 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground transition-all active:scale-90";
+		"flex h-14 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground transition-all active:scale-90 data-[state=open]:text-foreground";
 	return (
 		<nav
 			data-print="hide"

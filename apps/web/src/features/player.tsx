@@ -329,7 +329,7 @@ export function Player({
 			>
 				{actions}
 				{readOnly ? null : (
-					<Button variant="outline" size="sm" asChild>
+					<Button variant="outline" size="sm" asChild className="max-sm:hidden">
 						<Link
 							to="/songs/$id/edit"
 							params={{ id: arrangement.id }}
@@ -348,6 +348,14 @@ export function Player({
 					<Maximize2 /> Stage
 				</Button>
 				<OverflowMenu label="More song actions" variant="outline">
+					{readOnly ? null : (
+						// Phones keep the header to Stage and this menu, so the title has room.
+						<DropdownMenuItem asChild className="sm:hidden">
+							<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
+								<Pencil /> Edit
+							</Link>
+						</DropdownMenuItem>
+					)}
 					<DropdownMenuItem onSelect={() => exportSheet(shown)}>
 						<Download /> Export ChordPro
 					</DropdownMenuItem>
@@ -361,11 +369,13 @@ export function Player({
 				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0"
 			>
 				<div className="flex items-center gap-2 max-sm:hidden">
+					{/* Lyrics only has no chords to transpose, so key and capo rest together. */}
 					<ButtonGroup aria-label="Key">
 						<Button
 							variant="outline"
 							size="icon"
 							aria-label="Transpose down a semitone"
+							disabled={lyricsOnly}
 							onClick={() => step(-1)}
 						>
 							<Minus />
@@ -373,6 +383,7 @@ export function Player({
 						<KeySelect
 							value={key}
 							onChange={setKey}
+							disabled={lyricsOnly}
 							label="Key"
 							prefix="Key"
 							original={shiftKey(shown.data.key, shown.data.sourceCapo)}
@@ -383,6 +394,7 @@ export function Player({
 							variant="outline"
 							size="icon"
 							aria-label="Transpose up a semitone"
+							disabled={lyricsOnly}
 							onClick={() => step(1)}
 						>
 							<Plus />
@@ -485,7 +497,7 @@ export function Player({
 								onCheckedChange={setLyricsOnly}
 							/>
 						</div>
-						{lyricsOnly ? null : (
+						{lyricsOnly || !capo ? null : (
 							<div className="flex items-center justify-between gap-4">
 								<Label htmlFor="shapes">Show chord shapes for capo</Label>
 								<Switch
@@ -638,11 +650,7 @@ export function Player({
 						<aside
 							data-print="hide"
 							aria-label="Chord diagrams"
-							className={cn(
-								"diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10",
-								// Several columns need the width; their diagrams go under the sheet.
-								columns === 1 && "xl:block",
-							)}
+							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10 xl:block"
 						>
 							<ChordDiagrams
 								content={shown.data.content}
@@ -656,10 +664,7 @@ export function Player({
 			{diagrams && !lyricsOnly ? (
 				<div
 					data-print="hide"
-					className={cn(
-						"shrink-0 border-t bg-card/50 py-3",
-						columns === 1 && "xl:hidden",
-					)}
+					className="shrink-0 border-t bg-card/50 py-3 xl:hidden"
 				>
 					<div className="mx-auto max-w-[800px] px-6 max-sm:px-4">
 						{narrow ? (

@@ -9,6 +9,7 @@ import {
 	keyLabel,
 	modeAccidental,
 	normalizeSheet,
+	rootInBass,
 	sheetChords,
 	sheetColumns,
 	sheetLines,
@@ -303,5 +304,33 @@ describe("key spelling", () => {
 				transposeChord(chord, delta, accidental),
 			),
 		).toEqual(["C#m", "G#m", "D#m"]);
+	});
+});
+
+describe("chord shapes", () => {
+	test("voices B as x24442 instead of putting F# in the bass", () => {
+		const barre = {
+			frets: [2, 2, 4, 4, 4, 2],
+			fingers: [1, 1, 2, 3, 4, 1],
+			midi: [42, 47, 54, 59, 63, 66],
+		};
+		const shape = rootInBass(barre, "B");
+		expect(shape.frets).toEqual([-1, 2, 4, 4, 4, 2]);
+		expect(shape.fingers[0]).toBe(0);
+	});
+	test("leaves shapes that already have the root in the bass", () => {
+		const g = {
+			frets: [3, 2, 0, 0, 0, 3],
+			fingers: [2, 1, 0, 0, 0, 3],
+			midi: [43, 47, 50, 55, 59, 67],
+		};
+		expect(rootInBass(g, "G")).toBe(g);
+		// C/G style: neither low string is the root, so nothing changes.
+		const inversion = {
+			frets: [3, 3, 2, 0, 1, 0],
+			fingers: [3, 4, 2, 0, 1, 0],
+			midi: [43, 48, 52, 55, 60, 64],
+		};
+		expect(rootInBass(inversion, "A")).toBe(inversion);
 	});
 });

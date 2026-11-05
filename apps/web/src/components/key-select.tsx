@@ -24,7 +24,9 @@ export function KeySelect({
 	prefix,
 	original,
 	mode,
+	disabled,
 }: {
+	disabled?: boolean;
 	/** Minor songs list Am, Bbm… while the stored value stays the root. */
 	mode?: Mode;
 	value: string;
@@ -37,7 +39,7 @@ export function KeySelect({
 	prefix?: string;
 }) {
 	return (
-		<Select value={value} onValueChange={onChange}>
+		<Select value={value} onValueChange={onChange} disabled={disabled}>
 			<SelectTrigger className={className} aria-label={label}>
 				{prefix ? (
 					<span className="text-xs text-muted-foreground">{prefix}</span>

@@ -2,6 +2,7 @@
 import {
 	type Accidental,
 	balanceColumns,
+	rootInBass,
 	type SheetLine,
 	sheetChords,
 	sheetColumns,
@@ -70,12 +71,7 @@ export function SongSheet({
 							<span
 								key={i}
 								className={
-									pair.joined
-										? "sheet-pair sheet-pair-joined"
-										: // A chord over a whole word, followed by another word on the line.
-											pair.chord && pair.text.trim() && /\s$/.test(pair.text)
-											? "sheet-pair sheet-pair-word"
-											: "sheet-pair"
+									pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
 								}
 							>
 								{pair.chord && onChord ? (
@@ -333,6 +329,7 @@ type Fingering = {
 	fingers: number[];
 	baseFret: number;
 	barres: number[];
+	midi?: number[];
 };
 type GuitarData = {
 	chords: Record<
@@ -434,7 +431,10 @@ function GuitarDiagram({
 	const shapes =
 		database.chords[key]?.find((value) => value.suffix === suffix)?.positions ||
 		[];
-	const shape = fromLowestFret(shapes[position % Math.max(1, shapes.length)]);
+	const picked = shapes[position % Math.max(1, shapes.length)];
+	const shape = fromLowestFret(
+		picked && match ? rootInBass(picked, match[1]) : picked,
+	);
 	if (!shape)
 		return (
 			<div className="diagram-missing">
@@ -452,7 +452,7 @@ function GuitarDiagram({
 			<strong>{chord}</strong>
 			<svg
 				// Room on the left only for a "2fr" position label, so open shapes draw larger.
-				viewBox={shape.baseFret > 1 ? "-14 0 114 112" : "4 0 92 112"}
+				viewBox="-6 0 102 112"
 				role="img"
 				aria-label={`${chord} guitar fingering, fret ${shape.baseFret}`}
 			>
@@ -479,7 +479,7 @@ function GuitarDiagram({
 					/>
 				))}
 				{shape.baseFret > 1 ? (
-					<text x="3" y="37" fontSize="10" fontWeight="600" textAnchor="end">
+					<text x="10" y="37" fontSize="9" fontWeight="600" textAnchor="end">
 						{shape.baseFret}fr
 					</text>
 				) : null}

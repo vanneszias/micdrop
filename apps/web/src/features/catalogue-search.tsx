@@ -539,12 +539,8 @@ function ArrangementChoices({
 					})),
 			].map((version, index) => (
 				<div key={version.id} className="space-y-2">
-					<div className="flex items-center gap-3">
-						<KeyBadge>
-							{version.mode
-								? keyLabel(version.data.key, version.mode)
-								: displayKey(version.data)}
-						</KeyBadge>
+					{/* Versions sit under their song's tile; each names its key in the meta line. */}
+					<div className="flex items-center gap-3 pl-12">
 						<div className="min-w-0 flex-1">
 							<span className="flex min-w-0 items-center gap-2 text-sm font-medium">
 								<span className="truncate">
@@ -554,6 +550,8 @@ function ArrangementChoices({
 							</span>
 							<p className="truncate text-[13px] text-muted-foreground empty:hidden">
 								{[
+									`Key ${version.mode ? keyLabel(version.data.key, version.mode) : displayKey(version.data)}`,
+									version.mine ? "Your published arrangement" : null,
 									version.local
 										? version.local.owner === owner
 											? "Your repertoire"
@@ -596,6 +594,8 @@ function ArrangementChoices({
 								<Button
 									type="button"
 									size="sm"
+									// Adding to a set matches the row's outline Add; saving is the page's primary.
+									variant={picking ? "outline" : "default"}
 									disabled={busy || !editable}
 									onClick={() =>
 										void run(
@@ -610,11 +610,7 @@ function ArrangementChoices({
 						</div>
 					</div>
 					{/* Voting is secondary: a quiet line under the version it rates. */}
-					{version.mine ? (
-						<p className="pl-12 text-xs text-muted-foreground">
-							Your published arrangement
-						</p>
-					) : !version.local && account !== "local" ? (
+					{version.mine ? null : !version.local && account !== "local" ? (
 						<div className="flex items-center gap-1 pl-12 text-muted-foreground">
 							<fieldset className="flex items-center">
 								<legend className="float-left mr-0.5 text-xs text-muted-foreground">
