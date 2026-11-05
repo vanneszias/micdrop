@@ -75,6 +75,9 @@ export type CatalogueGroup = {
 	relevance: number;
 	count: number;
 	artists: string;
+	/** Key and mode of one public version, for the row's key tile. */
+	key?: string;
+	mode?: "major" | "minor";
 };
 export type CataloguePage = {
 	groups: CatalogueGroup[];

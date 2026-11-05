@@ -50,8 +50,12 @@ export async function catalogue(request: Request, userId: string) {
 	const query = catalogueSearchQuery(q, offset, song);
 	const { results: groups } = await env.DB.prepare(query.sql)
 		.bind(...query.params)
-		.all<CatalogueGroup>();
-	const page = groups.slice(0, 30);
+		.all<CatalogueGroup & { head?: string | null }>();
+	// Each song shows a key tile like everywhere else; the sheet head only names its mode.
+	const page = groups.slice(0, 30).map(({ head, ...group }) => ({
+		...group,
+		mode: group.key ? songMode(head || "", group.key) : undefined,
+	}));
 	// Return summaries, never full sheets or raw imports in catalogue result pages.
 	let publications: CatalogueSummary[] = [];
 	if (song) {

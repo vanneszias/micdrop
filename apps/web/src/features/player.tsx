@@ -457,18 +457,24 @@ export function Player({
 					</PopoverContent>
 				</Popover>
 				<Popover>
-					<IconTip label="View options">
-						<PopoverTrigger asChild>
-							<Button
-								variant="outline"
-								aria-label="View options"
-								className="max-sm:px-2.5"
-							>
-								<SlidersHorizontal />
-								View
-							</Button>
-						</PopoverTrigger>
-					</IconTip>
+					{/* No tooltip: the label says it, and a tooltip on a popover trigger fights it for focus. */}
+					<PopoverTrigger asChild>
+						<Button
+							variant="outline"
+							aria-label="View options"
+							className="max-sm:px-2.5"
+						>
+							<SlidersHorizontal />
+							View
+							{lyricsOnly || columns > 1 ? (
+								// Shows that a view option changes the sheet.
+								<span
+									className="size-1.5 rounded-full bg-primary"
+									aria-hidden
+								/>
+							) : null}
+						</Button>
+					</PopoverTrigger>
 					<PopoverContent align="start" className="w-72 space-y-4">
 						<div className="flex items-center justify-between gap-4">
 							<Label htmlFor="lyrics-only">Lyrics only</Label>

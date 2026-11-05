@@ -106,37 +106,61 @@ export function Stage({
 		const available = width - paddingX;
 		// Leave room for the control pill, so the last line is never under it.
 		const room = height - (header.current?.offsetHeight ?? 56) - 88;
-		const minimum = Math.max(narrow ? 20 : 22, baseSize + (narrow ? 3 : 0));
+		// Desktop may go a little under the reading size when that buys even columns.
+		const minimum = narrow ? Math.max(20, baseSize + 3) : 20;
 		const maximum = narrow ? 30 : 52;
 		const columnWidth = (columns: number, size: number) =>
 			(available - GAP_EMS * size * (columns - 1)) / columns;
 		const sheet = element.querySelector<HTMLElement>(".song-sheet");
 		if (!sheet) return;
-		const tallest = (columns: number, size: number) => {
+		const fill = room * 0.96;
+		// Whole sections first; a section splits only when no whole layout fits the screen.
+		const layoutAt = (columns: number, size: number, split: boolean) => {
 			element.style.width = `${(columnWidth(columns, size) * REFERENCE) / size}px`;
 			const pieces = measurePieces(sheet).map((piece) => ({
 				...piece,
 				height: (piece.height * size) / REFERENCE,
 			}));
-			return sheetColumns(pieces, columns, room).tallest;
+			const total = pieces.reduce((sum, piece) => sum + piece.height, 0);
+			const { starts, tallest } = sheetColumns(
+				pieces,
+				columns,
+				split ? fill : undefined,
+			);
+			// Even columns read better than one full column beside an empty one.
+			const balance = total / starts.length / Math.max(1, tallest);
+			return { tallest, columns: starts.length, balance };
 		};
 		const allowed = (columns: number, size: number) =>
 			columns === 1 || columnWidth(columns, size) >= COLUMN_EMS * size;
-		let best: { size: number; columns: number; room: number } | undefined;
-		for (let columns = 1; columns <= 3; columns++) {
-			if (!allowed(columns, minimum)) break;
-			// Heights grow with size, so the largest fitting size is found by bisection.
-			let low = minimum;
-			let high = maximum;
-			if (tallest(columns, low) > room * 0.96) continue;
-			while (high - low > 1) {
-				const middle = Math.floor((low + high) / 2);
-				if (allowed(columns, middle) && tallest(columns, middle) <= room * 0.96)
-					low = middle;
-				else high = middle;
+		const search = (split: boolean) => {
+			let best:
+				| { size: number; columns: number; room: number; score: number }
+				| undefined;
+			for (let columns = 1; columns <= 3; columns++) {
+				if (!allowed(columns, minimum)) break;
+				if (layoutAt(columns, minimum, split).tallest > fill) continue;
+				// Heights grow with size, so the largest fitting size is found by bisection.
+				let low = minimum;
+				let high = maximum;
+				while (high - low > 1) {
+					const middle = Math.floor((low + high) / 2);
+					if (
+						allowed(columns, middle) &&
+						layoutAt(columns, middle, split).tallest <= fill
+					)
+						low = middle;
+					else high = middle;
+				}
+				const result = layoutAt(columns, low, split);
+				const score = low * (0.7 + 0.3 * result.balance);
+				if (!best || score > best.score)
+					best = { size: low, columns: result.columns, room, score };
 			}
-			if (!best || low > best.size) best = { size: low, columns, room };
-		}
+			return best;
+		};
+		let best: { size: number; columns: number; room: number } | undefined =
+			search(false) ?? search(true);
 		if (!best) {
 			// Too long to fit: keep it readable, in as many columns as the width allows.
 			let columns = 1;
@@ -177,6 +201,17 @@ export function Stage({
 			)}
 			onPointerMove={(event) => event.pointerType === "mouse" && wake()}
 		>
+			{/* Always findable: a faint exit in the corner, full strength on hover. */}
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				className="fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-50 hover:opacity-100 focus-visible:opacity-100"
+				aria-label="Exit stage mode (Esc)"
+				title="Exit stage mode (Esc)"
+				onClick={onExit}
+			>
+				<X />
+			</Button>
 			<section
 				ref={scroller}
 				className="min-h-0 flex-1 overflow-auto px-5 focus-visible:outline-none sm:px-12"

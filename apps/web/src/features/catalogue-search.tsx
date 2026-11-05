@@ -317,6 +317,8 @@ export function CatalogueSearch({
 							leading={
 								own[0] ? (
 									<KeyBadge>{displayKey(own[0].data)}</KeyBadge>
+								) : group.key ? (
+									<KeyBadge>{keyLabel(group.key, group.mode)}</KeyBadge>
 								) : (
 									<KeyBadge className="bg-secondary text-muted-foreground">
 										<Globe className="size-4" />
@@ -329,7 +331,7 @@ export function CatalogueSearch({
 									<Badge variant="secondary" className="shrink-0 font-normal">
 										<Check /> In set
 									</Badge>
-								) : inRepertoire && !onSelect ? (
+								) : inRepertoire && !onSelect && !open ? (
 									<Badge variant="secondary" className="shrink-0 font-normal">
 										<Check /> In repertoire
 									</Badge>

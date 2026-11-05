@@ -155,11 +155,9 @@ export function SongSheet({
 			const gap = GAP_EMS * size;
 			probe.style.fontSize = `${size}px`;
 			probe.style.width = `${(width - gap * (count - 1)) / count}px`;
-			const next = {
-				columns: count,
-				size,
-				starts: sheetColumns(measurePieces(probe), count, height).starts,
-			};
+			const { starts } = sheetColumns(measurePieces(probe), count, height);
+			// Whole sections may need fewer columns than asked for.
+			const next = { columns: starts.length, size, starts };
 			setLayout((previous) =>
 				previous.columns === next.columns &&
 				previous.size === next.size &&

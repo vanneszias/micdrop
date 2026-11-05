@@ -315,7 +315,7 @@ export function SetlistEditor({
 								}}
 								className="-mx-2 w-[calc(100%+1rem)] rounded-md border border-transparent bg-transparent px-2 py-0.5 text-2xl font-semibold tracking-tight outline-none hover:border-input hover:border-dashed focus-visible:border-input focus-visible:border-solid focus-visible:ring-[3px] focus-visible:ring-ring/50"
 							/>
-							<div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm text-muted-foreground">
+							<div className="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm text-muted-foreground">
 								<SetlistDate
 									value={list.data.date}
 									onChange={(date) => update({ ...list.data, date })}
@@ -537,7 +537,7 @@ function KeyCapoPicker({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-8 gap-1.5 px-2.5 font-normal"
+					className="h-8 min-w-16 justify-between gap-1.5 px-2.5 font-normal sm:min-w-32"
 					aria-label={`Key and capo for ${name}: ${keyLabel(value, mode)}, ${capo ? `capo ${capo}` : "no capo"}`}
 				>
 					<span className="font-mono font-semibold text-chord-foreground">
@@ -613,7 +613,7 @@ function SetlistDate({
 					size="sm"
 					aria-label={date ? "Change date" : "Pick a date"}
 					className={cn(
-						"-ml-2 h-7 px-2 font-normal text-muted-foreground hover:text-foreground",
+						"-ml-1.5 h-7 px-1.5 font-normal text-muted-foreground hover:text-foreground",
 						!date && "border border-dashed",
 					)}
 				>
