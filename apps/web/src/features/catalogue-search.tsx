@@ -208,7 +208,7 @@ export function CatalogueSearch({
 				<section aria-labelledby="own-matches" className="space-y-2">
 					<h2
 						id="own-matches"
-						className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+						className="pt-2 text-[13px] text-muted-foreground"
 					>
 						Already in your repertoire
 					</h2>
@@ -234,7 +234,7 @@ export function CatalogueSearch({
 							/>
 						))}
 					</SongList>
-					<h2 className="pt-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					<h2 className="pt-3 text-[13px] text-muted-foreground">
 						Public catalogue
 					</h2>
 				</section>

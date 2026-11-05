@@ -176,7 +176,7 @@ function BandCard({
 					{band.members.length}{" "}
 					{band.members.length === 1 ? "member" : "members"}
 				</CardDescription>
-				<CardAction className="flex items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
+				<CardAction className="flex flex-wrap items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
 					<Button
 						size="sm"
 						variant="outline"

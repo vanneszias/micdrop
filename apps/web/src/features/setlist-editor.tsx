@@ -519,7 +519,8 @@ export function SetlistEditor({
 					{wide ? (
 						<section
 							aria-labelledby="add-songs"
-							className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:self-start"
+							// Lines its heading up with the setlist name beside it.
+							className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:self-start lg:pt-1.5"
 						>
 							<div className="space-y-1">
 								<h2 id="add-songs" className="text-base font-semibold">

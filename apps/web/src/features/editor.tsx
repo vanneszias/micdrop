@@ -576,7 +576,8 @@ export function Editor({
 					pressed={preview}
 					onPressedChange={setPreview}
 					aria-label="Toggle preview"
-					className="max-lg:hidden data-[state=on]:border-input data-[state=on]:bg-accent"
+					// A view toggle stays neutral, so amber belongs to Done alone.
+					className="toggle-neutral max-lg:hidden data-[state=on]:border-input data-[state=on]:bg-accent"
 				>
 					<Columns2 />
 					<span className="max-sm:sr-only">Preview</span>

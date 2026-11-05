@@ -202,6 +202,14 @@ button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offse
 .dark [data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { background: var(--input); border-color: var(--input) !important; }
 /* Standalone toggles (Diagrams, wrap) show "on" clearly. */
 /* aria-pressed: a tooltip trigger replaces the toggle's data-state and data-slot. */
-[aria-pressed='true']:is([data-slot='toggle'], [data-slot='tooltip-trigger']) { background: color-mix(in oklch, var(--brand) 22%, transparent); border-color: color-mix(in oklch, var(--brand) 70%, transparent); color: var(--foreground); }
+[aria-pressed='true']:is([data-slot='toggle'], [data-slot='tooltip-trigger']):not(.toggle-neutral) { background: color-mix(in oklch, var(--brand) 22%, transparent); border-color: color-mix(in oklch, var(--brand) 70%, transparent); color: var(--foreground); }
 [data-slot='toggle-group-item'][data-variant='outline'][data-state='on'] { border-color: var(--border) !important; box-shadow: 0 1px 3px oklch(0 0 0 / 0.16); }
 .sheet-tail { display: inline-flex; align-items: flex-end; }
+
+/* Phones and touch screens get full-height menu rows, like the other phone targets. */
+@media (pointer: coarse), (max-width: 640px) {
+  [data-slot='dropdown-menu-item'], [data-slot='select-item'] { min-height: 44px; }
+}
+/* Sheets and dialogs sit clearly above the page in dark mode. */
+.dark [data-slot='sheet-overlay'], .dark [data-slot='dialog-overlay'], .dark [data-slot='alert-dialog-overlay'] { background: oklch(0 0 0 / 0.7); }
+.dark [data-slot='sheet-content'] { background: var(--popover); }

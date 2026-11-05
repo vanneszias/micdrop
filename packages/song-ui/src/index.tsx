@@ -588,12 +588,12 @@ function GuitarDiagram({
 					return (
 						<g key={`barre-${fret}`}>
 							<rect
-								// From the first to the last barred string, barely past them.
-								x={from - 3}
-								y={13.5 + fret * 19 - 5}
-								width={to - from + 6}
-								height={10}
-								rx={5}
+								// From the first to the last barred string, as tall as a dot so its number fits.
+								x={from - 4}
+								y={13.5 + fret * 19 - DOT}
+								width={to - from + 8}
+								height={DOT * 2}
+								rx={DOT}
 								className="diagram-barre"
 							/>
 							<text
