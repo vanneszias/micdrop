@@ -165,6 +165,7 @@ export function SongSheet({
 			const gap = GAP_EMS * size;
 			probe.style.fontSize = `${size}px`;
 			probe.style.width = `${(width - gap * (count - 1)) / count}px`;
+			fitChords(probe);
 			const { starts } = sheetColumns(measurePieces(probe), count, height);
 			// Whole sections may need fewer columns than asked for.
 			const next = { columns: starts.length, size, starts };
@@ -181,6 +182,21 @@ export function SongSheet({
 		observer.observe(element);
 		return () => observer.disconnect();
 	}, [columns, pieces, fontSize, chords, height, columnEms]);
+	// Chord collisions depend on the final layout, so they are fixed after every render
+	// and whenever the sheet's width changes.
+	useBrowserLayoutEffect(() => {
+		const element = root.current;
+		if (!element || !chords) return;
+		fitChords(element);
+		let width = element.clientWidth;
+		const observer = new ResizeObserver(() => {
+			if (element.clientWidth === width) return;
+			width = element.clientWidth;
+			fitChords(element);
+		});
+		observer.observe(element);
+		return () => observer.disconnect();
+	});
 	const shownColumns = columns > 1 ? layout.columns : 1;
 	const shownSize = shownColumns > 1 ? layout.size : fontSize;
 	useEffect(() => {
@@ -262,6 +278,34 @@ type Piece = {
 
 const COLUMN_EMS = 18;
 const GAP_EMS = 2.5;
+
+/**
+ * Chords hang over the text that follows them and take no width of their own. Where two
+ * chords on the same row would touch, the earlier one's syllable is widened just enough,
+ * so lyrics only open up where the chords need the room.
+ */
+export function fitChords(root: HTMLElement) {
+	const gap = (Number.parseFloat(getComputedStyle(root).fontSize) || 16) * 0.3;
+	for (const line of root.querySelectorAll<HTMLElement>(".sheet-line")) {
+		const pairs = [...line.querySelectorAll<HTMLElement>(".sheet-pair")];
+		for (const pair of pairs) pair.style.minWidth = "";
+		let previous: { chip: HTMLElement; pair: HTMLElement } | undefined;
+		for (const pair of pairs) {
+			const chip = pair.firstElementChild as HTMLElement | null;
+			if (!chip || chip.classList.contains("sheet-chord-empty")) continue;
+			if (previous) {
+				const before = previous.chip.getBoundingClientRect();
+				const after = chip.getBoundingClientRect();
+				const sameRow = Math.abs(before.top - after.top) < 2;
+				if (sameRow && after.left < before.right + gap) {
+					const width = previous.pair.getBoundingClientRect().width;
+					previous.pair.style.minWidth = `${width + before.right + gap - after.left}px`;
+				}
+			}
+			previous = { chip, pair };
+		}
+	}
+}
 
 /**
  * Heights of the pieces of a single-column sheet, from the distance between their tops,

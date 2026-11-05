@@ -1,5 +1,10 @@
 import { type Accidental, sheetColumns } from "@chords/song-core";
-import { ChordDiagram, measurePieces, SongSheet } from "@chords/song-ui";
+import {
+	ChordDiagram,
+	fitChords,
+	measurePieces,
+	SongSheet,
+} from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import {
 	Sheet,
@@ -117,6 +122,7 @@ export function Stage({
 		// Whole sections first; a section splits only when no whole layout fits the screen.
 		const layoutAt = (columns: number, size: number, split: boolean) => {
 			element.style.width = `${(columnWidth(columns, size) * REFERENCE) / size}px`;
+			fitChords(sheet);
 			const pieces = measurePieces(sheet).map((piece) => ({
 				...piece,
 				height: (piece.height * size) / REFERENCE,
