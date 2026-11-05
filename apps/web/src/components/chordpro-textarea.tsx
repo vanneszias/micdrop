@@ -18,7 +18,7 @@ function highlight(line: string) {
 				key={index}
 				className={
 					/^\{(start|end)_of_|^\{(soc|eoc|sov|eov|sob|eob)\b/i.test(part)
-						? "text-sky-700 dark:text-sky-300"
+						? "font-medium text-foreground/60"
 						: "text-muted-foreground"
 				}
 			>
@@ -47,8 +47,13 @@ export const ChordProTextarea = forwardRef<
 ) {
 	const backdrop = useRef<HTMLDivElement>(null);
 	const shared = cn(
-		"px-3 py-2 font-mono text-base leading-relaxed md:text-sm",
-		wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre",
+		// One monospace face everywhere; phones stay at 16px (smaller inputs make iOS zoom
+		// in) with slightly tighter tracking so more of each line fits.
+		"px-3 py-2 font-mono text-base leading-relaxed tracking-[-0.03em] sm:tracking-normal md:text-sm",
+		// A wrapped line continues indented, so it never looks like a new line.
+		wrapLines
+			? "whitespace-pre-wrap break-words [text-indent:2ch_hanging_each-line]"
+			: "whitespace-pre",
 	);
 	return (
 		<div className="relative rounded-md bg-transparent dark:bg-input/30">

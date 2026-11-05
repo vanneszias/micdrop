@@ -35,7 +35,13 @@ import {
 import { Textarea } from "@chords/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ClipboardPaste, FileText, Link2, PenLine, Search } from "lucide-react";
+import {
+	ClipboardPaste,
+	FilePlus,
+	FileText,
+	Link2,
+	Search,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageBody, PageHeader } from "#/components/page-header";
@@ -93,26 +99,17 @@ function NewSong() {
 	return (
 		<>
 			<PageHeader
-				pageTitle
-				title="Add song"
+				back
+				headingInBody
+				title={<span className="max-md:sr-only">Add song</span>}
 				crumbs={[{ label: "Repertoire", to: "/songs" }]}
 			/>
 			<PageBody
 				title="Add a song"
-				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
-				actions={
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={busy}
-						onClick={() => void run(() => createSong())}
-					>
-						<PenLine /> Blank song
-					</Button>
-				}
+				description="Paste a chord sheet, import a page, open a ChordPro file, or write one from scratch. You review everything before saving."
 			>
 				<Tabs defaultValue="paste">
-					<TabsList className="h-10 w-full sm:w-auto">
+					<TabsList className="h-10 w-full sm:w-auto [&>button]:max-sm:px-2">
 						<TabsTrigger value="paste" className="px-4">
 							<ClipboardPaste /> Paste
 						</TabsTrigger>
@@ -122,7 +119,12 @@ function NewSong() {
 						<TabsTrigger value="file" className="px-4">
 							<FileText /> File
 						</TabsTrigger>
+						{/* Writing from scratch stands beside the three ways in. */}
+						<TabsTrigger value="blank" className="px-4">
+							<FilePlus /> Blank
+						</TabsTrigger>
 					</TabsList>
+
 					<TabsContent value="paste" className="mt-4">
 						<FieldGroup>
 							<Field>
@@ -130,7 +132,7 @@ function NewSong() {
 								<Textarea
 									id="paste"
 									rows={14}
-									className="min-h-56 font-mono placeholder:text-muted-foreground/60 sm:min-h-72"
+									className="min-h-56 font-mono placeholder:text-muted-foreground/75 sm:min-h-72"
 									placeholder={
 										"Example:\n\n[Verse 1]\nG              C          G\nAmazing grace, how sweet the sound\n          Em      D\nThat saved a wretch like me"
 									}
@@ -138,7 +140,7 @@ function NewSong() {
 									onChange={(event) => setText(event.target.value)}
 								/>
 								<FieldDescription>
-									Plain text or ChordPro. You can review it before playing.
+									Plain text with chords above the words, or ChordPro.
 								</FieldDescription>
 							</Field>
 							<Button
@@ -261,6 +263,21 @@ function NewSong() {
 								))}
 							</ItemGroup>
 						</FieldGroup>
+					</TabsContent>
+					<TabsContent value="blank" className="mt-4">
+						<div className="space-y-3 rounded-xl border bg-card p-6">
+							<p className="text-[15px] text-muted-foreground">
+								Start with an empty song and type it in ChordPro: chords in
+								square brackets, like{" "}
+								<code className="font-mono">[G]Amazing grace</code>.
+							</p>
+							<Button
+								disabled={busy}
+								onClick={() => void run(() => createSong())}
+							>
+								<FilePlus /> Start a blank song
+							</Button>
+						</div>
 					</TabsContent>
 					<TabsContent value="file" className="mt-4">
 						<FieldGroup>
