@@ -328,7 +328,7 @@ export function BottomNav() {
 		? items
 		: [...items, { to: "/login", label: "Sign in", icon: User }];
 	const tabClass =
-		"flex h-14 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground transition-all active:scale-90 data-[state=open]:text-foreground";
+		"flex h-14 flex-col items-center justify-center gap-1 text-xs text-foreground/70 transition-all active:scale-90 data-[state=open]:text-foreground";
 	return (
 		<nav
 			data-print="hide"
@@ -344,8 +344,8 @@ export function BottomNav() {
 							to={item.to}
 							aria-current={active ? "page" : undefined}
 							className={cn(
-								"flex h-14 flex-col items-center justify-center gap-1 text-[11px] transition-all active:scale-90",
-								active ? "text-foreground" : "text-muted-foreground",
+								"flex h-14 flex-col items-center justify-center gap-1 text-xs transition-all active:scale-90",
+								active ? "font-medium text-foreground" : "text-foreground/70",
 							)}
 						>
 							<item.icon

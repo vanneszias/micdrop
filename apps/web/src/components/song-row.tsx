@@ -161,9 +161,22 @@ export function OverflowMenu({
 }
 
 /** A row's status ("In set", "In repertoire"): one quiet, non-interactive pill. */
-export function StatusBadge({ children }: { children: ReactNode }) {
+export function StatusBadge({
+	children,
+	compact,
+}: {
+	children: ReactNode;
+	/** Phones show only the icon, with the label for screen readers. */
+	compact?: boolean;
+}) {
 	return (
-		<span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 text-[13px] text-secondary-foreground [&_svg]:size-3.5">
+		<span
+			className={cn(
+				"inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 text-[13px] text-secondary-foreground [&_svg]:size-3.5",
+				compact &&
+					"max-sm:size-7 max-sm:justify-center max-sm:px-0 max-sm:[&>span]:sr-only",
+			)}
+		>
 			{children}
 		</span>
 	);

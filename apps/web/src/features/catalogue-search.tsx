@@ -375,8 +375,9 @@ export function CatalogueSearch({
 									{/* Status sits where an action would, on every viewport. */}
 									{placed ? (
 										// Same height and shape as the Add button it stands in for.
-										<StatusBadge>
-											<Check /> In set
+										<StatusBadge compact>
+											<Check />
+											<span>In set</span>
 										</StatusBadge>
 									) : inRepertoire && !onSelect ? (
 										// Phones show this on the meta line, leaving the title its width.

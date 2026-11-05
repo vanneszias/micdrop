@@ -142,7 +142,8 @@
 
 @media (max-width: 640px) {
   .sheet-line { margin-bottom: .6em; }
-  .sheet-chord { font-size: .84em; }
+  /* Phones get a slightly larger chip: easier to read and to tap. */
+  .sheet-chord { font-size: .88em; padding: .12em .42em; }
   .sheet-section { margin: 1.4em 0 .7em; }
   /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
   .diagram, .diagram-missing { width: 76px; font-size: 12px; padding: .125rem; }
