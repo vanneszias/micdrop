@@ -159,13 +159,20 @@ function Songs() {
 									<>
 										<span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
 											{song.data.draft ? (
-												<PencilLine className="size-4" />
+												<PencilLine className="size-4 max-[420px]:hidden" />
 											) : song.data.visibility === "public" ? (
-												<Globe className="size-4" />
+												<Globe className="size-4 max-[420px]:hidden" />
 											) : (
-												<Lock className="size-4" />
+												<Lock className="size-4 max-[420px]:hidden" />
 											)}
-											<span className="max-[420px]:sr-only">
+											{/* Narrow phones name only the exceptions; private is the default. */}
+											<span
+												className={
+													!song.data.draft && song.data.visibility !== "public"
+														? "max-[420px]:sr-only"
+														: undefined
+												}
+											>
 												{song.data.draft
 													? "Draft"
 													: song.data.visibility === "public"

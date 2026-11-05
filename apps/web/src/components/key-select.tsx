@@ -111,7 +111,7 @@ export function CapoSelect({
 									<span className="w-16 text-right">{shapes} shapes</span>
 									<span className="w-9">
 										{OPEN_SHAPES.has(shapes) ? (
-											<span className="rounded bg-chord px-1 text-[10px] text-chord-foreground">
+											<span className="rounded bg-chord px-1 text-[11px] font-medium text-chord-foreground">
 												open
 											</span>
 										) : null}

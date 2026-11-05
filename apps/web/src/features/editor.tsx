@@ -486,16 +486,20 @@ export function Editor({
 									· private to you
 								</span>
 							</h3>
+							<p className="text-xs text-muted-foreground">
+								The song page, Stage and new setlist entries open in these. The
+								key and capo above are how the sheet is written.
+							</p>
 							<div className="grid gap-3 sm:grid-cols-2">
 								<Field>
-									<FieldLabel>I play it in</FieldLabel>
+									<FieldLabel>My default key</FieldLabel>
 									<KeySelect
 										value={draft.data.performanceKey || draft.data.key}
 										onChange={(key) => update("performanceKey", key)}
 									/>
 								</Field>
 								<Field>
-									<FieldLabel>With capo</FieldLabel>
+									<FieldLabel>My default capo</FieldLabel>
 									<CapoSelect
 										value={draft.data.performanceCapo ?? draft.data.sourceCapo}
 										onChange={(capo) => update("performanceCapo", capo)}

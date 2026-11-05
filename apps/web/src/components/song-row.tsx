@@ -72,9 +72,7 @@ export function SongRow({
 	const content = (
 		<>
 			<span className="flex min-w-0 items-center gap-2">
-				<span className="text-[15px] font-medium max-sm:line-clamp-2 sm:truncate">
-					{title}
-				</span>
+				<span className="line-clamp-2 text-[15px] font-medium">{title}</span>
 				{badges}
 			</span>
 			{meta ? (

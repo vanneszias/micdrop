@@ -12,7 +12,10 @@ import {
 import { ChordDiagrams, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import { ButtonGroup } from "@chords/ui/components/button-group";
-import { DropdownMenuItem } from "@chords/ui/components/dropdown-menu";
+import {
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "@chords/ui/components/dropdown-menu";
 import { Label } from "@chords/ui/components/label";
 import {
 	Popover,
@@ -28,11 +31,13 @@ import {
 	ToggleGroupItem,
 } from "@chords/ui/components/toggle-group";
 import { cn } from "@chords/ui/lib/utils";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
+	Archive,
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	CopyPlus,
 	Download,
 	Gauge,
 	Guitar,
@@ -51,9 +56,10 @@ import { IconTip } from "#/components/icon-tip";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
 import { OverflowMenu } from "#/components/song-row";
+import { useApp } from "#/features/app-context";
 import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
 import { ChordSheet, Stage } from "#/features/stage";
-import { exportSheet } from "#/lib/songs";
+import { exportSheet, freshArrangement } from "#/lib/songs";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
@@ -99,6 +105,8 @@ export function Player({
 	actions?: React.ReactNode;
 }) {
 	const [shown, setShown] = useState(arrangement);
+	const { owner, save, run } = useApp();
+	const navigate = useNavigate();
 	const playing = usePlayingSetlist();
 	const nextTitle = playing?.entries[playing.current + 1]?.title;
 	const previousTitle = playing?.entries[playing.current - 1]?.title;
@@ -330,7 +338,11 @@ export function Player({
 						: { label: "Repertoire", to: "/songs" },
 				]}
 				title={
-					playing ? <SetlistSheet title={shown.data.title} /> : shown.data.title
+					playing ? (
+						<SetlistSheet title={shown.data.title} />
+					) : (
+						<span className="max-md:sr-only">{shown.data.title}</span>
+					)
 				}
 			>
 				{actions}
@@ -367,12 +379,50 @@ export function Player({
 							</Link>
 						</DropdownMenuItem>
 					)}
+					{readOnly ? null : (
+						// The same core actions as the song's row in Repertoire.
+						<DropdownMenuItem
+							onSelect={() =>
+								void run(
+									() =>
+										save(
+											freshArrangement(owner, {
+												...arrangement.data,
+												arrangementName: `${arrangement.data.arrangementName || "Standard"} (copy)`,
+												visibility: "private",
+												songId: arrangement.data.songId || arrangement.id,
+												copiedFrom: arrangement.id,
+											}),
+										),
+									"Copied",
+								)
+							}
+						>
+							<CopyPlus /> Duplicate
+						</DropdownMenuItem>
+					)}
 					<DropdownMenuItem onSelect={() => exportSheet(shown)}>
 						<Download /> Export ChordPro
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => window.print()}>
 						<Printer /> Print
 					</DropdownMenuItem>
+					{readOnly ? null : (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={() =>
+									void run(async () => {
+										await save({ ...arrangement, archived: true });
+										await navigate({ to: "/songs" });
+									}, "Archived")
+								}
+							>
+								<Archive /> Archive
+							</DropdownMenuItem>
+						</>
+					)}
 				</OverflowMenu>
 			</PageHeader>
 			<div
@@ -424,7 +474,10 @@ export function Player({
 				</div>
 				<Popover>
 					<PopoverTrigger asChild>
-						<Button variant="outline" className="sm:hidden">
+						<Button
+							variant="outline"
+							className="min-w-[8.5rem] justify-between sm:hidden"
+						>
 							<span className="sr-only">Key</span>
 							{keyName}
 							{/* Lyrics only dims the capo instead of dropping it, so the bar keeps its width. */}
@@ -543,6 +596,12 @@ export function Player({
 									</ToggleGroupItem>
 								))}
 							</ToggleGroup>
+							{fit && fit.max < 3 ? (
+								<p className="text-xs text-muted-foreground">
+									{fit.max === 1 ? "More columns need" : "3 columns need"} a
+									wider window or smaller text.
+								</p>
+							) : null}
 						</div>
 						<div className="space-y-2">
 							<Label>

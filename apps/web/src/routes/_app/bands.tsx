@@ -163,6 +163,7 @@ function BandCard({
 	const [role, setRole] = useState("editor");
 	// The add form stays folded until it is needed, so the card leads with its members.
 	const [adding, setAdding] = useState(false);
+	const [email, setEmail] = useState("");
 	const [inviting, setInviting] = useState(false);
 	const owner = band.role === "owner";
 	const { setOwner } = useApp();
@@ -277,6 +278,7 @@ function BandCard({
 								});
 								await changed();
 								form.reset();
+								setEmail("");
 							}, "Member added");
 						}}
 					>
@@ -286,6 +288,8 @@ function BandCard({
 							type="email"
 							placeholder="Their account email"
 							required
+							value={email}
+							onChange={(event) => setEmail(event.target.value)}
 							autoFocus
 							className="min-w-0 flex-1 max-sm:basis-full"
 						/>
@@ -298,7 +302,7 @@ function BandCard({
 								<SelectItem value="viewer">Viewer</SelectItem>
 							</SelectContent>
 						</Select>
-						<Button>Add</Button>
+						<Button disabled={!/^\S+@\S+\.\S+$/.test(email)}>Add</Button>
 						<Button
 							type="button"
 							variant="ghost"

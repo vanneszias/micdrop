@@ -65,6 +65,13 @@ export function SetlistSheet({ title }: { title: string }) {
 			<SheetContent
 				side="bottom"
 				className="max-h-[75svh] gap-0 rounded-t-3xl pb-[env(safe-area-inset-bottom)]"
+				onOpenAutoFocus={(event) => {
+					// Focus the current song, not the close button.
+					event.preventDefault();
+					(event.currentTarget as HTMLElement)
+						.querySelector<HTMLElement>('[aria-current="page"]')
+						?.focus({ preventScroll: true });
+				}}
 			>
 				<SheetHeader className="border-b">
 					<SheetTitle className="flex items-center gap-2">

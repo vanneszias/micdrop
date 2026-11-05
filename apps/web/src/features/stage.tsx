@@ -201,6 +201,14 @@ export function Stage({
 		return () => document.removeEventListener("keydown", onKey);
 	}, [onExit, wake]);
 	const size = Math.max(14, layout.size + adjust);
+	// A larger manual size gets fewer columns instead of being squeezed back down.
+	const available = width - (width < 640 ? 40 : 96);
+	let columns = layout.columns;
+	while (
+		columns > 1 &&
+		(available - GAP_EMS * size * (columns - 1)) / columns < COLUMN_EMS * size
+	)
+		columns--;
 	return (
 		<div
 			className={cn(
@@ -258,7 +266,7 @@ export function Stage({
 						semitones={semitones}
 						accidental={accidental}
 						fontSize={size}
-						columns={layout.columns}
+						columns={columns}
 						height={layout.room * 0.96 || undefined}
 						chords={chords}
 					/>
