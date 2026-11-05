@@ -102,7 +102,7 @@ function NewSong() {
 				back
 				headingInBody
 				title={<span className="max-md:sr-only">Add song</span>}
-				crumbs={[{ label: "Repertoire", to: "/songs" }]}
+				crumbs={[{ label: "Songs", to: "/songs" }]}
 			/>
 			<PageBody
 				title="Add a song"

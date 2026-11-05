@@ -164,11 +164,11 @@ export function CatalogueSearch({
 				(row.id === song.id || row.data.copiedFrom === song.id),
 		);
 		if (existing) {
-			toast.info("Already saved in this repertoire");
+			toast.info("Already saved in these songs");
 			return;
 		}
 		await save(copyArrangement(song, owner));
-		toast.success("Saved privately to repertoire");
+		toast.success("Saved privately to your songs");
 	}
 	return (
 		<div className="space-y-3">
@@ -201,7 +201,7 @@ export function CatalogueSearch({
 				{online
 					? publicOnly
 						? "Public catalogue · choose a song to see its arrangements"
-						: "Your repertoire, personal songs and the public catalogue"
+						: "Your saved songs and the public catalogue"
 					: "Offline · searching saved songs only"}
 			</p>
 			{ownMatches.length ? (
@@ -210,7 +210,7 @@ export function CatalogueSearch({
 						id="own-matches"
 						className="pt-2 text-[13px] text-muted-foreground"
 					>
-						Already in your repertoire
+						Already in your songs
 					</h2>
 					<SongList>
 						{ownMatches.map((song) => (
@@ -248,7 +248,7 @@ export function CatalogueSearch({
 				</p>
 			) : null}
 			{!groups.length && !catalogue.isFetching && ownMatches.length ? (
-				// Your repertoire matched, so the empty public result is a quiet note, not an error.
+				// Your songs matched, so the empty public result is a quiet note, not an error.
 				<p className="text-sm text-muted-foreground">
 					No public arrangements match “{debounced.trim()}”.
 				</p>
@@ -313,7 +313,7 @@ export function CatalogueSearch({
 						.sort(
 							(a, b) => Number(!!b.data.preferred) - Number(!!a.data.preferred),
 						);
-					const inRepertoire =
+					const inSongs =
 						own.length > 0 ||
 						arrangements.some(
 							(song) => song.owner === owner && songGroup(song) === group.id,
@@ -344,12 +344,12 @@ export function CatalogueSearch({
 									{group.count > 1
 										? ` · ${group.count} ${group.count === 1 ? "version" : "versions"}`
 										: null}
-									{inRepertoire && !onSelect && !placed ? (
+									{inSongs && !onSelect && !placed ? (
 										// Phones put the same pill under the artist, so the title keeps its width.
 										<span className="mt-1 flex sm:hidden">
 											<StatusBadge>
 												<Check />
-												<span>In repertoire</span>
+												<span>In songs</span>
 											</StatusBadge>
 										</span>
 									) : null}
@@ -374,12 +374,12 @@ export function CatalogueSearch({
 											<Check />
 											<span>In set</span>
 										</StatusBadge>
-									) : inRepertoire && !onSelect ? (
+									) : inSongs && !onSelect ? (
 										// The same labelled pill as "In set"; phones show it under the artist.
 										<span className="max-sm:hidden">
 											<StatusBadge>
 												<Check />
-												<span>In repertoire</span>
+												<span>In songs</span>
 											</StatusBadge>
 										</span>
 									) : null}
@@ -453,7 +453,7 @@ function ArrangementChoices({
 	group: Group;
 	onSelect: (song: Arrangement) => Promise<void>;
 	busy: boolean;
-	/** True when choosing for a setlist or song group rather than saving to the repertoire. */
+	/** True when choosing for a setlist or song group rather than saving to the songs. */
 	picking: boolean;
 }) {
 	// Phone previews use the player's phone size.
@@ -570,7 +570,7 @@ function ArrangementChoices({
 								<span className="truncate">
 									{version.data.arrangementName || "Standard version"}
 								</span>
-								{/* The song row above already says it is in the repertoire. */}
+								{/* The song row above already says it is in the songs. */}
 							</span>
 							<p className="text-[13px] text-muted-foreground empty:hidden">
 								{[
@@ -578,7 +578,7 @@ function ArrangementChoices({
 									version.mine ? "Your published arrangement" : null,
 									version.local
 										? version.local.owner === owner
-											? "Your repertoire"
+											? "Your songs"
 											: "Personal"
 										: picking
 											? "Public"

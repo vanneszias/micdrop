@@ -88,7 +88,7 @@ import { CatalogueSearch } from "./catalogue-search";
 
 const visibilityOptions = [
 	["public", "Public", "Saved edits are published"],
-	["private", "Private", "Only in your repertoire"],
+	["private", "Private", "Only in your songs"],
 	["draft", "Draft", "Changes stay unpublished"],
 ] as const;
 
@@ -211,7 +211,7 @@ export function Editor({
 					(await arrangementFingerprint(draft.data.content))
 			)
 				toast.info(
-					"This arrangement is already public. Your unchanged repertoire copy stays private.",
+					"This arrangement is already public. Your unchanged private copy stays private.",
 				);
 			await navigate({ to: "/songs/$id", params: { id: arrangement.id } });
 		} catch (reason) {
@@ -576,7 +576,7 @@ export function Editor({
 					</>
 				}
 				crumbs={[
-					{ label: "Repertoire", to: "/songs" },
+					{ label: "Songs", to: "/songs" },
 					{
 						label: draft.data.title || "Untitled song",
 						to: `/songs/${arrangement.id}`,

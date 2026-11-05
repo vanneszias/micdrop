@@ -51,7 +51,7 @@ import { authClient } from "#/lib/auth-client";
 import { useTheme } from "#/lib/theme";
 
 const items = [
-	{ to: "/songs", label: "Repertoire", icon: Music },
+	{ to: "/songs", label: "Songs", icon: Music },
 	{ to: "/setlists", label: "Setlists", icon: ListMusic },
 	{ to: "/community", label: "Catalogue", icon: Globe },
 	{ to: "/bands", label: "Bands", icon: Users },
@@ -414,7 +414,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					? `${app.pending} pending`
 					: "Synced";
 	const playing = usePlayingSetlist();
-	// A song opened from a setlist belongs to Setlists, not Repertoire.
+	// A song opened from a setlist belongs to Setlists, not Songs.
 	const section = playing ? "/setlists" : pathname;
 	if (isMobile) return <BottomNav />;
 	return (

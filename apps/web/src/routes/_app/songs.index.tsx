@@ -97,12 +97,12 @@ function Songs() {
 	);
 	return (
 		<>
-			<PageHeader pageTitle title="Repertoire" />
+			<PageHeader pageTitle title="Songs" />
 			<PageBody
 				title={
 					owner === account
-						? "Repertoire"
-						: `${bands.find((band) => band.id === owner)?.name ?? "Band"} repertoire`
+						? "Songs"
+						: `${bands.find((band) => band.id === owner)?.name ?? "Band"} songs`
 				}
 				description={
 					songs.length
@@ -111,7 +111,7 @@ function Songs() {
 							: `${songs.length} ${songs.length === 1 ? "song" : "songs"} ready to play in your own key and capo.`
 						: "Songs you play, each in your own key and capo."
 				}
-				// An empty repertoire has one Add: the empty state's own.
+				// An empty songs has one Add: the empty state's own.
 				actions={songs.length ? add : null}
 			>
 				{songs.length ? (

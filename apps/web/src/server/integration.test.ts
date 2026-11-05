@@ -8,7 +8,7 @@ import {
 
 const base = process.env.CHORDS_TEST_URL || "";
 test.skipIf(!base)(
-	"catalogue, stable repertoire copies, drafts, revisions, and band permissions",
+	"catalogue, stable private copies, drafts, revisions, and band permissions",
 	async () => {
 		async function account(name: string) {
 			const email = `${crypto.randomUUID()}@chords.test`;
