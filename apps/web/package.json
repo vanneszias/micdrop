@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "cf:typegen": "wrangler types --env-file ../../.env.example --strict-vars false",
     "db:migrate": "wrangler d1 migrations apply chords --local",
-    "deploy": "bun run build && wrangler deploy"
+    "deploy": "bun run build && wrangler deploy",
+    "deploy:production": "wrangler d1 migrations apply chords --remote && wrangler deploy",
+    "deploy:preview": "bun scripts/preview.ts deploy"
   },
   "dependencies": {
     "@better-auth/cimd": "^1.7.14",

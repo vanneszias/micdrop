@@ -1,58 +1,25 @@
-name: Pull request preview
+name: Preview cleanup
 
+# Cloudflare Workers Builds deploys a Preview for every branch push. It does not remove
+# them, so delete the branch's Preview and its D1 database once the pull request closes.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [closed]
 
 permissions:
   contents: read
 
-concurrency:
-  group: preview-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
-
-env:
-  CI: "true"
-  WRANGLER_SEND_METRICS: "false"
-  PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
-
 jobs:
-  deploy:
-    name: Deploy preview
-    # Pull requests from forks get no secrets.
-    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment:
-      name: preview
-      url: ${{ steps.deploy.outputs.url }}
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: 1.4.4
-      - run: bun install --frozen-lockfile
-      - run: bun run build
-        env:
-          VITE_SENTRY_RELEASE: ${{ github.event.pull_request.head.sha }}
-      - id: deploy
-        name: Deploy Worker preview
-        working-directory: apps/web
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PREVIEW_BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
-        run: bash scripts/preview.sh deploy "$PREVIEW_NAME"
-
   cleanup:
     name: Delete preview
-    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    # Pull requests from forks get no secrets.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: preview
+    env:
+      CI: "true"
+      WRANGLER_SEND_METRICS: "false"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -66,4 +33,5 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-        run: bash scripts/preview.sh delete "$PREVIEW_NAME"
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: bun scripts/preview.ts delete "$BRANCH"
