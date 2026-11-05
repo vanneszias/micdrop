@@ -25,7 +25,10 @@ export function SongSheet({
 	height,
 	onFit,
 	columnEms = COLUMN_EMS,
+	split = false,
 }: {
+	/** Balance columns by lines even across sections (stage mode). */
+	split?: boolean;
 	/** The narrowest a column may get, in em; stage allows slightly narrower columns. */
 	columnEms?: number;
 	/** Room the columns have before the page scrolls; sections split only to stay inside it. */
@@ -179,7 +182,12 @@ export function SongSheet({
 			probe.style.fontSize = `${size}px`;
 			probe.style.width = `${(width - gap * (count - 1)) / count}px`;
 			fitChords(probe);
-			const { starts } = sheetColumns(measurePieces(probe), count, height);
+			const { starts } = sheetColumns(
+				measurePieces(probe),
+				count,
+				height,
+				split,
+			);
 			// Whole sections may need fewer columns than asked for.
 			const next = { columns: starts.length, size, starts };
 			setLayout((previous) =>
@@ -194,7 +202,7 @@ export function SongSheet({
 		const observer = new ResizeObserver(measure);
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, [columns, pieces, fontSize, chords, height, columnEms]);
+	}, [columns, pieces, fontSize, chords, height, columnEms, split]);
 	// Chord collisions depend on the final layout, so they are fixed after every render
 	// and whenever the sheet's width changes.
 	useBrowserLayoutEffect(() => {
@@ -596,10 +604,10 @@ function GuitarDiagram({
 				return (
 					<g key={`barre-${fret}`}>
 						<rect
-							// From the first to the last barred string, as tall as a dot so its number fits.
-							x={from - 4}
+							// Barely past the outer barred strings, as tall as a dot so its number fits.
+							x={from - 2}
 							y={13.5 + fret * 19 - DOT}
-							width={to - from + 8}
+							width={to - from + 4}
 							height={DOT * 2}
 							rx={DOT}
 							className="diagram-barre"

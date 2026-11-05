@@ -265,7 +265,7 @@ function NewSong() {
 						</FieldGroup>
 					</TabsContent>
 					<TabsContent value="blank" className="mt-4">
-						<div className="space-y-3 rounded-xl border border-dashed p-6">
+						<div className="space-y-3 rounded-xl border bg-card p-6">
 							<p className="text-[15px] text-muted-foreground">
 								Start with an empty song and type it in ChordPro: chords in
 								square brackets, like{" "}

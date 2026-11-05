@@ -417,6 +417,8 @@ export function sheetColumns(
 	pieces: { height: number; start: boolean }[],
 	columns: number,
 	height?: number,
+	/** Stage mode: balance by lines even across sections, for the largest text. */
+	split = false,
 ): { starts: number[]; tallest: number } {
 	const heights = pieces.map((piece) => piece.height);
 	const total = heights.reduce((sum, value) => sum + value, 0);
@@ -440,10 +442,10 @@ export function sheetColumns(
 	for (const piece of pieces)
 		if (piece.start || !sections.length) sections.push(piece.height);
 		else sections[sections.length - 1] += piece.height;
-	if (height === undefined || Math.max(...sections) <= height)
+	if (!split && (height === undefined || Math.max(...sections) <= height))
 		return { starts: whole, tallest: tallest(whole) };
-	const split = balanceSheet(pieces, columns);
-	return { starts: split, tallest: tallest(split) };
+	const even = balanceSheet(pieces, columns);
+	return { starts: even, tallest: tallest(even) };
 }
 
 export type Mode = "major" | "minor";

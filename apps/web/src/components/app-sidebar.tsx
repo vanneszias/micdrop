@@ -345,16 +345,19 @@ export function BottomNav() {
 							to={item.to}
 							aria-current={active ? "page" : undefined}
 							className={cn(
-								"flex h-14 flex-col items-center justify-center gap-1 text-xs transition-all active:scale-90",
+								"flex h-14 flex-col items-center justify-center gap-0.5 text-xs transition-all active:scale-90",
 								active ? "font-medium text-foreground" : "text-foreground/70",
 							)}
 						>
-							<item.icon
+							{/* The active tab gets a soft pill behind its icon. */}
+							<span
 								className={cn(
-									"size-5 transition-transform",
-									active && "scale-110",
+									"flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+									active && "bg-secondary",
 								)}
-							/>
+							>
+								<item.icon className="size-5" />
+							</span>
 							{item.label}
 						</Link>
 					);

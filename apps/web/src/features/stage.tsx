@@ -99,6 +99,7 @@ export function Stage({
 		size: baseSize,
 		columns: 1,
 		room: 0,
+		split: false,
 	});
 	const [adjust, setAdjust] = useState(0);
 	// The measurer's DOM changes with the song and settings, so they re-run the fit.
@@ -129,11 +130,7 @@ export function Stage({
 				height: (piece.height * size) / REFERENCE,
 			}));
 			const total = pieces.reduce((sum, piece) => sum + piece.height, 0);
-			const { starts, tallest } = sheetColumns(
-				pieces,
-				columns,
-				split ? fill : undefined,
-			);
+			const { starts, tallest } = sheetColumns(pieces, columns, fill, split);
 			// Even columns read better than one full column beside an empty one.
 			const balance = total / starts.length / Math.max(1, tallest);
 			return { tallest, columns: starts.length, balance };
@@ -142,7 +139,13 @@ export function Stage({
 			columns === 1 || columnWidth(columns, size) >= COLUMN_EMS * size;
 		const search = (split: boolean) => {
 			let best:
-				| { size: number; columns: number; room: number; score: number }
+				| {
+						size: number;
+						columns: number;
+						room: number;
+						score: number;
+						split: boolean;
+				  }
 				| undefined;
 			for (let columns = 1; columns <= 3; columns++) {
 				if (!allowed(columns, minimum)) break;
@@ -162,17 +165,23 @@ export function Stage({
 				const result = layoutAt(columns, low, split);
 				const score = low * (0.7 + 0.3 * result.balance);
 				if (!best || score > best.score)
-					best = { size: low, columns: result.columns, room, score };
+					best = { size: low, columns: result.columns, room, score, split };
 			}
 			return best;
 		};
-		let best: { size: number; columns: number; room: number } | undefined =
-			search(false) ?? search(true);
+		// Whole sections read best, but a split that buys clearly larger text fills the
+		// stage better: it wins when it scores more than a tenth higher.
+		const whole = search(false);
+		const split = search(true);
+		let best:
+			| { size: number; columns: number; room: number; split: boolean }
+			| undefined =
+			whole && (!split || whole.score * 1.1 >= split.score) ? whole : split;
 		if (!best) {
 			// Too long to fit: keep it readable, in as many columns as the width allows.
 			let columns = 1;
 			while (columns < 3 && allowed(columns + 1, minimum)) columns++;
-			best = { size: minimum, columns, room };
+			best = { size: minimum, columns, room, split: false };
 		}
 		setLayout(best);
 	}, [width, height, content, semitones, accidental, chords, baseSize, notes]);
@@ -250,20 +259,20 @@ export function Stage({
 				onClick={wake}
 				onKeyDown={() => {}}
 			>
-				{/* A song shorter than the screen sits in the middle, its title with it. */}
-				<div className="my-auto">
+				{/* The song starts at the top, like a page on a music stand. */}
+				<div>
 					<header
 						ref={header}
 						className="flex flex-wrap items-baseline gap-x-3 pt-4 pb-3 text-muted-foreground"
 					>
-						{/* The title matches the lyric size, so it leads the stage. */}
+						{/* The title is a step above the lyric size, so it leads the stage. */}
 						<h1
-							className="font-semibold text-foreground"
-							style={{ fontSize: Math.max(18, size) }}
+							className="font-semibold tracking-tight text-foreground"
+							style={{ fontSize: Math.max(20, Math.round(size * 1.25)) }}
 						>
 							{title}
 						</h1>
-						<span style={{ fontSize: Math.max(13, size * 0.6) }}>{meta}</span>
+						<span style={{ fontSize: Math.max(14, size * 0.7) }}>{meta}</span>
 						{notes ? (
 							<p className="basis-full text-sm text-foreground/80">{notes}</p>
 						) : null}
@@ -275,6 +284,7 @@ export function Stage({
 						fontSize={size}
 						columns={columns}
 						height={layout.room * 0.96 || undefined}
+						split={layout.split}
 						chords={chords}
 					/>
 				</div>

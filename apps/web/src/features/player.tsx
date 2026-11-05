@@ -498,10 +498,11 @@ export function Player({
 					<PopoverTrigger asChild>
 						<Button
 							variant="outline"
-							className="min-w-[8.5rem] justify-between sm:hidden"
+							// A fixed width, so View and Diagrams stay put from song to song.
+							className="w-[9.5rem] justify-between sm:hidden"
 						>
 							<span className="sr-only">Key</span>
-							{keyName}
+							<span className="min-w-8 text-left">{keyName}</span>
 							{/* Lyrics only dims the capo instead of dropping it, so the bar keeps its width. */}
 							<span className="text-muted-foreground">·</span>
 							<span
@@ -896,7 +897,7 @@ export function Player({
 							value={[speed]}
 							onValueChange={([value]) => setSpeed(value)}
 						/>
-						<span className="w-8 text-right font-mono text-xs tabular-nums text-muted-foreground">
+						<span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
 							{(speed / 25).toFixed(1)}×
 						</span>
 					</div>

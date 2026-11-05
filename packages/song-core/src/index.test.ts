@@ -283,6 +283,15 @@ describe("sheet columns", () => {
 			0, 7,
 		]);
 	});
+	test("splits across sections when asked, for stage mode", () => {
+		// Three sections of 8 in 2 columns: whole sections give 16 beside 8; splitting the
+		// middle one evens them to 12 and 12.
+		expect(sheetColumns(song, 2, 20).tallest).toBe(16);
+		expect(sheetColumns(song, 2, 20, true)).toEqual({
+			starts: [0, 6],
+			tallest: 12,
+		});
+	});
 	test("never makes more columns than sections without needing to", () => {
 		expect(sheetColumns(song.slice(0, 8), 3).starts).toEqual([0, 4]);
 	});
