@@ -564,7 +564,7 @@ function ArrangementChoices({
 			].map((version, index) => (
 				<div key={version.id} className="space-y-2">
 					{/* Versions sit under their song's tile; each names its key in the meta line. */}
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-12">
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:pl-12">
 						<div className="min-w-0 flex-1">
 							<span className="flex min-w-0 items-center gap-2 text-sm font-medium">
 								<span className="truncate">
@@ -643,7 +643,7 @@ function ArrangementChoices({
 					</div>
 					{/* Voting is secondary: a quiet line under the version it rates. */}
 					{version.mine ? null : !version.local && account !== "local" ? (
-						<div className="flex items-center gap-1 pl-12 text-muted-foreground">
+						<div className="flex items-center gap-1 text-muted-foreground sm:pl-12">
 							<fieldset className="flex items-center">
 								<legend className="float-left mr-0.5 text-xs text-muted-foreground">
 									Useful?
@@ -734,7 +734,7 @@ function ArrangementChoices({
 			) : null}
 			{preview ? (
 				// Indented to the versions' column, at the player's phone size.
-				<div className="max-h-96 overflow-auto rounded-md border p-3 sm:ml-12 max-sm:max-h-none">
+				<div className="max-h-96 overflow-auto sm:ml-12 sm:rounded-md sm:border sm:p-3 max-sm:max-h-none max-sm:border-t max-sm:pt-3">
 					{detail.isFetching && !localPreview ? (
 						<output>Loading preview…</output>
 					) : null}

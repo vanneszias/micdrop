@@ -131,7 +131,10 @@ export function PageBody({
 					<div className="min-w-0 flex-1 basis-64 space-y-1">
 						<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 						{description ? (
-							<p className="text-[15px] text-muted-foreground">{description}</p>
+							// A readable measure, whatever the page width.
+							<p className="max-w-[68ch] text-[15px] text-muted-foreground">
+								{description}
+							</p>
 						) : null}
 					</div>
 					{actions ? (

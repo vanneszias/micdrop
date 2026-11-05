@@ -329,7 +329,7 @@ export function BottomNav() {
 		? items
 		: [...items, { to: "/login", label: "Sign in", icon: User }];
 	const tabClass =
-		"flex h-14 flex-col items-center justify-center gap-1 text-xs text-foreground/70 transition-all active:scale-90 data-[state=open]:text-foreground";
+		"flex h-14 flex-col items-center justify-center gap-0.5 text-xs text-foreground/70 transition-all active:scale-90 data-[state=open]:text-foreground";
 	return (
 		<nav
 			data-print="hide"
@@ -371,7 +371,14 @@ export function BottomNav() {
 								pathname.startsWith("/settings") && "text-foreground",
 							)}
 						>
-							<User className="size-5" />
+							<span
+								className={cn(
+									"flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+									pathname.startsWith("/settings") && "bg-secondary",
+								)}
+							>
+								<User className="size-5" />
+							</span>
 							Account
 						</button>
 					</AccountMenu>

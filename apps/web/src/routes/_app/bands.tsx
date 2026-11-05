@@ -204,7 +204,7 @@ function BandCard({
 							aria-expanded={adding}
 							onClick={() => setAdding(true)}
 						>
-							<UserPlus /> Add existing account
+							<UserPlus /> Add member by email
 						</Button>
 					) : null}
 				</CardAction>
@@ -259,12 +259,10 @@ function BandCard({
 			{owner && adding ? (
 				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
 					<div className="space-y-0.5">
-						<Label htmlFor={`add-member-${band.id}`}>
-							Add existing account
-						</Label>
+						<Label htmlFor={`add-member-${band.id}`}>Add member by email</Label>
 						<p className="text-[13px] text-muted-foreground">
-							For someone who already uses Mic Drop. Anyone else gets an invite
-							link.
+							Their email must already have a Mic Drop account. For anyone else,
+							share the invite link instead.
 						</p>
 					</div>
 					<form

@@ -160,7 +160,7 @@ function Songs() {
 								)}
 								trailing={
 									<>
-										<span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+										<span className="flex items-center gap-1 text-[13px] text-muted-foreground max-sm:[&_svg]:size-3.5">
 											{song.data.draft ? (
 												<PencilLine className="size-4" />
 											) : song.data.visibility === "public" ? (
@@ -168,8 +168,8 @@ function Songs() {
 											) : (
 												<Lock className="size-4" />
 											)}
-											{/* Narrow phones keep the icon for every state; the word is for screen readers. */}
-											<span className="max-[420px]:sr-only">
+											{/* Icon and word on every viewport, so the lock never reads as "locked". */}
+											<span>
 												{song.data.draft
 													? "Draft"
 													: song.data.visibility === "public"
