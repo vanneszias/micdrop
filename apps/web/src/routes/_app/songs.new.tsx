@@ -35,7 +35,13 @@ import {
 import { Textarea } from "@chords/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ClipboardPaste, FileText, Link2, Search } from "lucide-react";
+import {
+	ClipboardPaste,
+	FilePlus,
+	FileText,
+	Link2,
+	Search,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageBody, PageHeader } from "#/components/page-header";
@@ -100,10 +106,10 @@ function NewSong() {
 			/>
 			<PageBody
 				title="Add a song"
-				description="Paste a chord sheet, import a page, or open a ChordPro file. You review everything before saving."
+				description="Paste a chord sheet, import a page, open a ChordPro file, or write one from scratch. You review everything before saving."
 			>
 				<Tabs defaultValue="paste">
-					<TabsList className="h-10 w-full sm:w-auto">
+					<TabsList className="h-10 w-full sm:w-auto [&>button]:max-sm:px-2">
 						<TabsTrigger value="paste" className="px-4">
 							<ClipboardPaste /> Paste
 						</TabsTrigger>
@@ -113,20 +119,11 @@ function NewSong() {
 						<TabsTrigger value="file" className="px-4">
 							<FileText /> File
 						</TabsTrigger>
+						{/* Writing from scratch stands beside the three ways in. */}
+						<TabsTrigger value="blank" className="px-4">
+							<FilePlus /> Blank
+						</TabsTrigger>
 					</TabsList>
-					{/* One place to choose how to start: three ways in, or a blank song. */}
-					<div className="pt-1 text-sm text-muted-foreground">
-						Or{" "}
-						<Button
-							variant="link"
-							className="h-auto p-0 text-sm underline underline-offset-4"
-							disabled={busy}
-							onClick={() => void run(() => createSong())}
-						>
-							start a blank song
-						</Button>
-						.
-					</div>
 
 					<TabsContent value="paste" className="mt-4">
 						<FieldGroup>
@@ -266,6 +263,21 @@ function NewSong() {
 								))}
 							</ItemGroup>
 						</FieldGroup>
+					</TabsContent>
+					<TabsContent value="blank" className="mt-4">
+						<div className="space-y-3 rounded-xl border border-dashed p-6">
+							<p className="text-[15px] text-muted-foreground">
+								Start with an empty song and type it in ChordPro: chords in
+								square brackets, like{" "}
+								<code className="font-mono">[G]Amazing grace</code>.
+							</p>
+							<Button
+								disabled={busy}
+								onClick={() => void run(() => createSong())}
+							>
+								<FilePlus /> Start a blank song
+							</Button>
+						</div>
 					</TabsContent>
 					<TabsContent value="file" className="mt-4">
 						<FieldGroup>

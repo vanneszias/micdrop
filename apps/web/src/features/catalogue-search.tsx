@@ -344,6 +344,15 @@ export function CatalogueSearch({
 									{group.count > 1
 										? ` · ${group.count} ${group.count === 1 ? "version" : "versions"}`
 										: null}
+									{inRepertoire && !onSelect && !placed ? (
+										// Phones put the same pill under the artist, so the title keeps its width.
+										<span className="mt-1 flex sm:hidden">
+											<StatusBadge>
+												<Check />
+												<span>In repertoire</span>
+											</StatusBadge>
+										</span>
+									) : null}
 								</>
 							}
 							main={(content) => (
@@ -366,11 +375,13 @@ export function CatalogueSearch({
 											<span>In set</span>
 										</StatusBadge>
 									) : inRepertoire && !onSelect ? (
-										// The same labelled pill as "In set", on every viewport.
-										<StatusBadge>
-											<Check />
-											<span>In repertoire</span>
-										</StatusBadge>
+										// The same labelled pill as "In set"; phones show it under the artist.
+										<span className="max-sm:hidden">
+											<StatusBadge>
+												<Check />
+												<span>In repertoire</span>
+											</StatusBadge>
+										</span>
 									) : null}
 									{/* Add stays in the row when it is expanded, so the action never moves. */}
 									{onSelect && own[0] && !placed ? (

@@ -667,8 +667,14 @@ export function Player({
 						<Toggle
 							variant="outline"
 							disabled={lyricsOnly}
-							pressed={diagrams && !lyricsOnly}
-							onPressedChange={setDiagrams}
+							// Phones open the diagram sheet instead of adding a strip under the song;
+							// the sheet steps through every chord in it.
+							pressed={narrow ? !!chord : diagrams && !lyricsOnly}
+							onPressedChange={(value) =>
+								narrow
+									? setChord(value ? songChords[0] : undefined)
+									: setDiagrams(value)
+							}
 							aria-label="Chord diagrams"
 							className="px-2.5 sm:px-3"
 						>
@@ -776,7 +782,7 @@ export function Player({
 					) : null}
 				</div>
 			</section>
-			{diagrams && !lyricsOnly ? (
+			{diagrams && !lyricsOnly && !narrow ? (
 				<div
 					data-print="hide"
 					className="shrink-0 border-t bg-card/50 py-3 xl:hidden"
