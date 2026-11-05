@@ -112,7 +112,8 @@ export function Stage({
 		// Leave room for the control pill, so the last line is never under it.
 		const room = height - (header.current?.offsetHeight ?? 56) - 88;
 		// Desktop may go a little under the reading size when that buys even columns.
-		const minimum = narrow ? Math.max(18, baseSize + 1) : 20;
+		// Phones start a fifth larger than the reading view, so stage reads from a music stand.
+		const minimum = narrow ? Math.max(18, Math.round(baseSize * 1.2)) : 20;
 		const maximum = narrow ? 24 : 52;
 		const columnWidth = (columns: number, size: number) =>
 			(available - GAP_EMS * size * (columns - 1)) / columns;
@@ -427,11 +428,11 @@ export function ChordSheet({
 				<SheetHeader className="pb-0">
 					<SheetTitle className="font-mono text-2xl">{chord}</SheetTitle>
 					<SheetDescription>
-						Tap the diagram for another shape.
+						Guitar fingering. Other chords in this song below.
 					</SheetDescription>
 				</SheetHeader>
 				<div className="chord-sheet flex justify-center px-4 py-2">
-					{chord ? <ChordDiagram chord={chord} /> : null}
+					{chord ? <ChordDiagram chord={chord} stepper /> : null}
 				</div>
 				{chords.length > 1 ? (
 					<div className="flex gap-1.5 overflow-x-auto px-4 pt-2 pb-1">

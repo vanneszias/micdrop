@@ -135,7 +135,10 @@ export function PageBody({
 						) : null}
 					</div>
 					{actions ? (
-						<div className="flex flex-wrap items-center gap-2">{actions}</div>
+						// Phones always put the page's actions on their own row, under the intro.
+						<div className="flex flex-wrap items-center gap-2 max-sm:w-full">
+							{actions}
+						</div>
 					) : null}
 				</div>
 			) : null}

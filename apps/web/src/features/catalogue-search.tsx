@@ -341,23 +341,9 @@ export function CatalogueSearch({
 									{[group.artists || "Unknown artist"]
 										.filter(Boolean)
 										.join(" · ")}
-									{inRepertoire && !onSelect ? (
-										<span className="text-foreground/80 sm:hidden">
-											{" · "}
-											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
-											In repertoire
-										</span>
-									) : null}
-									{group.count > 1 ? (
-										// Phones keep the row to status and artist.
-										<span
-											className={
-												inRepertoire && !onSelect ? "max-sm:hidden" : undefined
-											}
-										>
-											{` · ${group.count} ${group.count === 1 ? "version" : "versions"}`}
-										</span>
-									) : null}
+									{group.count > 1
+										? ` · ${group.count} ${group.count === 1 ? "version" : "versions"}`
+										: null}
 								</>
 							}
 							main={(content) => (
@@ -380,12 +366,11 @@ export function CatalogueSearch({
 											<span>In set</span>
 										</StatusBadge>
 									) : inRepertoire && !onSelect ? (
-										// Phones show this on the meta line, leaving the title its width.
-										<span className="max-sm:hidden">
-											<StatusBadge>
-												<Check /> In repertoire
-											</StatusBadge>
-										</span>
+										// The same pill as "In set"; phones show its check only.
+										<StatusBadge compact>
+											<Check />
+											<span>In repertoire</span>
+										</StatusBadge>
 									) : null}
 									{onSelect && own[0] && !placed && !open ? (
 										<Button
@@ -459,7 +444,7 @@ function ArrangementChoices({
 	/** True when choosing for a setlist or song group rather than saving to the repertoire. */
 	picking: boolean;
 }) {
-	// Phone previews use a smaller size so short lines don't break apart.
+	// Phone previews use the player's phone size.
 	const narrow = useSyncExternalStore(
 		(change) => {
 			const media = window.matchMedia("(max-width: 640px)");
@@ -736,7 +721,8 @@ function ArrangementChoices({
 				</Button>
 			) : null}
 			{preview ? (
-				<div className="max-h-96 overflow-auto rounded-md border p-3 max-sm:-mx-3 max-sm:max-h-none max-sm:rounded-none max-sm:border-x-0 max-sm:px-3">
+				// Indented to the versions' column, at the player's phone size.
+				<div className="max-h-96 overflow-auto rounded-md border p-3 sm:ml-12 max-sm:max-h-none">
 					{detail.isFetching && !localPreview ? (
 						<output>Loading preview…</output>
 					) : null}
@@ -756,7 +742,7 @@ function ArrangementChoices({
 									Original source
 								</a>
 							) : null}
-							<SongSheet content={data.content} fontSize={narrow ? 16 : 20} />
+							<SongSheet content={data.content} fontSize={narrow ? 17 : 20} />
 						</>
 					) : null}
 				</div>

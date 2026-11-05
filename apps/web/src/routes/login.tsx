@@ -184,14 +184,20 @@ function Login() {
 					>
 						<FieldGroup>
 							{/* Phones get a small taste of the chord sheet the desktop panel shows. */}
-							<div className="order-last rounded-xl border bg-card px-4 py-3 lg:hidden">
+							<figure className="order-last rounded-xl border bg-card px-4 py-3 lg:hidden">
+								<figcaption className="mb-2 flex items-baseline justify-between gap-3">
+									<span className="text-sm font-semibold">Amazing Grace</span>
+									<span className="text-[13px] text-muted-foreground">
+										Key G · Verse 1
+									</span>
+								</figcaption>
 								<SongSheet
 									fontSize={15}
 									content={
 										"A[G]mazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me"
 									}
 								/>
-							</div>
+							</figure>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">
 									{mode === "signin"

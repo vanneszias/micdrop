@@ -360,13 +360,10 @@ export function Player({
 			>
 				{actions}
 				{readOnly ? null : (
-					<Button variant="outline" size="sm" asChild className="max-sm:hidden">
-						<Link
-							to="/songs/$id/edit"
-							params={{ id: arrangement.id }}
-							aria-label="Edit"
-						>
-							<Pencil /> <span className="max-sm:hidden">Edit</span>
+					// Labelled on every viewport: the title lives in the body on phones.
+					<Button variant="outline" size="sm" asChild className="max-sm:h-10">
+						<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
+							<Pencil /> Edit
 						</Link>
 					</Button>
 				)}
@@ -384,14 +381,6 @@ export function Player({
 					variant="outline"
 					className="max-sm:size-10"
 				>
-					{readOnly ? null : (
-						// Phones keep the header to Stage and this menu, so the title has room.
-						<DropdownMenuItem asChild className="sm:hidden">
-							<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
-								<Pencil /> Edit
-							</Link>
-						</DropdownMenuItem>
-					)}
 					{readOnly ? null : (
 						// The same core actions as the song's row in Repertoire.
 						<DropdownMenuItem
@@ -610,7 +599,7 @@ export function Player({
 								))}
 							</ToggleGroup>
 							{maxColumns < 3 ? (
-								<p className="text-xs text-muted-foreground">
+								<p className="text-[13px] text-muted-foreground">
 									{maxColumns === 1 ? "More columns need" : "3 columns need"} a
 									wider window or smaller text.
 								</p>
@@ -637,9 +626,9 @@ export function Player({
 						{lyricsOnly || columns > 1 || chosenSize !== undefined ? (
 							// The dot on View marks these changes; one click undoes them.
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="sm"
-								className="h-8 w-full justify-start px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+								className="w-full"
 								onClick={() => {
 									setLyricsOnly(false);
 									setColumns(1);

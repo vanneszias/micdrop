@@ -144,7 +144,7 @@
 @media (max-width: 640px) {
   .sheet-line { margin-bottom: .6em; }
   /* Phones get a slightly larger chip: easier to read and to tap. */
-  .sheet-chord { font-size: .88em; padding: .12em .42em; margin-bottom: .2em; }
+  .sheet-chord { font-size: .88em; padding: .12em .42em; margin-bottom: .3em; }
   .sheet-section { margin: 1.4em 0 .7em; }
   /* Phones scroll a row of readable diagrams; the faded edge shows there is more. */
   .diagram, .diagram-missing { width: 76px; font-size: 12px; padding: .125rem; }
@@ -183,7 +183,7 @@ button.sheet-chord::after { content: ''; position: absolute; left: 50%; top: 50%
 /* On phones the button itself is the 44px target: a transparent border grows it, the
    background stays on the chip, and negative margins keep the layout unchanged. */
 @media (max-width: 640px) {
-  button.sheet-chord { border: 9px solid transparent; background-clip: padding-box; margin-top: -9px; margin-bottom: calc(.05em - 9px); margin-left: calc(-.15em - 9px); }
+  button.sheet-chord { border: 9px solid transparent; background-clip: padding-box; margin-top: -9px; margin-bottom: calc(.3em - 9px); margin-left: calc(-.15em - 9px); }
   .sheet-line > .sheet-word:first-child > .sheet-pair:first-child > button.sheet-chord { margin-left: -9px; }
   button.sheet-chord:hover { box-shadow: none; }
 }
@@ -193,6 +193,13 @@ button.sheet-chord:focus-visible { outline: 2px solid var(--ring); outline-offse
 .chord-sheet .diagram, .chord-sheet .diagram-missing { width: min(15rem, 70vw); font-size: 15px; }
 .chord-sheet .diagram strong { display: none; }
 .chord-sheet .diagram small { font-size: 13px; }
+.chord-sheet div.diagram:hover { background: none; }
+.chord-sheet div.diagram:active { transform: none; }
+/* Previous/next shape, with the count between: 44px targets. */
+.diagram-stepper { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .5rem; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.diagram-stepper button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: 22px; line-height: 1; }
+.diagram-stepper button:hover { background: var(--accent); }
+.diagram-stepper button:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 /* One segmented control: toggle groups look like tabs (grey track, raised selected pill). */
 [data-slot='toggle-group'][data-variant='outline'] { background: var(--muted); padding: 3px; border-radius: var(--radius-lg); gap: 0; box-shadow: none; }
 [data-slot='toggle-group-item'][data-variant='outline'] { border: 1px solid transparent !important; background: transparent; box-shadow: none; color: var(--muted-foreground); border-radius: var(--radius-md) !important; height: 2rem; }
