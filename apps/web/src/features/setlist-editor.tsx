@@ -320,7 +320,9 @@ export function SetlistEditor({
 									value={list.data.date}
 									onChange={(date) => update({ ...list.data, date })}
 								/>
-								<span aria-hidden>·</span>
+								<span aria-hidden className="-ml-1.5">
+									·
+								</span>
 								<span>{songCount}</span>
 							</div>
 						</div>

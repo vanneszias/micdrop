@@ -205,7 +205,7 @@ export function Stage({
 			<Button
 				variant="ghost"
 				size="icon-sm"
-				className="fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-50 hover:opacity-100 focus-visible:opacity-100"
+				className="fixed top-3 right-3 z-10 rounded-full text-muted-foreground opacity-50 hover:opacity-100 focus-visible:opacity-100 max-sm:hidden"
 				aria-label="Exit stage mode (Esc)"
 				title="Exit stage mode (Esc)"
 				onClick={onExit}

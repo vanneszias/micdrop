@@ -443,7 +443,8 @@ function GuitarDiagram({
 		>
 			<strong>{chord}</strong>
 			<svg
-				viewBox="-14 0 114 112"
+				// Room on the left only for a "2fr" position label, so open shapes draw larger.
+				viewBox={shape.baseFret > 1 ? "-14 0 114 112" : "4 0 92 112"}
 				role="img"
 				aria-label={`${chord} guitar fingering, fret ${shape.baseFret}`}
 			>

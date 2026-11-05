@@ -404,12 +404,13 @@ export function Player({
 						<Button variant="outline" className="sm:hidden">
 							<span className="sr-only">Key</span>
 							{keyName}
-							{lyricsOnly ? null : (
-								<>
-									<span className="text-muted-foreground">·</span>
-									{capo ? `Capo ${capo}` : "No capo"}
-								</>
-							)}
+							{/* Lyrics only dims the capo instead of dropping it, so the bar keeps its width. */}
+							<span className="text-muted-foreground">·</span>
+							<span
+								className={lyricsOnly ? "text-muted-foreground" : undefined}
+							>
+								{capo ? `Capo ${capo}` : "No capo"}
+							</span>
 							<ChevronDown className="text-muted-foreground" />
 						</Button>
 					</PopoverTrigger>
@@ -462,14 +463,14 @@ export function Player({
 						<Button
 							variant="outline"
 							aria-label="View options"
-							className="max-sm:px-2.5"
+							className="relative max-sm:px-2.5"
 						>
 							<SlidersHorizontal />
 							View
 							{lyricsOnly || columns > 1 ? (
 								// Shows that a view option changes the sheet.
 								<span
-									className="size-1.5 rounded-full bg-primary"
+									className="absolute top-1 right-1 size-1.5 rounded-full bg-primary"
 									aria-hidden
 								/>
 							) : null}
@@ -672,6 +673,8 @@ export function Player({
 					}
 				>
 					<ChevronLeft />
+					{/* Both directions read the same: a title on wide screens, a word on phones. */}
+					<span className="sm:hidden">Prev</span>
 					<span className="truncate max-sm:hidden">
 						{previousTitle || "Previous"}
 					</span>
@@ -692,12 +695,16 @@ export function Player({
 								variant="outline"
 								size="sm"
 								className="font-mono tabular-nums sm:hidden"
-								aria-label={`Scroll speed ${speed}`}
+								aria-label={`Scroll speed ${(speed / 25).toFixed(1)}×`}
 							>
 								<Gauge /> {(speed / 25).toFixed(1)}×
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent side="top" className="w-56 space-y-3">
+						<PopoverContent
+							side="top"
+							align="center"
+							className="w-56 space-y-3"
+						>
 							<Label>Scroll speed · {(speed / 25).toFixed(1)}×</Label>
 							<Slider
 								min={5}
@@ -734,18 +741,8 @@ export function Player({
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
-					<span className="truncate">
-						{nextTitle ? (
-							<>
-								<span className="text-muted-foreground max-sm:text-foreground">
-									Next
-								</span>
-								<span className="max-sm:hidden"> {nextTitle}</span>
-							</>
-						) : (
-							"Next"
-						)}
-					</span>
+					<span className="sm:hidden">Next</span>
+					<span className="truncate max-sm:hidden">{nextTitle || "Next"}</span>
 					<ChevronRight />
 				</Button>
 			</footer>

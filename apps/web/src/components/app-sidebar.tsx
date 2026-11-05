@@ -88,13 +88,18 @@ function AccountMenu({
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
 				<DropdownMenuContent className="min-w-56" align="end" side={side}>
-					<DropdownMenuLabel className="font-normal">
-						<div className="truncate font-medium">{user?.name}</div>
-						<div className="truncate text-xs text-muted-foreground">
-							{user?.email}
-						</div>
-					</DropdownMenuLabel>
-					<DropdownMenuSeparator />
+					{/* The sidebar trigger already names the account; phones have no such trigger. */}
+					{showLibraries ? (
+						<>
+							<DropdownMenuLabel className="font-normal">
+								<div className="truncate font-medium">{user?.name}</div>
+								<div className="truncate text-xs text-muted-foreground">
+									{user?.email}
+								</div>
+							</DropdownMenuLabel>
+							<DropdownMenuSeparator />
+						</>
+					) : null}
 					{showLibraries && app.bands.length ? (
 						<>
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">

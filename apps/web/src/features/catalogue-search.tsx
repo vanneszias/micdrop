@@ -331,7 +331,7 @@ export function CatalogueSearch({
 									<Badge variant="secondary" className="shrink-0 font-normal">
 										<Check /> In set
 									</Badge>
-								) : inRepertoire && !onSelect && !open ? (
+								) : inRepertoire && !onSelect ? (
 									// Phones show this on the meta line so long titles keep the room.
 									<Badge
 										variant="secondary"
@@ -343,20 +343,25 @@ export function CatalogueSearch({
 							}
 							meta={
 								<>
-									{inRepertoire && !onSelect && !open ? (
+									{inRepertoire && !onSelect ? (
 										<span className="text-foreground/80 sm:hidden">
 											<Check className="mr-0.5 inline size-3.5 align-[-2px]" />
 											In repertoire ·{" "}
 										</span>
 									) : null}
-									{[
-										group.artists || "Unknown artist",
-										group.count
-											? `${group.count} ${group.count === 1 ? "version" : "versions"}`
-											: null,
-									]
+									{[group.artists || "Unknown artist"]
 										.filter(Boolean)
 										.join(" · ")}
+									{group.count ? (
+										// Phones keep the row to status and artist.
+										<span
+											className={
+												inRepertoire && !onSelect ? "max-sm:hidden" : undefined
+											}
+										>
+											{` · ${group.count} ${group.count === 1 ? "version" : "versions"}`}
+										</span>
+									) : null}
 								</>
 							}
 							main={(content) => (
@@ -546,12 +551,7 @@ function ArrangementChoices({
 								<span className="truncate">
 									{version.data.arrangementName || "Standard version"}
 								</span>
-								{version.saved && !picking ? (
-									<Badge variant="secondary" className="shrink-0 font-normal">
-										<Check />
-										<span className="max-sm:sr-only">In repertoire</span>
-									</Badge>
-								) : null}
+								{/* The song row above already says it is in the repertoire. */}
 							</span>
 							<p className="truncate text-[13px] text-muted-foreground empty:hidden">
 								{[
