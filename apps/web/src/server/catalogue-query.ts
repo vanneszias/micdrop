@@ -39,9 +39,9 @@ export function catalogueSearchQuery(
 
 	return {
 		sql: `WITH matches AS (
-		SELECT p.song_id,${rank} AS relevance,json_extract(p.data,'$.artist') AS artist,json_extract(p.data,'$.title') AS title FROM publications p
+		SELECT p.song_id,${rank} AS relevance,json_extract(p.data,'$.artist') AS artist,json_extract(p.data,'$.title') AS title,json_extract(p.data,'$.key') AS key,substr(json_extract(p.data,'$.content'),1,600) AS head FROM publications p
 		WHERE p.hidden=0 AND p.moderated=0 AND ${candidates} ${song ? "AND p.song_id=?" : ""}
-	) SELECT s.id,MIN(m.title) AS title,MAX(m.relevance) AS relevance,COUNT(*) AS count,GROUP_CONCAT(DISTINCT m.artist) AS artists
+	) SELECT s.id,MIN(m.title) AS title,MAX(m.relevance) AS relevance,COUNT(*) AS count,GROUP_CONCAT(DISTINCT m.artist) AS artists,MIN(m.key) AS key,MIN(m.head) AS head
 	FROM matches m JOIN catalogue_songs s ON s.id=m.song_id WHERE m.relevance>0 GROUP BY s.id ORDER BY relevance DESC,title COLLATE NOCASE,s.id LIMIT 31 OFFSET ?`,
 		params: [...rankBindings, ...bindings, ...(song ? [song] : []), offset],
 	};

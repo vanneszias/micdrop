@@ -154,12 +154,15 @@ export type Accidental = "#" | "b";
 
 /** Flat keys spell their chords with flats (Ab, Db, Eb), the rest with sharps. */
 export function keyAccidental(key: string): Accidental {
-	const root =
-		Chord.parse(key)?.normalize().useAccidental("b").toString() ?? key;
-	return ["F", "Bb", "Eb", "Ab", "Db"].some((flat) => root.startsWith(flat))
-		? "b"
-		: "#";
+	// By pitch class: spelling the root with flats first would turn E into Fb (and B into
+	// Cb), which then read as flat keys.
+	const root = key.match(/^[A-G][#b]?/)?.[0];
+	if (!root || !Chord.parse(root)) return "#";
+	return FLAT_KEYS.has(keyDistance("C", root)) ? "b" : "#";
 }
+
+/** F, Bb, Eb, Ab and Db, as semitones above C. */
+const FLAT_KEYS = new Set([5, 10, 3, 8, 1]);
 
 /** The key the displayed chords are in, `semitones` away from `key`. */
 export function shiftKey(key: string, semitones: number): string {
@@ -318,3 +321,179 @@ export const EXAMPLE = `{title: Evening rehearsal}
 {end_of_chorus}
 
 {comment: Repeat chorus, then end on D}`;
+
+/**
+ * Splits consecutive pieces of a sheet into at most `columns` groups so a multi-column
+ * sheet ends evenly. Order is kept and pieces never split. `breakCost[i]` is added when
+ * a group starts at piece `i`, so starting a column mid-section can be discouraged.
+ * The tallest group plus break costs is minimised; among equal choices the groups are
+ * as even as possible, then earlier groups are fuller. Returns each group's start.
+ */
+export function balanceColumns(
+	heights: number[],
+	columns: number,
+	breakCost: number[] = [],
+): number[] {
+	const count = Math.min(Math.max(1, Math.floor(columns)), heights.length);
+	if (count <= 1) return [0];
+	const prefix = [0];
+	for (const height of heights)
+		prefix.push(prefix[prefix.length - 1] + Math.max(0, height));
+	const n = heights.length;
+	let best: { starts: number[]; cost: number; spread: number } | undefined;
+	const same = (a: number, b: number) => Math.abs(a - b) <= 1e-9;
+	// Sheets have a few dozen pieces and at most three columns, so try every split.
+	const visit = (starts: number[]) => {
+		if (starts.length === count) {
+			const sizes = starts.map(
+				(start, i) => prefix[starts[i + 1] ?? n] - prefix[start],
+			);
+			const cost =
+				Math.max(...sizes) +
+				starts
+					.slice(1)
+					.reduce((sum, start) => sum + (breakCost[start] ?? 0), 0);
+			const spread = sizes.reduce((sum, size) => sum + size * size, 0);
+			const later = () => {
+				const i = starts.findIndex((start, k) => start !== best?.starts[k]);
+				return i >= 0 && starts[i] > (best?.starts[i] ?? 0);
+			};
+			if (
+				!best ||
+				cost < best.cost - 1e-9 ||
+				(same(cost, best.cost) &&
+					(spread < best.spread - 1e-9 ||
+						(same(spread, best.spread) && later())))
+			)
+				best = { starts: [...starts], cost, spread };
+			return;
+		}
+		const from = starts[starts.length - 1] + 1;
+		for (let start = from; start <= n - (count - starts.length); start++)
+			visit([...starts, start]);
+	};
+	visit([0]);
+	return best?.starts ?? [0];
+}
+
+/** How much taller a column may get to avoid starting it in the middle of a section. */
+export const MID_SECTION_COST = 0.08;
+
+/**
+ * Balances sheet pieces (a section's heading with its first line, then one line each)
+ * into columns. Columns prefer to start on a section, but split one when that evens
+ * them out by more than {@link MID_SECTION_COST} of the sheet's height. A split never
+ * leaves a single line of a section on either side unless nothing else fits.
+ */
+export function balanceSheet(
+	pieces: { height: number; start: boolean }[],
+	columns: number,
+): number[] {
+	const total = pieces.reduce((sum, piece) => sum + piece.height, 0);
+	const section: number[] = [];
+	for (const piece of pieces)
+		section.push((section[section.length - 1] ?? -1) + (piece.start ? 1 : 0));
+	const size = (id: number) => section.filter((value) => value === id).length;
+	const before = (i: number) =>
+		section.slice(0, i).filter((value) => value === section[i]).length;
+	return balanceColumns(
+		pieces.map((piece) => piece.height),
+		columns,
+		pieces.map((piece, i) =>
+			piece.start
+				? 0
+				: before(i) < 2 || size(section[i]) - before(i) < 2
+					? total
+					: total * MID_SECTION_COST,
+		),
+	);
+}
+
+/**
+ * Lays sheet pieces out in columns. Sections stay whole, because a performer reads a
+ * section best in one place; only a section taller than `height` on its own is split.
+ */
+export function sheetColumns(
+	pieces: { height: number; start: boolean }[],
+	columns: number,
+	height?: number,
+	/** Stage mode: balance by lines even across sections, for the largest text. */
+	split = false,
+): { starts: number[]; tallest: number } {
+	const heights = pieces.map((piece) => piece.height);
+	const total = heights.reduce((sum, value) => sum + value, 0);
+	const tallest = (starts: number[]) =>
+		Math.max(
+			0,
+			...starts.map((start, i) =>
+				heights
+					.slice(start, starts[i + 1] ?? heights.length)
+					.reduce((sum, value) => sum + value, 0),
+			),
+		);
+	const whole = balanceColumns(
+		heights,
+		Math.min(columns, pieces.filter((piece) => piece.start).length || 1),
+		pieces.map((piece) => (piece.start ? 0 : total * 10)),
+	);
+	// Split only when a single section is taller than the space: a verse read across two
+	// columns costs more than columns of uneven length.
+	const sections: number[] = [];
+	for (const piece of pieces)
+		if (piece.start || !sections.length) sections.push(piece.height);
+		else sections[sections.length - 1] += piece.height;
+	if (!split && (height === undefined || Math.max(...sections) <= height))
+		return { starts: whole, tallest: tallest(whole) };
+	const even = balanceSheet(pieces, columns);
+	return { starts: even, tallest: tallest(even) };
+}
+
+export type Mode = "major" | "minor";
+
+/**
+ * Keys are stored as roots. A song whose first chord is the minor chord on that root
+ * (Am in A) is in the minor key, so it is labelled and spelled as one.
+ */
+export function songMode(content: string, key: string): Mode {
+	const first = sheetChords(content)[0];
+	const chord = first ? Chord.parse(first) : null;
+	const root = first?.match(/^[A-G][#b]?/)?.[0];
+	return chord?.isMinor() &&
+		root &&
+		keyDistance(key, root) === 0 &&
+		Chord.parse(key)
+		? "minor"
+		: "major";
+}
+
+/** "A" or "Am": the key as players name it. */
+export function keyLabel(key: string, mode: Mode = "major"): string {
+	return mode === "minor" ? `${key}m` : key;
+}
+
+/** Minor keys spell like their relative major: C minor uses Eb, not D#. */
+export function modeAccidental(key: string, mode: Mode = "major"): Accidental {
+	return keyAccidental(mode === "minor" ? shiftKey(key, 3) : key);
+}
+
+/**
+ * Mutes the lowest string of a shape when it isn't the chord's root but the next string
+ * is, the way players voice B as x24442 rather than a full barre with F# in the bass.
+ * `midi` lists the sounding strings from low to high.
+ */
+export function rootInBass<
+	T extends { frets: number[]; fingers: number[]; midi?: number[] },
+>(shape: T, root: string): T {
+	const pitch = keyDistance("C", root);
+	const pc = (note: number) => ((note % 12) + 12) % 12;
+	const lowest = shape.frets.findIndex((fret) => fret >= 0);
+	const { midi } = shape;
+	if (lowest < 0 || !midi || midi.length < 2) return shape;
+	if (pc(midi[0]) === pitch || pc(midi[1]) !== pitch) return shape;
+	return {
+		...shape,
+		frets: shape.frets.map((fret, i) => (i === lowest ? -1 : fret)),
+		fingers: shape.fingers.map((finger, i) => (i === lowest ? 0 : finger)),
+		midi: midi.slice(1),
+	};
+}

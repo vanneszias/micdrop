@@ -1,6 +1,18 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Sheet tokens and SVG strings are stateless ordered positions.
-import { type Accidental, sheetChords, sheetLines } from "@chords/song-core";
-import { useEffect, useMemo, useState } from "react";
+import {
+	type Accidental,
+	balanceColumns,
+	rootInBass,
+	type SheetLine,
+	sheetChords,
+	sheetColumns,
+	sheetLines,
+} from "@chords/song-core";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+// Measuring runs in the browser only; the server renders the first guess.
+const useBrowserLayoutEffect =
+	typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function SongSheet({
 	content,
@@ -9,13 +21,29 @@ export function SongSheet({
 	columns = 1,
 	chords = true,
 	accidental,
+	onChord,
+	height,
+	onFit,
+	columnEms = COLUMN_EMS,
+	split = false,
 }: {
+	/** Balance columns by lines even across sections (stage mode). */
+	split?: boolean;
+	/** The narrowest a column may get, in em; stage allows slightly narrower columns. */
+	columnEms?: number;
+	/** Room the columns have before the page scrolls; sections split only to stay inside it. */
+	height?: number;
+	/** Reports the text size and column count actually shown, when they differ from the request. */
+	onFit?: (fit: { size: number; columns: number; max: number }) => void;
 	content: string;
 	semitones?: number;
 	fontSize?: number;
+	/** Up to this many columns; fewer when the sheet is too narrow for them. */
 	columns?: number;
 	chords?: boolean;
 	accidental?: Accidental;
+	/** Makes each chord a button, e.g. to show its diagram. */
+	onChord?: (chord: string) => void;
 }) {
 	const lines = useMemo(
 		() => sheetLines(content, semitones, accidental),
@@ -40,51 +68,312 @@ export function SongSheet({
 			) : null
 		) : (
 			<div key={`line-${index}`} className="sheet-line">
-				{sheetWords(line.tokens).map((word, w) => (
-					<span key={`${index}-${w}`} className="sheet-word">
-						{word.map((pair, i) => (
-							<span
-								key={i}
-								className={
-									pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
-								}
-							>
+				{(() => {
+					const words = sheetWords(line.tokens);
+					const renderWord = (word: SheetPair[], w: number) => (
+						<span key={`${index}-${w}`} className="sheet-word">
+							{word.map((pair, i) => (
 								<span
+									key={i}
 									className={
-										pair.chord ? "sheet-chord" : "sheet-chord sheet-chord-empty"
+										pair.joined ? "sheet-pair sheet-pair-joined" : "sheet-pair"
 									}
 								>
-									{pair.chord || "\u200b"}
+									{pair.chord && onChord ? (
+										<button
+											type="button"
+											className="sheet-chord"
+											aria-label={`${pair.chord} chord diagram`}
+											onClick={() => onChord(pair.chord as string)}
+										>
+											{pair.chord}
+										</button>
+									) : (
+										<span
+											className={
+												pair.chord
+													? "sheet-chord"
+													: "sheet-chord sheet-chord-empty"
+											}
+										>
+											{pair.chord || "\u200b"}
+										</span>
+									)}
+									<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
 								</span>
-								<span className="sheet-lyric">{pair.text || "\u00a0"}</span>
-							</span>
-						))}
-					</span>
-				))}
+							))}
+						</span>
+					);
+					// The last two words wrap together, so a line never leaves one word alone.
+					if (words.length < 3) return words.map(renderWord);
+					return [
+						...words.slice(0, -2).map(renderWord),
+						<span key={`${index}-tail`} className="sheet-tail">
+							{words
+								.slice(-2)
+								.map((word, i) => renderWord(word, words.length - 2 + i))}
+						</span>,
+					];
+				})()}
 			</div>
 		);
-	// Each section is one block so multi-column layouts never split it from its heading.
-	const blocks: { line: (typeof lines)[number]; index: number }[][] = [];
-	lines.forEach((line, index) => {
-		if (line.type === "section" || !blocks.length) blocks.push([]);
-		blocks[blocks.length - 1].push({ line, index });
+	// A section is a block; its pieces (the heading with its first line, then one line
+	// each) are where a column may break.
+	const blocks = useMemo(() => {
+		const result: { line: SheetLine; index: number }[][] = [];
+		lines.forEach((line, index) => {
+			if (line.type === "section" || !result.length) result.push([]);
+			const block = result[result.length - 1];
+			// Blank lines at the top of a section only push it down; headings carry the spacing.
+			if (line.type === "blank" && !block.length) return;
+			block.push({ line, index });
+		});
+		return result.filter((block) => block.length);
+	}, [lines]);
+	const pieces = useMemo(
+		() =>
+			blocks.flatMap((block, b) => {
+				const result: Piece[] = [];
+				for (const item of block) {
+					const last = result[result.length - 1];
+					const headingOnly =
+						last?.lines.length === 1 && last.lines[0].line.type === "section";
+					if (last && (item.line.type === "blank" || headingOnly))
+						last.lines.push(item);
+					else result.push({ block: b, start: !result.length, lines: [item] });
+				}
+				return result;
+			}),
+		[blocks],
+	);
+	const root = useRef<HTMLDivElement>(null);
+	const measurer = useRef<HTMLDivElement>(null);
+	const [layout, setLayout] = useState(() => ({
+		columns: Math.min(columns, blocks.length || 1),
+		size: fontSize,
+		starts: balanceColumns(
+			blocks.map(estimateHeight),
+			Math.min(columns, blocks.length || 1),
+		).map((start) => pieces.findIndex((piece) => piece.block === start)),
+	}));
+	// The most columns this width allows at a readable size, so a picker can offer only those.
+	const [maxColumns, setMaxColumns] = useState(3);
+	useBrowserLayoutEffect(() => {
+		const element = root.current;
+		const probe = measurer.current;
+		if (!element) return;
+		const measure = () => {
+			const width = element.clientWidth;
+			// Each column needs 18em. Text shrinks to fit the chosen count, but never below
+			// 18px (or most of the chosen size): fewer columns read better than tiny text.
+			const needed = (count: number) =>
+				count * columnEms + (count - 1) * GAP_EMS;
+			const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
+			let max = 3;
+			while (max > 1 && width / needed(max) < floor) max--;
+			setMaxColumns(max);
+			if (!probe || columns <= 1) return;
+			const count = Math.min(columns, pieces.length || 1, max);
+			const size =
+				count > 1
+					? Math.min(fontSize, Math.floor(width / needed(count)))
+					: fontSize;
+			const gap = GAP_EMS * size;
+			probe.style.fontSize = `${size}px`;
+			probe.style.width = `${(width - gap * (count - 1)) / count}px`;
+			fitChords(probe);
+			const { starts } = sheetColumns(
+				measurePieces(probe),
+				count,
+				height,
+				split,
+			);
+			// Whole sections may need fewer columns than asked for.
+			const next = { columns: starts.length, size, starts };
+			setLayout((previous) =>
+				previous.columns === next.columns &&
+				previous.size === next.size &&
+				previous.starts.join() === next.starts.join()
+					? previous
+					: next,
+			);
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [columns, pieces, fontSize, chords, height, columnEms, split]);
+	// Chord collisions depend on the final layout, so they are fixed after every render
+	// and whenever the sheet's width changes.
+	useBrowserLayoutEffect(() => {
+		const element = root.current;
+		if (!element || !chords) return;
+		fitChords(element);
+		let width = element.clientWidth;
+		const observer = new ResizeObserver(() => {
+			if (element.clientWidth === width) return;
+			width = element.clientWidth;
+			fitChords(element);
+		});
+		observer.observe(element);
+		return () => observer.disconnect();
 	});
-	return (
-		<div
-			className="song-sheet"
-			style={{
-				fontSize,
-				columnCount: columns,
-				columnWidth: columns > 1 ? "20em" : undefined,
-				columnGap: "2em",
-			}}
-		>
-			{blocks.map((block) => (
-				<div key={`block-${block[0].index}`} className="sheet-block">
-					{block.map(({ line, index }) => renderLine(line, index))}
+	const shownColumns = columns > 1 ? layout.columns : 1;
+	const shownSize = shownColumns > 1 ? layout.size : fontSize;
+	useEffect(() => {
+		onFit?.({ size: shownSize, columns: shownColumns, max: maxColumns });
+	}, [onFit, shownSize, shownColumns, maxColumns]);
+	const renderPieces = (slice: Piece[]) => {
+		const groups: Piece[][] = [];
+		for (const piece of slice)
+			if (groups[groups.length - 1]?.[0].block === piece.block)
+				groups[groups.length - 1].push(piece);
+			else groups.push([piece]);
+		return groups.map((group) => {
+			const heading = blocks[group[0].block][0].line;
+			return (
+				<div key={`block-${group[0].lines[0].index}`} className="sheet-block">
+					{/* A column that starts inside a section repeats its heading. */}
+					{group[0].start || heading.type !== "section" ? null : (
+						<p className="sheet-section sheet-section-continued">
+							{heading.label} <span>(continued)</span>
+						</p>
+					)}
+					{group.map((piece) => (
+						<div
+							key={`piece-${piece.lines[0].index}`}
+							className="sheet-piece"
+							data-start={piece.start || undefined}
+						>
+							{piece.lines.map(({ line, index }) => renderLine(line, index))}
+						</div>
+					))}
 				</div>
-			))}
+			);
+		});
+	};
+	const shown = columns > 1 ? layout.columns : 1;
+	const starts =
+		layout.starts.length === shown && layout.starts.every((start) => start >= 0)
+			? layout.starts
+			: [0];
+	return (
+		<div className="sheet-frame">
+			<div
+				ref={root}
+				className={shown > 1 ? "song-sheet sheet-columns" : "song-sheet"}
+				style={{
+					fontSize: shown > 1 ? layout.size : fontSize,
+					gridTemplateColumns:
+						shown > 1 ? `repeat(${shown}, minmax(0, 1fr))` : undefined,
+				}}
+			>
+				{shown > 1
+					? starts.map((start, i) => (
+							<div key={`column-${start}`} className="sheet-column">
+								{renderPieces(
+									pieces.slice(start, starts[i + 1] ?? pieces.length),
+								)}
+							</div>
+						))
+					: renderPieces(pieces)}
+			</div>
+			{columns > 1 ? (
+				// One column at the column width, off screen: where every piece's height comes from.
+				<div className="sheet-probe" aria-hidden>
+					<div ref={measurer} className="song-sheet">
+						{renderPieces(pieces)}
+					</div>
+				</div>
+			) : null}
 		</div>
+	);
+}
+
+type Piece = {
+	block: number;
+	/** The piece opens its section, so a column may start here without a repeated heading. */
+	start: boolean;
+	lines: { line: SheetLine; index: number }[];
+};
+
+const COLUMN_EMS = 18;
+const GAP_EMS = 2.5;
+
+/**
+ * Chords hang over the text that follows them and take no width of their own. Where two
+ * chords on the same row would touch, the later chip moves right just enough, so the
+ * lyric keeps its normal spacing. Only when that would move a chord well off its
+ * syllable (more than 1.2em) is the earlier syllable widened instead.
+ */
+export function fitChords(root: HTMLElement) {
+	const em = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
+	const gap = em * 0.45;
+	// The visible chip, inside any transparent border that only enlarges the tap target.
+	const box = (chip: HTMLElement) => {
+		const rect = chip.getBoundingClientRect();
+		return {
+			left: rect.left + chip.clientLeft,
+			right: rect.right - chip.clientLeft,
+			top: rect.top + chip.clientTop,
+		};
+	};
+	for (const line of root.querySelectorAll<HTMLElement>(".sheet-line")) {
+		const pairs = [...line.querySelectorAll<HTMLElement>(".sheet-pair")];
+		for (const pair of pairs) {
+			pair.style.minWidth = "";
+			const chip = pair.firstElementChild as HTMLElement | null;
+			if (chip) chip.style.translate = "";
+		}
+		let previous: { chip: HTMLElement; pair: HTMLElement } | undefined;
+		for (const pair of pairs) {
+			const chip = pair.firstElementChild as HTMLElement | null;
+			if (!chip || chip.classList.contains("sheet-chord-empty")) continue;
+			if (previous) {
+				const before = box(previous.chip);
+				const after = box(chip);
+				const sameRow = Math.abs(before.top - after.top) < 2;
+				const overlap = before.right + gap - after.left;
+				if (sameRow && overlap > 0) {
+					if (overlap <= em * 1.2) chip.style.translate = `${overlap}px 0`;
+					else {
+						const width = previous.pair.getBoundingClientRect().width;
+						previous.pair.style.minWidth = `${width + overlap}px`;
+					}
+				}
+			}
+			previous = { chip, pair };
+		}
+	}
+}
+
+/**
+ * Heights of the pieces of a single-column sheet, from the distance between their tops,
+ * so collapsed margins between lines are counted exactly once.
+ */
+export function measurePieces(sheet: HTMLElement) {
+	const pieces = [...sheet.querySelectorAll<HTMLElement>(".sheet-piece")];
+	const tops = pieces.map((piece) => piece.offsetTop);
+	const end = sheet.scrollHeight;
+	return pieces.map((piece, i) => ({
+		height: Math.max(0, (tops[i + 1] ?? end) - tops[i]),
+		start: piece.dataset.start === "true",
+	}));
+}
+
+/** A first guess at a section's height, in lines, before the browser can measure it. */
+function estimateHeight(block: { line: SheetLine }[]) {
+	return block.reduce(
+		(sum, { line }) =>
+			sum +
+			(line.type === "blank"
+				? 0.3
+				: line.type === "lyrics"
+					? line.tokens.some((token) => token.chord)
+						? 2.2
+						: 1.3
+					: 1.4),
+		0,
 	);
 }
 
@@ -128,6 +417,7 @@ type Fingering = {
 	fingers: number[];
 	baseFret: number;
 	barres: number[];
+	midi?: number[];
 };
 type GuitarData = {
 	chords: Record<
@@ -139,30 +429,70 @@ export function ChordDiagrams({
 	content,
 	semitones = 0,
 	accidental,
+	onSelect,
 }: {
 	content: string;
 	semitones?: number;
 	accidental?: Accidental;
+	/** Opens a chord elsewhere (e.g. enlarged) instead of cycling its shapes in place. */
+	onSelect?: (chord: string) => void;
 }) {
-	const [database, setDatabase] = useState<GuitarData | null>(null);
+	const database = useGuitarDatabase();
 	const chords = useMemo(
 		() => sheetChords(content, semitones, accidental),
 		[content, semitones, accidental],
 	);
-	useEffect(() => {
-		void import("@tombatossals/chords-db/lib/guitar.json").then((module) =>
-			setDatabase(module.default),
-		);
-	}, []);
 	if (!database) return <p className="muted">Loading guitar shapes…</p>;
 	return (
 		<div className="chord-diagrams">
 			{chords.map((chord) => (
-				<GuitarDiagram key={chord} chord={chord} database={database} />
+				<GuitarDiagram
+					key={chord}
+					chord={chord}
+					database={database}
+					onSelect={onSelect}
+				/>
 			))}
 		</div>
 	);
 }
+let guitarDatabase: Promise<GuitarData> | undefined;
+function useGuitarDatabase() {
+	const [database, setDatabase] = useState<GuitarData | null>(null);
+	useEffect(() => {
+		guitarDatabase ??= import("@tombatossals/chords-db/lib/guitar.json").then(
+			(module) => module.default as GuitarData,
+		);
+		let active = true;
+		void guitarDatabase.then((value) => active && setDatabase(value));
+		return () => {
+			active = false;
+		};
+	}, []);
+	return database;
+}
+
+/** One chord's guitar diagram on its own, e.g. enlarged in a sheet. */
+/** One chord's diagram; `stepper` adds previous/next controls for its other shapes. */
+export function ChordDiagram({
+	chord,
+	stepper,
+}: {
+	chord: string;
+	stepper?: boolean;
+}) {
+	const database = useGuitarDatabase();
+	if (!database) return <p className="muted">Loading guitar shapes…</p>;
+	return (
+		<GuitarDiagram
+			key={chord}
+			chord={chord}
+			database={database}
+			stepper={stepper}
+		/>
+	);
+}
+
 /**
  * A barre shape with no open strings reads as a nut chord when drawn from fret 1.
  * Start the grid at its lowest fret instead, so it gets a "2fr" position label.
@@ -181,12 +511,19 @@ function fromLowestFret(shape: Fingering | undefined): Fingering | undefined {
 	};
 }
 
+// Strings sit 14 apart; a radius of 6 keeps dots on neighbouring strings from touching.
+const DOT = 6;
+
 function GuitarDiagram({
 	chord,
 	database,
+	onSelect,
+	stepper,
 }: {
 	chord: string;
 	database: GuitarData;
+	onSelect?: (chord: string) => void;
+	stepper?: boolean;
 }) {
 	const [position, setPosition] = useState(0);
 	const match = chord.match(/^([A-G][#b]?)(.*)$/);
@@ -208,7 +545,10 @@ function GuitarDiagram({
 	const shapes =
 		database.chords[key]?.find((value) => value.suffix === suffix)?.positions ||
 		[];
-	const shape = fromLowestFret(shapes[position % Math.max(1, shapes.length)]);
+	const picked = shapes[position % Math.max(1, shapes.length)];
+	const shape = fromLowestFret(
+		picked && match ? rootInBass(picked, match[1]) : picked,
+	);
 	if (!shape)
 		return (
 			<div className="diagram-missing">
@@ -216,123 +556,165 @@ function GuitarDiagram({
 				<small>No shape available</small>
 			</div>
 		);
+	const count = shapes.length;
+	const current = (position % Math.max(1, count)) + 1;
+	const diagram = (
+		<svg
+			// One frame for every chord, with room on the left for a "2fr" label.
+			viewBox="-6 0 102 112"
+			role="img"
+			aria-label={`${chord} guitar fingering, fret ${shape.baseFret}`}
+		>
+			{Array.from({ length: 6 }, (_, i) => (
+				<line
+					key={`string-${i}`}
+					x1={15 + i * 14}
+					x2={15 + i * 14}
+					y1="23"
+					y2="99"
+					stroke="currentColor"
+					strokeWidth="1"
+				/>
+			))}
+			{Array.from({ length: 5 }, (_, i) => (
+				<line
+					key={`fret-${i}`}
+					x1="15"
+					x2="85"
+					// The nut sits above the first fret space, so a fret-1 barre keeps clear of it.
+					y1={i === 0 && shape.baseFret === 1 ? 21.5 : 23 + i * 19}
+					y2={i === 0 && shape.baseFret === 1 ? 21.5 : 23 + i * 19}
+					stroke="currentColor"
+					strokeWidth={i === 0 && shape.baseFret === 1 ? 3 : 1}
+				/>
+			))}
+			{shape.baseFret > 1 ? (
+				<text x="10" y="37" fontSize="11" fontWeight="700" textAnchor="end">
+					{shape.baseFret}fr
+				</text>
+			) : null}
+			{shape.barres.map((fret) => {
+				const strings = shape.frets.flatMap((value, i) =>
+					value === fret ? [i] : [],
+				);
+				const from = 15 + Math.min(...strings) * 14;
+				const to = 15 + Math.max(...strings) * 14;
+				const finger = shape.fingers[strings[0]];
+				// One bar with one finger number reads better than a row of identical dots.
+				return (
+					<g key={`barre-${fret}`}>
+						<rect
+							// Barely past the outer barred strings, as tall as a dot so its number fits.
+							x={from - 2}
+							y={13.5 + fret * 19 - DOT}
+							width={to - from + 4}
+							height={DOT * 2}
+							rx={DOT}
+							className="diagram-barre"
+						/>
+						<text
+							x={(from + to) / 2}
+							y={16.5 + fret * 19}
+							textAnchor="middle"
+							fontSize="10.5"
+							fontWeight="600"
+							fill="white"
+						>
+							{finger || ""}
+						</text>
+					</g>
+				);
+			})}
+			{shape.frets.map((fret, i) =>
+				fret > 0 &&
+				shape.barres.includes(fret) &&
+				shape.fingers[i] ===
+					shape.fingers[shape.frets.indexOf(fret)] ? null : fret > 0 ? (
+					<g key={`dot-${i}`}>
+						<circle
+							className="diagram-dot"
+							cx={15 + i * 14}
+							cy={13.5 + fret * 19}
+							r={DOT}
+						/>
+						<text
+							x={15 + i * 14}
+							y={16.5 + fret * 19}
+							textAnchor="middle"
+							fontSize="10.5"
+							fontWeight="600"
+							fill="white"
+						>
+							{shape.fingers[i] || ""}
+						</text>
+					</g>
+				) : fret === 0 ? (
+					<circle
+						key={`open-${i}`}
+						cx={15 + i * 14}
+						cy="12"
+						r="3.5"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.2"
+					/>
+				) : (
+					<path
+						key={`mute-${i}`}
+						d={`M${11.5 + i * 14} 8.5l7 7m0 -7l-7 7`}
+						stroke="currentColor"
+						strokeWidth="1.2"
+					/>
+				),
+			)}
+		</svg>
+	);
+	if (stepper)
+		return (
+			<div className="diagram">
+				<strong>{chord}</strong>
+				{diagram}
+				{count > 1 ? (
+					<div className="diagram-stepper">
+						<button
+							type="button"
+							aria-label="Previous shape"
+							onClick={() =>
+								setPosition((value) => (value + count - 1) % count)
+							}
+						>
+							‹
+						</button>
+						<span aria-live="polite">
+							Shape {current} of {count}
+						</span>
+						<button
+							type="button"
+							aria-label="Next shape"
+							onClick={() => setPosition((value) => (value + 1) % count)}
+						>
+							›
+						</button>
+					</div>
+				) : null}
+			</div>
+		);
 	return (
 		<button
 			type="button"
 			className="diagram"
-			onClick={() => setPosition((value) => value + 1)}
-			title={`${chord}: tap for another shape`}
+			onClick={() =>
+				onSelect ? onSelect(chord) : setPosition((value) => value + 1)
+			}
+			title={
+				onSelect ? `${chord}: open larger` : `${chord}: tap for another shape`
+			}
 		>
 			<strong>{chord}</strong>
-			<svg
-				viewBox="-14 0 114 112"
-				role="img"
-				aria-label={`${chord} guitar fingering, fret ${shape.baseFret}`}
-			>
-				{Array.from({ length: 6 }, (_, i) => (
-					<line
-						key={`string-${i}`}
-						x1={15 + i * 14}
-						x2={15 + i * 14}
-						y1="23"
-						y2="99"
-						stroke="currentColor"
-						strokeWidth="1"
-					/>
-				))}
-				{Array.from({ length: 5 }, (_, i) => (
-					<line
-						key={`fret-${i}`}
-						x1="15"
-						x2="85"
-						y1={23 + i * 19}
-						y2={23 + i * 19}
-						stroke="currentColor"
-						strokeWidth={i === 0 && shape.baseFret === 1 ? 3 : 1}
-					/>
-				))}
-				{shape.baseFret > 1 ? (
-					<text x="3" y="37" fontSize="10" fontWeight="600" textAnchor="end">
-						{shape.baseFret}fr
-					</text>
-				) : null}
-				{shape.barres.map((fret) => {
-					const strings = shape.frets.flatMap((value, i) =>
-						value === fret ? [i] : [],
-					);
-					const from = 15 + Math.min(...strings) * 14;
-					const to = 15 + Math.max(...strings) * 14;
-					const finger = shape.fingers[strings[0]];
-					// One bar with one finger number reads better than a row of identical dots.
-					return (
-						<g key={`barre-${fret}`}>
-							<rect
-								x={from - 7}
-								y={6.5 + fret * 19}
-								width={to - from + 14}
-								height="14"
-								rx="7"
-								className="diagram-barre"
-							/>
-							<text
-								x={(from + to) / 2}
-								y={16.5 + fret * 19}
-								textAnchor="middle"
-								fontSize="9.5"
-								fontWeight="600"
-								fill="white"
-							>
-								{finger || ""}
-							</text>
-						</g>
-					);
-				})}
-				{shape.frets.map((fret, i) =>
-					fret > 0 &&
-					shape.barres.includes(fret) &&
-					shape.fingers[i] ===
-						shape.fingers[shape.frets.indexOf(fret)] ? null : fret > 0 ? (
-						<g key={`dot-${i}`}>
-							<circle
-								className="diagram-dot"
-								cx={15 + i * 14}
-								cy={13.5 + fret * 19}
-								r="7"
-							/>
-							<text
-								x={15 + i * 14}
-								y={16.5 + fret * 19}
-								textAnchor="middle"
-								fontSize="9.5"
-								fontWeight="600"
-								fill="white"
-							>
-								{shape.fingers[i] || ""}
-							</text>
-						</g>
-					) : fret === 0 ? (
-						<circle
-							key={`open-${i}`}
-							cx={15 + i * 14}
-							cy="12"
-							r="3.5"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.2"
-						/>
-					) : (
-						<path
-							key={`mute-${i}`}
-							d={`M${11.5 + i * 14} 8.5l7 7m0 -7l-7 7`}
-							stroke="currentColor"
-							strokeWidth="1.2"
-						/>
-					),
-				)}
-			</svg>
-			{shapes.length > 1 && position % shapes.length ? (
+			{diagram}
+			{count > 1 && position % count ? (
 				<small>
-					Shape {(position % shapes.length) + 1} of {shapes.length}
+					Shape {current} of {count}
 				</small>
 			) : null}
 		</button>

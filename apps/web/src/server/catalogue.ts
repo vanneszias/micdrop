@@ -5,6 +5,7 @@ import {
 	type CatalogueGroup,
 	type CatalogueSummary,
 } from "@chords/data";
+import { songMode } from "@chords/song-core";
 import { HttpError } from "./auth";
 import { catalogueSearchQuery } from "./catalogue-query";
 
@@ -49,21 +50,31 @@ export async function catalogue(request: Request, userId: string) {
 	const query = catalogueSearchQuery(q, offset, song);
 	const { results: groups } = await env.DB.prepare(query.sql)
 		.bind(...query.params)
-		.all<CatalogueGroup>();
-	const page = groups.slice(0, 30);
+		.all<CatalogueGroup & { head?: string | null }>();
+	// Each song shows a key tile like everywhere else; the sheet head only names its mode.
+	const page = groups.slice(0, 30).map(({ head, ...group }) => ({
+		...group,
+		mode: group.key ? songMode(head || "", group.key) : undefined,
+	}));
 	// Return summaries, never full sheets or raw imports in catalogue result pages.
 	let publications: CatalogueSummary[] = [];
 	if (song) {
 		const { results } =
-			await env.DB.prepare(`SELECT p.id,p.record_id,p.song_id,json_remove(p.data,'$.content','$.rawSource') AS data,
+			await env.DB.prepare(`SELECT p.id,p.record_id,p.song_id,json_remove(p.data,'$.content','$.rawSource') AS data,substr(json_extract(p.data,'$.content'),1,600) AS head,
 		COALESCE(SUM(v.value),0) AS score,COUNT(CASE WHEN v.value=1 THEN 1 END) AS upvotes,COUNT(CASE WHEN v.value=-1 THEN 1 END) AS downvotes,COALESCE(MAX(CASE WHEN v.user_id=? THEN v.value END),0) AS myVote,1 AS relevance
 		FROM publications p LEFT JOIN votes v ON v.publication_id=p.id WHERE p.song_id=? AND p.hidden=0 AND p.moderated=0 GROUP BY p.id ORDER BY score DESC,p.id LIMIT 31 OFFSET ?`)
 				.bind(userId, song, offset)
-				.all<Omit<CatalogueSummary, "data"> & { data: string }>();
-		publications = results.slice(0, 30).map((row) => ({
-			...row,
-			data: ArrangementData.parse({ ...JSON.parse(row.data), content: "" }),
-		}));
+				.all<
+					Omit<CatalogueSummary, "data"> & { data: string; head: string | null }
+				>();
+		publications = results.slice(0, 30).map(({ head, ...row }) => {
+			const data = ArrangementData.parse({
+				...JSON.parse(row.data),
+				content: "",
+			});
+			// The sheet stays out of the page; its opening chords are enough to name the mode.
+			return { ...row, data, mode: songMode(head || "", data.key) };
+		});
 		return {
 			groups: page,
 			publications,

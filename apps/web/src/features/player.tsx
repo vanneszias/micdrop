@@ -2,13 +2,20 @@ import type { Arrangement } from "@chords/data";
 import {
 	displayTranspose,
 	KEYS,
-	keyAccidental,
 	keyDistance,
+	keyLabel,
+	modeAccidental,
+	sheetChords,
 	shiftKey,
+	songMode,
 } from "@chords/song-core";
 import { ChordDiagrams, SongSheet } from "@chords/song-ui";
 import { Button } from "@chords/ui/components/button";
 import { ButtonGroup } from "@chords/ui/components/button-group";
+import {
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "@chords/ui/components/dropdown-menu";
 import { Label } from "@chords/ui/components/label";
 import {
 	Popover,
@@ -24,15 +31,17 @@ import {
 	ToggleGroupItem,
 } from "@chords/ui/components/toggle-group";
 import { cn } from "@chords/ui/lib/utils";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
+	Archive,
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	CopyPlus,
+	Download,
 	Gauge,
 	Guitar,
 	Maximize2,
-	Minimize2,
 	Minus,
 	Pause,
 	Pencil,
@@ -46,7 +55,11 @@ import { z } from "zod";
 import { IconTip } from "#/components/icon-tip";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageHeader } from "#/components/page-header";
+import { OverflowMenu } from "#/components/song-row";
+import { useApp } from "#/features/app-context";
 import { SetlistSheet, usePlayingSetlist } from "#/features/setlist-overview";
+import { ChordSheet, Stage } from "#/features/stage";
+import { exportSheet, freshArrangement } from "#/lib/songs";
 
 const preferences = z.object({
 	shapes: z.boolean().default(true),
@@ -92,6 +105,8 @@ export function Player({
 	actions?: React.ReactNode;
 }) {
 	const [shown, setShown] = useState(arrangement);
+	const { owner, save, run } = useApp();
+	const navigate = useNavigate();
 	const playing = usePlayingSetlist();
 	const nextTitle = playing?.entries[playing.current + 1]?.title;
 	const previousTitle = playing?.entries[playing.current - 1]?.title;
@@ -179,7 +194,13 @@ export function Player({
 	};
 	const delta = displayTranspose(shown.data.key, key, shapes ? capo : 0);
 	// Spell chords for the key they are shown in, so Ab shows Db rather than C#.
-	const accidental = keyAccidental(shiftKey(shown.data.key, delta));
+	const mode = songMode(shown.data.content, shown.data.key);
+	const accidental = modeAccidental(shiftKey(shown.data.key, delta), mode);
+	const keyName = keyLabel(key, mode);
+	// "Capo 3 · E shapes": the chords shown are the shapes played above the capo.
+	const capoLabel = `Capo ${capo} · ${keyLabel(shiftKey(key, -capo), mode)} shapes`;
+	// Stage mode swaps the scrolling element, so autoscroll rebinds when it changes.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
 	useEffect(() => {
 		if (!scrolling) return;
 		let frame: number;
@@ -222,7 +243,7 @@ export function Player({
 			clearTimeout(resume);
 			for (const name of events) element?.removeEventListener(name, hold);
 		};
-	}, [scrolling, speed]);
+	}, [scrolling, speed, stage]);
 	useEffect(() => {
 		const pause = () => {
 			if (document.hidden) setScrolling(false);
@@ -249,100 +270,195 @@ export function Player({
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [next, previous]);
+	const enterStage = () => {
+		// Stage mode hides the app around the sheet: full screen, no sidebar.
+		setOpen(false);
+		setStage(true);
+		void document.documentElement.requestFullscreen?.().catch(() => {});
+	};
 	const leaveStage = () => {
 		if (document.fullscreenElement) void document.exitFullscreen();
 		setStage(false);
 		setOpen(true);
 	};
+	const [chord, setChord] = useState<string>();
+	const [fit, setFit] = useState<{
+		size: number;
+		columns: number;
+		max: number;
+	}>();
+	// Sections split across columns only when whole ones would run past the screen.
+	const [sheetHeight, setSheetHeight] = useState<number>();
+	// Autoscroll only shows when there is something to scroll.
+	const [overflows, setOverflows] = useState(true);
+	// The scroller's width, not the sheet's: one column hugs its text, so it can't say
+	// whether more would fit.
+	const [canvas, setCanvas] = useState<number>();
+	// Leaving stage mode mounts a new scroller, so the observer rebinds.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above.
+	useEffect(() => {
+		const element = sheet.current;
+		if (!element) return;
+		const observer = new ResizeObserver(() => {
+			setSheetHeight(Math.max(240, element.clientHeight - 180));
+			setCanvas(element.clientWidth);
+			setOverflows(element.scrollHeight > element.clientHeight + 8);
+		});
+		observer.observe(element);
+		// The content's size changes with columns and text size, not just the window.
+		for (const child of element.children) observer.observe(child);
+		return () => observer.disconnect();
+	}, [stage]);
+	const songChords = sheetChords(shown.data.content, delta, accidental);
+	const maxColumns = (() => {
+		if (!canvas) return 3;
+		const rail = diagrams && !lyricsOnly && window.innerWidth >= 1280 ? 328 : 0;
+		const width = canvas - rail - 64;
+		const floor = Math.min(fontSize, Math.max(18, fontSize * 0.8));
+		let max = 3;
+		while (max > 1 && width / (max * 18 + (max - 1) * 2.5) < floor) max--;
+		// With columns on, the sheet spans the width and its own fit has the last word,
+		// so View never claims more than it shows. One column hugs its text instead.
+		return columns > 1 ? Math.min(max, fit?.max ?? 3) : max;
+	})();
+	if (stage)
+		return (
+			<Stage
+				scroller={sheet}
+				title={shown.data.title}
+				meta={[
+					`Key ${keyName}`,
+					lyricsOnly ? null : capo && shapes ? capoLabel : null,
+				]
+					.filter(Boolean)
+					.join(" · ")}
+				notes={notes}
+				content={shown.data.content}
+				semitones={delta}
+				accidental={accidental}
+				chords={!lyricsOnly}
+				baseSize={fontSize}
+				scrolling={scrolling}
+				onScrolling={setScrolling}
+				previous={previous}
+				next={next}
+				previousTitle={previousTitle}
+				nextTitle={nextTitle}
+				onExit={leaveStage}
+			/>
+		);
 	return (
-		<div
-			className={cn(
-				"flex h-svh flex-col",
-				stage
-					? "fixed inset-0 z-40 bg-background"
-					: "md:h-[calc(100svh-1.5rem)]",
-			)}
-		>
-			{stage ? (
+		<div className="flex h-svh flex-col md:h-[calc(100svh-1.5rem)]">
+			<PageHeader
+				back
+				headingInBody
+				crumbs={[
+					playing
+						? { label: "Setlists", to: "/setlists" }
+						: { label: "Repertoire", to: "/songs" },
+				]}
+				title={
+					playing ? (
+						<SetlistSheet title={shown.data.title} />
+					) : (
+						<span className="max-md:sr-only">{shown.data.title}</span>
+					)
+				}
+			>
+				{actions}
+				{readOnly ? null : (
+					// Labelled on phones too, except in a setlist, whose name needs the header.
+					<Button
+						variant="outline"
+						size="sm"
+						asChild
+						className={cn("max-sm:h-10", playing && "max-sm:hidden")}
+					>
+						<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
+							<Pencil /> Edit
+						</Link>
+					</Button>
+				)}
 				<Button
-					variant="secondary"
+					variant="outline"
 					size="sm"
-					className="fixed top-3 right-3 z-50 shadow-sm"
-					onClick={leaveStage}
+					aria-label="Stage mode"
+					className="max-sm:h-10"
+					onClick={enterStage}
 				>
-					<Minimize2 /> Exit stage
+					<Maximize2 /> Stage
 				</Button>
-			) : null}
-			<div className={stage ? "hidden" : "contents"}>
-				<PageHeader
-					back
-					headingInBody
-					crumbs={[
-						playing
-							? { label: "Setlists", to: "/setlists" }
-							: { label: "Repertoire", to: "/songs" },
-					]}
-					title={
-						playing ? (
-							<SetlistSheet title={shown.data.title} />
-						) : (
-							shown.data.title
-						)
-					}
+				<OverflowMenu
+					label="More song actions"
+					variant="outline"
+					className="max-sm:size-10"
 				>
-					{actions}
-					{readOnly ? null : (
-						<Button variant="outline" size="sm" asChild>
+					{readOnly || !playing ? null : (
+						// In a setlist, phones keep the header for its name.
+						<DropdownMenuItem asChild className="sm:hidden">
 							<Link to="/songs/$id/edit" params={{ id: arrangement.id }}>
-								<Pencil /> <span className="max-sm:sr-only">Edit</span>
+								<Pencil /> Edit
 							</Link>
-						</Button>
+						</DropdownMenuItem>
 					)}
-					<IconTip label={stage ? "Leave stage mode" : "Stage mode"}>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="max-sm:hidden"
-							aria-label={stage ? "Leave stage mode" : "Stage mode"}
-							aria-pressed={stage}
-							onClick={() => {
-								// Stage mode hides the app around the sheet: full screen, no sidebar.
-								if (stage) return leaveStage();
-								setOpen(false);
-								setStage(true);
-								void document.documentElement
-									.requestFullscreen?.()
-									.catch(() => {});
-							}}
+					{readOnly ? null : (
+						// The same core actions as the song's row in Repertoire.
+						<DropdownMenuItem
+							onSelect={() =>
+								void run(
+									() =>
+										save(
+											freshArrangement(owner, {
+												...arrangement.data,
+												arrangementName: `${arrangement.data.arrangementName || "Standard"} (copy)`,
+												visibility: "private",
+												songId: arrangement.data.songId || arrangement.id,
+												copiedFrom: arrangement.id,
+											}),
+										),
+									"Copied",
+								)
+							}
 						>
-							{stage ? <Minimize2 /> : <Maximize2 />}
-						</Button>
-					</IconTip>
-					<IconTip label="Print">
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label="Print"
-							onClick={() => window.print()}
-						>
-							<Printer />
-						</Button>
-					</IconTip>
-				</PageHeader>
-			</div>
+							<CopyPlus /> Duplicate
+						</DropdownMenuItem>
+					)}
+					<DropdownMenuItem onSelect={() => exportSheet(shown)}>
+						<Download /> Export ChordPro
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={() => window.print()}>
+						<Printer /> Print
+					</DropdownMenuItem>
+					{readOnly ? null : (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={() =>
+									void run(async () => {
+										await save({ ...arrangement, archived: true });
+										await navigate({ to: "/songs" });
+									}, "Archived")
+								}
+							>
+								<Archive /> Archive
+							</DropdownMenuItem>
+						</>
+					)}
+				</OverflowMenu>
+			</PageHeader>
 			<div
 				data-print="hide"
-				className={cn(
-					"flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0",
-					stage && "hidden",
-				)}
+				className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-4 py-2 sm:justify-center sm:gap-2 [&>*]:shrink-0"
 			>
 				<div className="flex items-center gap-2 max-sm:hidden">
+					{/* Lyrics only has no chords to transpose, so key and capo rest together. */}
 					<ButtonGroup aria-label="Key">
 						<Button
 							variant="outline"
 							size="icon"
 							aria-label="Transpose down a semitone"
+							disabled={lyricsOnly}
 							onClick={() => step(-1)}
 						>
 							<Minus />
@@ -350,42 +466,51 @@ export function Player({
 						<KeySelect
 							value={key}
 							onChange={setKey}
+							disabled={lyricsOnly}
 							label="Key"
 							prefix="Key"
 							original={shiftKey(shown.data.key, shown.data.sourceCapo)}
-							className="w-24 justify-between"
+							mode={mode}
+							className="w-28 justify-between"
 						/>
 						<Button
 							variant="outline"
 							size="icon"
 							aria-label="Transpose up a semitone"
+							disabled={lyricsOnly}
 							onClick={() => step(1)}
 						>
 							<Plus />
 						</Button>
 					</ButtonGroup>
-					{lyricsOnly ? null : (
-						<CapoSelect
-							value={capo}
-							onChange={setCapo}
-							prefix="Capo"
-							soundingKey={key}
-							className="w-36 justify-between"
-						/>
-					)}
+					{/* Lyrics only keeps the controls in place, disabled, so the bar does not jump. */}
+					<CapoSelect
+						value={capo}
+						onChange={setCapo}
+						prefix="Capo"
+						soundingKey={key}
+						mode={mode}
+						disabled={lyricsOnly}
+						className="w-36 justify-between"
+					/>
 				</div>
 				<Popover>
 					<PopoverTrigger asChild>
-						<Button variant="outline" className="sm:hidden">
+						<Button
+							variant="outline"
+							// A fixed width, so View and Diagrams stay put from song to song.
+							className="w-[9.5rem] justify-start gap-1 sm:hidden"
+						>
 							<span className="sr-only">Key</span>
-							{key}
-							{lyricsOnly ? null : (
-								<>
-									<span className="text-muted-foreground">·</span>
-									{capo ? `Capo ${capo}` : "No capo"}
-								</>
-							)}
-							<ChevronDown className="text-muted-foreground" />
+							{keyName}
+							{/* Lyrics only dims the capo instead of dropping it, so the bar keeps its width. */}
+							<span className="text-muted-foreground">·</span>
+							<span
+								className={lyricsOnly ? "text-muted-foreground" : undefined}
+							>
+								{capo ? `Capo ${capo}` : "No capo"}
+							</span>
+							<ChevronDown className="ml-auto text-muted-foreground" />
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent align="start" className="w-72 space-y-4">
@@ -404,6 +529,7 @@ export function Player({
 									value={key}
 									onChange={setKey}
 									original={shiftKey(shown.data.key, shown.data.sourceCapo)}
+									mode={mode}
 									className="flex-1 justify-between"
 								/>
 								<Button
@@ -423,6 +549,7 @@ export function Player({
 									value={capo}
 									onChange={setCapo}
 									soundingKey={key}
+									mode={mode}
 									className="w-full justify-between"
 								/>
 							</div>
@@ -430,18 +557,24 @@ export function Player({
 					</PopoverContent>
 				</Popover>
 				<Popover>
-					<IconTip label="View options">
-						<PopoverTrigger asChild>
-							<Button
-								variant="outline"
-								aria-label="View options"
-								className="max-sm:px-2.5"
-							>
-								<SlidersHorizontal />
-								View
-							</Button>
-						</PopoverTrigger>
-					</IconTip>
+					{/* No tooltip: the label says it, and a tooltip on a popover trigger fights it for focus. */}
+					<PopoverTrigger asChild>
+						<Button
+							variant="outline"
+							aria-label="View options"
+							className="relative max-sm:px-2.5"
+						>
+							<SlidersHorizontal />
+							View
+							{lyricsOnly || columns > 1 || chosenSize !== undefined ? (
+								// Shows that a view option changes the sheet.
+								<span
+									className="absolute top-1 right-1 size-1.5 rounded-full bg-primary"
+									aria-hidden
+								/>
+							) : null}
+						</Button>
+					</PopoverTrigger>
 					<PopoverContent align="start" className="w-72 space-y-4">
 						<div className="flex items-center justify-between gap-4">
 							<Label htmlFor="lyrics-only">Lyrics only</Label>
@@ -451,7 +584,7 @@ export function Player({
 								onCheckedChange={setLyricsOnly}
 							/>
 						</div>
-						{lyricsOnly ? null : (
+						{lyricsOnly || !capo ? null : (
 							<div className="flex items-center justify-between gap-4">
 								<Label htmlFor="shapes">Show chord shapes for capo</Label>
 								<Switch
@@ -467,18 +600,41 @@ export function Player({
 								type="single"
 								variant="outline"
 								aria-label="Columns"
-								value={String(columns)}
+								// Only counts that fit this width at a readable size can be chosen.
+								value={String(Math.min(columns, maxColumns))}
 								onValueChange={(value) => value && setColumns(Number(value))}
 							>
 								{[1, 2, 3].map((value) => (
-									<ToggleGroupItem key={value} value={String(value)}>
+									<ToggleGroupItem
+										key={value}
+										value={String(value)}
+										disabled={value > maxColumns}
+										title={
+											value > maxColumns
+												? "Needs a wider window or smaller text"
+												: undefined
+										}
+									>
 										{value}
 									</ToggleGroupItem>
 								))}
 							</ToggleGroup>
+							{maxColumns < 3 ? (
+								<p className="text-[13px] text-muted-foreground">
+									{maxColumns === 1 ? "More columns need" : "3 columns need"} a
+									wider window or smaller text.
+								</p>
+							) : null}
 						</div>
 						<div className="space-y-2">
-							<Label>Text size · {fontSize}px</Label>
+							<Label>
+								Text size · {fit && fit.size < fontSize ? fit.size : fontSize}px
+								{fit && fit.size < fontSize ? (
+									<span className="font-normal text-muted-foreground">
+										(fitted to {fit.columns} columns)
+									</span>
+								) : null}
+							</Label>
 							<Slider
 								min={14}
 								max={40}
@@ -488,16 +644,38 @@ export function Player({
 								onValueChange={([value]) => setFontSize(value)}
 							/>
 						</div>
+						{lyricsOnly || columns > 1 || chosenSize !== undefined ? (
+							// The dot on View marks these changes; one click undoes them.
+							<Button
+								variant="outline"
+								size="sm"
+								className="w-full"
+								onClick={() => {
+									setLyricsOnly(false);
+									setColumns(1);
+									setFontSize(undefined);
+								}}
+							>
+								Reset view
+							</Button>
+						) : null}
 					</PopoverContent>
 				</Popover>
-				{lyricsOnly ? null : (
+				{
 					<IconTip
 						label={diagrams ? "Hide chord diagrams" : "Show chord diagrams"}
 					>
 						<Toggle
 							variant="outline"
-							pressed={diagrams}
-							onPressedChange={setDiagrams}
+							disabled={lyricsOnly}
+							// Phones open the diagram sheet instead of adding a strip under the song;
+							// the sheet steps through every chord in it.
+							pressed={narrow ? !!chord : diagrams && !lyricsOnly}
+							onPressedChange={(value) =>
+								narrow
+									? setChord(value ? songChords[0] : undefined)
+									: setDiagrams(value)
+							}
 							aria-label="Chord diagrams"
 							className="px-2.5 sm:px-3"
 						>
@@ -505,18 +683,26 @@ export function Player({
 							Diagrams
 						</Toggle>
 					</IconTip>
-				)}
-				{arrangement.updatedAt !== shown.updatedAt ? (
+				}
+			</div>
+			{arrangement.updatedAt !== shown.updatedAt ? (
+				// A newer revision never hides at the end of a scrolling toolbar.
+				<output
+					data-print="hide"
+					className="flex shrink-0 items-center gap-3 border-b bg-chord/60 px-4 py-2 text-sm sm:justify-center"
+				>
+					<span className="min-w-0 flex-1 sm:flex-none">
+						This song was edited since you opened it.
+					</span>
 					<Button
-						variant="secondary"
 						size="sm"
-						className="ml-auto"
+						variant="outline"
 						onClick={() => setShown(arrangement)}
 					>
 						Load latest version
 					</Button>
-				) : null}
-			</div>
+				</output>
+			) : null}
 			<section
 				ref={sheet}
 				className="print-scroll min-h-0 flex-1 overflow-auto focus-visible:outline-none"
@@ -530,7 +716,10 @@ export function Player({
 						"flex justify-center",
 						// One column centres in a three-column grid; wider layouts take the room they need.
 						columns === 1
-							? "xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10"
+							? // With the rail open, sheet and rail are centred together.
+								diagrams && !lyricsOnly
+								? "xl:grid xl:grid-cols-[1fr_auto_auto_1fr] xl:gap-10"
+								: "xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-10"
 							: "gap-8 px-2",
 					)}
 				>
@@ -553,8 +742,8 @@ export function Player({
 							<p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
 								{[
 									shown.data.artist,
-									`Key ${key}`,
-									lyricsOnly ? null : capo && shapes ? `Capo ${capo}` : null,
+									`Key ${keyName}`,
+									lyricsOnly ? null : capo && shapes ? capoLabel : null,
 								]
 									.filter(Boolean)
 									.join(" · ")}
@@ -569,10 +758,12 @@ export function Player({
 							content={shown.data.content}
 							semitones={delta}
 							accidental={accidental}
-							// Stage mode trades the hidden controls for larger text.
-							fontSize={stage ? fontSize + 4 : fontSize}
+							fontSize={fontSize}
 							columns={columns}
 							chords={!lyricsOnly}
+							onChord={setChord}
+							onFit={setFit}
+							height={sheetHeight}
 						/>
 					</article>
 					{diagrams && !lyricsOnly ? (
@@ -580,48 +771,60 @@ export function Player({
 						<aside
 							data-print="hide"
 							aria-label="Chord diagrams"
-							className="diagram-rail sticky top-0 hidden h-fit w-60 shrink-0 justify-self-start pt-10 xl:block"
+							className="diagram-rail sticky top-0 hidden h-fit w-72 shrink-0 justify-self-start pt-10 xl:block"
 						>
 							<ChordDiagrams
 								content={shown.data.content}
 								semitones={delta}
 								accidental={accidental}
+								onSelect={setChord}
 							/>
 						</aside>
 					) : null}
 				</div>
 			</section>
-			{diagrams && !lyricsOnly ? (
+			{diagrams && !lyricsOnly && !narrow ? (
 				<div
 					data-print="hide"
 					className="shrink-0 border-t bg-card/50 py-3 xl:hidden"
 				>
-					<div className="mx-auto max-w-[800px] px-6">
-						<ChordDiagrams
-							content={shown.data.content}
-							semitones={delta}
-							accidental={accidental}
-						/>
+					<div className="mx-auto max-w-[800px] px-6 max-sm:px-4">
+						{narrow ? (
+							// Phones get a compact launcher; each chord opens its diagram full size.
+							<div className="flex items-center gap-1.5 overflow-x-auto">
+								<span className="shrink-0 text-xs text-muted-foreground">
+									Tap a chord
+								</span>
+								{songChords.map((value) => (
+									<Button
+										key={value}
+										variant="outline"
+										size="sm"
+										className="h-10 min-w-11 shrink-0 font-mono"
+										onClick={() => setChord(value)}
+									>
+										{value}
+									</Button>
+								))}
+							</div>
+						) : (
+							<ChordDiagrams
+								content={shown.data.content}
+								semitones={delta}
+								accidental={accidental}
+								onSelect={setChord}
+							/>
+						)}
 					</div>
 				</div>
 			) : null}
-			{nextTitle && !diagrams ? (
-				<button
-					type="button"
-					data-print="hide"
-					onClick={next}
-					className="flex shrink-0 items-center gap-2 border-t px-4 py-2 text-left text-xs text-muted-foreground sm:hidden"
-				>
-					Up next
-					<span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-						{nextTitle}
-					</span>
-					<ChevronRight className="size-4" />
-				</button>
-			) : null}
+			{/* Nothing to scroll and no setlist neighbours: no footer at all. */}
 			<footer
 				data-print="hide"
-				className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2"
+				className={cn(
+					"grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2 max-sm:px-2",
+					!previous && !next && !overflows && !scrolling && "hidden",
+				)}
 			>
 				<Button
 					variant="ghost"
@@ -637,11 +840,18 @@ export function Player({
 					}
 				>
 					<ChevronLeft />
+					{/* Both directions read the same: a title on wide screens, a word on phones. */}
+					<span className="sm:hidden">Prev</span>
 					<span className="truncate max-sm:hidden">
 						{previousTitle || "Previous"}
 					</span>
 				</Button>
-				<div className="flex items-center gap-3">
+				<div
+					className={cn(
+						"flex items-center gap-3",
+						!overflows && !scrolling && "invisible",
+					)}
+				>
 					<Button
 						variant={scrolling ? "secondary" : "default"}
 						size="sm"
@@ -656,13 +866,17 @@ export function Player({
 							<Button
 								variant="outline"
 								size="sm"
-								className="font-mono tabular-nums sm:hidden"
-								aria-label={`Scroll speed ${speed}`}
+								className="tabular-nums sm:hidden"
+								aria-label={`Scroll speed ${(speed / 25).toFixed(1)}×`}
 							>
 								<Gauge /> {(speed / 25).toFixed(1)}×
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent side="top" className="w-56 space-y-3">
+						<PopoverContent
+							side="top"
+							align="center"
+							className="w-56 space-y-3"
+						>
 							<Label>Scroll speed · {(speed / 25).toFixed(1)}×</Label>
 							<Slider
 								min={5}
@@ -683,7 +897,7 @@ export function Player({
 							value={[speed]}
 							onValueChange={([value]) => setSpeed(value)}
 						/>
-						<span className="w-8 text-right font-mono text-xs tabular-nums text-muted-foreground">
+						<span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
 							{(speed / 25).toFixed(1)}×
 						</span>
 					</div>
@@ -699,21 +913,17 @@ export function Player({
 					)}
 					aria-label={nextTitle ? `Next: ${nextTitle}` : "Next song"}
 				>
-					<span className={cn("truncate", !diagrams && "max-sm:hidden")}>
-						{nextTitle && !diagrams ? (
-							<>
-								<span className="text-muted-foreground max-sm:hidden">
-									Next:{" "}
-								</span>
-								{nextTitle}
-							</>
-						) : (
-							"Next"
-						)}
-					</span>
+					<span className="sm:hidden">Next</span>
+					<span className="truncate max-sm:hidden">{nextTitle || "Next"}</span>
 					<ChevronRight />
 				</Button>
 			</footer>
+			<ChordSheet
+				chord={chord}
+				chords={songChords}
+				onChord={setChord}
+				onClose={() => setChord(undefined)}
+			/>
 		</div>
 	);
 }

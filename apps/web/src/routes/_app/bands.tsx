@@ -40,7 +40,7 @@ import {
 } from "@chords/ui/components/select";
 import { Spinner } from "@chords/ui/components/spinner";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Link2, Plus, Users, X } from "lucide-react";
+import { ArrowRight, Link2, Plus, UserPlus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { PageBody, PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
@@ -52,6 +52,7 @@ export const Route = createFileRoute("/_app/bands")({ component: Bands });
 function Bands() {
 	const { account, bands, refetchBands, store, run, busy } = useApp();
 	const [open, setOpen] = useState(false);
+	const [bandName, setBandName] = useState("");
 	const signedOut = account === "local";
 	const changed = async () => {
 		await refetchBands();
@@ -100,6 +101,8 @@ function Bands() {
 											name="name"
 											required
 											maxLength={100}
+											value={bandName}
+											onChange={(event) => setBandName(event.target.value)}
 										/>
 									</Field>
 									<DialogFooter>
@@ -108,7 +111,7 @@ function Bands() {
 												Cancel
 											</Button>
 										</DialogClose>
-										<Button disabled={busy}>
+										<Button disabled={busy || !bandName.trim()}>
 											{busy ? <Spinner /> : null} Create band
 										</Button>
 									</DialogFooter>
@@ -158,6 +161,9 @@ function BandCard({
 	run: (fn: () => Promise<unknown>, success?: string) => Promise<boolean>;
 }) {
 	const [role, setRole] = useState("editor");
+	// The add form stays folded until it is needed, so the card leads with its members.
+	const [adding, setAdding] = useState(false);
+	const [email, setEmail] = useState("");
 	const [inviting, setInviting] = useState(false);
 	const owner = band.role === "owner";
 	const { setOwner } = useApp();
@@ -170,7 +176,7 @@ function BandCard({
 					{band.members.length}{" "}
 					{band.members.length === 1 ? "member" : "members"}
 				</CardDescription>
-				<CardAction className="flex items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
+				<CardAction className="flex flex-wrap items-center gap-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start">
 					<Button
 						size="sm"
 						variant="outline"
@@ -187,57 +193,81 @@ function BandCard({
 							size="sm"
 							onClick={() => setInviting(true)}
 						>
-							<Link2 /> Invite
+							<Link2 /> Invite link
+						</Button>
+					) : null}
+					{owner ? (
+						// Both ways to add people sit together; the form opens below the members.
+						<Button
+							variant="outline"
+							size="sm"
+							aria-expanded={adding}
+							onClick={() => setAdding(true)}
+						>
+							<UserPlus /> Add member by email
 						</Button>
 					) : null}
 				</CardAction>
 			</CardHeader>
-			<CardContent className="divide-y max-sm:px-4">
-				{band.members.map((member) => (
-					<div key={member.id} className="flex items-center gap-3 py-2.5">
-						<Avatar className="size-8">
-							<AvatarFallback className="text-xs">
-								{member.name[0]?.toUpperCase()}
-							</AvatarFallback>
-						</Avatar>
-						<div className="min-w-0 flex-1">
-							<div className="flex items-center gap-2 text-sm font-medium">
-								<span className="truncate">{member.name}</span>
-								<Badge variant="secondary" className="capitalize">
-									{member.role}
-								</Badge>
+			<CardContent className="max-sm:px-4">
+				<h3 className="pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Members
+				</h3>
+				<div className="divide-y">
+					{band.members.map((member) => (
+						<div key={member.id} className="flex items-center gap-3 py-2.5">
+							<Avatar className="size-8">
+								<AvatarFallback className="text-xs">
+									{member.name[0]?.toUpperCase()}
+								</AvatarFallback>
+							</Avatar>
+							<div className="min-w-0 flex-1">
+								<div className="flex items-center gap-2 text-sm font-medium">
+									<span className="truncate">{member.name}</span>
+									<Badge variant="secondary" className="capitalize">
+										{member.role}
+									</Badge>
+								</div>
+								<div className="truncate text-xs text-muted-foreground">
+									{member.email}
+								</div>
 							</div>
-							<div className="truncate text-xs text-muted-foreground">
-								{member.email}
-							</div>
+							{owner && member.role !== "owner" ? (
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label={`Remove ${member.name}`}
+									onClick={() =>
+										void run(async () => {
+											await api("/api/bands", {
+												action: "remove",
+												bandId: band.id,
+												memberId: member.id,
+											});
+											await changed();
+										})
+									}
+								>
+									<X />
+								</Button>
+							) : null}
 						</div>
-						{owner && member.role !== "owner" ? (
-							<Button
-								variant="ghost"
-								size="icon-sm"
-								aria-label={`Remove ${member.name}`}
-								onClick={() =>
-									void run(async () => {
-										await api("/api/bands", {
-											action: "remove",
-											bandId: band.id,
-											memberId: member.id,
-										});
-										await changed();
-									})
-								}
-							>
-								<X />
-							</Button>
-						) : null}
-					</div>
-				))}
+					))}
+				</div>
 			</CardContent>
-			{owner ? (
+
+			{owner && adding ? (
 				<CardFooter className="flex-col items-stretch gap-2 border-t max-sm:px-4">
-					<Label htmlFor={`add-member-${band.id}`}>Add a member</Label>
+					<div className="space-y-0.5">
+						<Label htmlFor={`add-member-${band.id}`}>Add member by email</Label>
+						<p className="text-[13px] text-muted-foreground">
+							Their email must already have a Mic Drop account. For anyone else,
+							share the invite link instead.
+						</p>
+					</div>
 					<form
 						className="flex w-full flex-wrap gap-2"
+						onKeyDown={(event) => event.key === "Escape" && setAdding(false)}
 						onSubmit={(event) => {
 							event.preventDefault();
 							const form = event.currentTarget;
@@ -251,6 +281,7 @@ function BandCard({
 								});
 								await changed();
 								form.reset();
+								setEmail("");
 							}, "Member added");
 						}}
 					>
@@ -260,6 +291,9 @@ function BandCard({
 							type="email"
 							placeholder="Their account email"
 							required
+							value={email}
+							onChange={(event) => setEmail(event.target.value)}
+							autoFocus
 							className="min-w-0 flex-1 max-sm:basis-full"
 						/>
 						<Select value={role} onValueChange={setRole}>
@@ -271,7 +305,14 @@ function BandCard({
 								<SelectItem value="viewer">Viewer</SelectItem>
 							</SelectContent>
 						</Select>
-						<Button variant="outline">Add</Button>
+						<Button disabled={!/^\S+@\S+\.\S+$/.test(email)}>Add</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							onClick={() => setAdding(false)}
+						>
+							Cancel
+						</Button>
 					</form>
 					<p className="text-xs text-muted-foreground">
 						Editors can change the band's songs and setlists. Viewers can open

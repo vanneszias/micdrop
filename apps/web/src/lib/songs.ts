@@ -1,5 +1,5 @@
 import type { Arrangement } from "@chords/data";
-import { exportChordPro } from "@chords/song-core";
+import { exportChordPro, keyLabel, songMode } from "@chords/song-core";
 
 export async function api<T>(path: string, body?: unknown): Promise<T> {
 	const response = await fetch(
@@ -92,4 +92,12 @@ export function canMoveFrom(account: string, owner: string, bands: Band[]) {
 		owner === account ||
 		canEditRole(bands.find((band) => band.id === owner)?.role)
 	);
+}
+
+/** A song's key as players name it ("Am" for a minor song), optionally after transposing to `key`. */
+export function displayKey(
+	data: { key: string; content: string },
+	key = data.key,
+) {
+	return keyLabel(key, songMode(data.content, data.key));
 }
