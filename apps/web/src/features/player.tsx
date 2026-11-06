@@ -93,6 +93,8 @@ export function Player({
 	previous,
 	readOnly,
 	actions,
+	stage: stageProp,
+	onStageChange,
 }: {
 	arrangement: Arrangement;
 	account: string;
@@ -103,6 +105,9 @@ export function Player({
 	previous?: () => void;
 	readOnly?: boolean;
 	actions?: React.ReactNode;
+	// Routes that remount Player per song own stage mode and pass it down, so it survives a song change.
+	stage?: boolean;
+	onStageChange?: (on: boolean) => void;
 }) {
 	const [shown, setShown] = useState(arrangement);
 	const { owner, save, run } = useApp();
@@ -177,7 +182,9 @@ export function Player({
 	]);
 	const sheet = useRef<HTMLElement>(null);
 	const { setOpen } = useSidebar();
-	const [stage, setStage] = useState(false);
+	const [ownStage, setOwnStage] = useState(false);
+	const stage = stageProp ?? ownStage;
+	const setStage = onStageChange ?? setOwnStage;
 	useEffect(() => {
 		// Leaving full screen with Esc also leaves stage mode.
 		const change = () => {
@@ -187,7 +194,7 @@ export function Player({
 		};
 		document.addEventListener("fullscreenchange", change);
 		return () => document.removeEventListener("fullscreenchange", change);
-	}, [setOpen]);
+	}, [setOpen, setStage]);
 	const step = (semitones: number) => {
 		const index = KEYS.indexOf(key as (typeof KEYS)[number]);
 		if (index >= 0) setKey(KEYS[(index + semitones + 12) % 12]);

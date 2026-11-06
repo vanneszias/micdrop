@@ -27,6 +27,7 @@ import { Skeleton } from "@chords/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, Copy, Link2Off } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 import { PageHeader } from "#/components/page-header";
 import { useApp } from "#/features/app-context";
@@ -48,6 +49,8 @@ function Shared() {
 	const { index } = Route.useSearch();
 	const { account, online } = useApp();
 	const navigate = useNavigate({ from: Route.fullPath });
+	// Player remounts per song, so stage mode lives here to survive a song change.
+	const [stage, setStage] = useState(false);
 	const share = useQuery({
 		queryKey: ["share", token],
 		queryFn: () =>
@@ -110,6 +113,8 @@ function Shared() {
 				}
 				previous={index > 0 ? () => go(index - 1) : undefined}
 				next={index < entries.length - 1 ? () => go(index + 1) : undefined}
+				stage={stage}
+				onStageChange={setStage}
 			/>
 		);
 	return (
