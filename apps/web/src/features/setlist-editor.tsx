@@ -4,15 +4,7 @@ import {
 	type Setlist,
 	type SongRecord,
 } from "@chords/data";
-import {
-	KEYS,
-	keyDistance,
-	keyLabel,
-	type Mode,
-	modeAccidental,
-	songMode,
-} from "@chords/song-core";
-import { SongSheet } from "@chords/song-ui";
+import { KEYS, keyLabel, type Mode, songMode } from "@chords/song-core";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -98,8 +90,6 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
 import { CapoSelect, KeySelect } from "#/components/key-select";
 import { PageBody, PageHeader } from "#/components/page-header";
@@ -110,9 +100,9 @@ import {
 	SongRow,
 } from "#/components/song-row";
 import { reportClientError } from "#/integrations/sentry/client";
-import { displayKey } from "#/lib/songs";
 import { useApp } from "./app-context";
 import { CatalogueSearch } from "./catalogue-search";
+import { SetlistPrintDialog } from "./setlist-print";
 
 /** Setlists created this session, so the editor can select the name for typing. */
 export const freshSetlists = new Set<string>();
@@ -189,47 +179,8 @@ export function SetlistEditor({
 			search: { setlist: list.id, index },
 		});
 	}
-	function print() {
-		const popup = window.open("", "_blank");
-		if (!popup) return toast.error("Allow pop-ups to print.");
-		popup.document.title = list.data.title;
-		popup.document.documentElement.className = "dark";
-		for (const stylesheet of document.querySelectorAll(
-			'link[rel="stylesheet"]',
-		))
-			popup.document.head.appendChild(stylesheet.cloneNode(true));
-		const container = popup.document.createElement("main");
-		popup.document.body.appendChild(container);
-		flushSync(() =>
-			createRoot(container).render(
-				list.data.entries.map((entry) => {
-					const song = songs.find((value) => value.id === entry.arrangementId);
-					return song ? (
-						<article key={entry.id} className="print-song p-6">
-							<h1 className="text-2xl font-semibold">{song.data.title}</h1>
-							<p>
-								{song.data.artist} · Key {displayKey(song.data, entry.key)}
-							</p>
-							<p>{entry.notes}</p>
-							<SongSheet
-								content={song.data.content}
-								semitones={keyDistance(song.data.key, entry.key)}
-								accidental={modeAccidental(
-									entry.key,
-									songMode(song.data.content, song.data.key),
-								)}
-							/>
-						</article>
-					) : (
-						<p key={entry.id}>Arrangement unavailable</p>
-					);
-				}),
-			),
-		);
-		void popup.document.fonts.ready.then(() =>
-			popup.requestAnimationFrame(() => popup.print()),
-		);
-	}
+	const [printing, setPrinting] = useState(false);
+	const print = () => setPrinting(true);
 	const [deleting, setDeleting] = useState(false);
 	const [noting, setNoting] = useState<string>();
 	const [title, setTitle] = useState(list.data.title);
@@ -272,6 +223,12 @@ export function SetlistEditor({
 	const songCount = `${entries.length} ${entries.length === 1 ? "song" : "songs"}`;
 	return (
 		<>
+			<SetlistPrintDialog
+				list={list}
+				songs={songs}
+				open={printing}
+				onOpenChange={setPrinting}
+			/>
 			<PageHeader
 				back
 				headingInBody
