@@ -159,8 +159,12 @@
   .print-scroll { overflow: visible !important; height: auto !important; }
   .song-sheet { font-size: 16px !important; }
   .print-song { break-after: page; } .print-song:last-child { break-after: auto; }
+  .print-flow .print-song { break-after: auto; }
 }
 .sheet-block { break-inside: avoid; }
+/* Setlist print options: hide labels and comments, or let songs follow each other. */
+.print-no-sections .sheet-section, .print-no-comments .sheet-note { display: none; }
+.print-flow .print-song + .print-song { border-top: 1px solid var(--border); }
 /* The sheet and every column start flush with their first heading, so headings line up. */
 .song-sheet > .sheet-block:first-child > .sheet-piece:first-child > :first-child,
 .sheet-column > .sheet-block:first-child > :first-child,
